@@ -54,6 +54,23 @@ const (
 	RepoVisibilityPrivate = RepoVisibility("private")
 )
 
+// knownRepoVisibilityValues is a map of known RepoVisibility values, used for validation
+var knownRepoVisibilityValues = map[RepoVisibility]struct{}{
+	RepoVisibilityPublic:   {},
+	RepoVisibilityInternal: {},
+	RepoVisibilityPrivate:  {},
+}
+
+// validateRepoVisibility validates a given RepoVisibility.
+// Use as errs.Append(validateRepoVisibility(visibility), visibility, "FieldName")
+func validateRepoVisibility(r RepoVisibility) error {
+	_, ok := knownRepoVisibilityValues[r]
+	if !ok {
+		return ErrFieldInvalid
+	}
+	return nil
+}
+
 // RepositoryPermission is an enum specifying the access level for a certain team or person
 // for a given repository
 type RepositoryPermission string
@@ -80,6 +97,25 @@ const (
 	RepositoryPermissionAdmin = RepositoryPermission("admin")
 )
 
+// knownRepoVisibilityValues is a map of known RepositoryPermission values, used for validation
+var knownRepositoryPermissionValues = map[RepositoryPermission]struct{}{
+	RepositoryPermissionPull:     {},
+	RepositoryPermissionTriage:   {},
+	RepositoryPermissionPush:     {},
+	RepositoryPermissionMaintain: {},
+	RepositoryPermissionAdmin:    {},
+}
+
+// validateRepositoryPermission validates a given RepositoryPermission.
+// Use as errs.Append(validateRepositoryPermission(permission), permission, "FieldName")
+func validateRepositoryPermission(p RepositoryPermission) error {
+	_, ok := knownRepositoryPermissionValues[p]
+	if !ok {
+		return ErrFieldInvalid
+	}
+	return nil
+}
+
 // LicenseTemplate is an enum specifying a license template that can be used when creating a
 // repository. Examples of available licenses are here:
 // https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/licensing-a-repository#searching-github-by-license-type
@@ -96,3 +132,20 @@ const (
 	// https://choosealicense.com/licenses/gpl-3.0/
 	LicenseTemplateGPL3 = LicenseTemplate("gpl-3.0")
 )
+
+// knownLicenseTemplateValues is a map of known LicenseTemplate values, used for validation
+var knownLicenseTemplateValues = map[LicenseTemplate]struct{}{
+	LicenseTemplateApache2: {},
+	LicenseTemplateMIT:     {},
+	LicenseTemplateGPL3:    {},
+}
+
+// validateLicenseTemplate validates a given LicenseTemplate.
+// Use as errs.Append(validateLicenseTemplate(template), template, "FieldName")
+func validateLicenseTemplate(t LicenseTemplate) error {
+	_, ok := knownLicenseTemplateValues[t]
+	if !ok {
+		return ErrFieldInvalid
+	}
+	return nil
+}

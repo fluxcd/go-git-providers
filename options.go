@@ -28,24 +28,42 @@ func WithRepositoryCreateOptions(desired RepositoryCreateOptions) RepositoryCrea
 }
 
 // MakeRepositoryCreateOptions returns a RepositoryCreateOptions based off the mutator functions
-// given to e.g. RepositoriesClient.Create().
-func MakeRepositoryCreateOptions(fns ...RepositoryCreateOptionsFunc) RepositoryCreateOptions {
+// given to e.g. RepositoriesClient.Create(). The returned validation error might be ignored in the
+// case that the client allows e.g. other license templates than those that are common
+func MakeRepositoryCreateOptions(fns ...RepositoryCreateOptionsFunc) (RepositoryCreateOptions, error) {
 	opts := &RepositoryCreateOptions{}
 	for _, fn := range fns {
 		fn(opts)
 	}
-	return *opts
+	opts.Default()
+	return *opts, opts.ValidateCreate()
 }
+
+// RepositoryCreateOptions implements Creator
+var _ Creator = &RepositoryCreateOptions{}
 
 // RepositoryCreateOptions specifies optional options when creating a repository
 type RepositoryCreateOptions struct {
 	// AutoInit can be set to true in order to automatically initialize the Git repo with a
 	// README.md and optionally a license in the first commit.
-	// Default: false
+	// Default: nil (which means "false, don't create")
 	AutoInit *bool
 
 	// LicenseTemplate lets the user specify a license template to use when AutoInit is true
 	// Default: nil
 	// Available options: See the LicenseTemplate enum
 	LicenseTemplate *LicenseTemplate
+}
+
+// Default implements Creator, setting default values for the options if needed
+// For this specific case, it's ok to leave things as nil
+func (opts *RepositoryCreateOptions) Default() {}
+
+// ValidateCreate validates that the options are valid
+func (opts *RepositoryCreateOptions) ValidateCreate() error {
+	errs := newValidationErrorList("RepositoryCreateOptions")
+	if opts.LicenseTemplate != nil {
+		errs.Append(validateLicenseTemplate(*opts.LicenseTemplate), *opts.LicenseTemplate, "LicenseTemplate")
+	}
+	return errs.Error()
 }

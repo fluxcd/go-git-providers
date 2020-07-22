@@ -19,6 +19,7 @@ package gitprovider
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"testing"
 )
 
@@ -28,28 +29,29 @@ const multiErrorStr = `multiple errors occurred:
 - validation error for Foo.Bar: field is required`
 
 func Test_validationErrorList_Error(t *testing.T) {
+	myCustomValidationErr := fmt.Errorf("value cannot contain dashes: %w", ErrFieldInvalid)
 	tests := []struct {
 		name           string
 		structName     string
 		errs           []error
 		usageFunc      func(*validationErrorList)
-		expectedErr    error
+		expectedErrs   []error
 		expectedErrStr string
 	}{
 		{
-			name:        "nil errors",
-			errs:        nil,
-			expectedErr: nil,
+			name:         "nil errors",
+			errs:         nil,
+			expectedErrs: nil,
 		},
 		{
-			name:        "zero errors",
-			errs:        []error{},
-			expectedErr: nil,
+			name:         "zero errors",
+			errs:         []error{},
+			expectedErrs: nil,
 		},
 		{
-			name:        "many nil errors",
-			errs:        []error{nil, nil, nil},
-			expectedErr: nil,
+			name:         "many nil errors",
+			errs:         []error{nil, nil, nil},
+			expectedErrs: nil,
 		},
 		{
 			name:       "append nil error",
@@ -57,8 +59,8 @@ func Test_validationErrorList_Error(t *testing.T) {
 			usageFunc: func(errs *validationErrorList) {
 				errs.Append(nil, nil, "Bar")
 			},
-			errs:        []error{nil, nil, nil},
-			expectedErr: nil,
+			errs:         []error{nil, nil, nil},
+			expectedErrs: nil,
 		},
 		{
 			name:       "one required, one existing nil error ignored",
@@ -67,7 +69,7 @@ func Test_validationErrorList_Error(t *testing.T) {
 				errs.Required("Bar")
 			},
 			errs:           []error{nil},
-			expectedErr:    ErrFieldRequired,
+			expectedErrs:   []error{ErrFieldRequired},
 			expectedErrStr: "validation error for Foo.Bar: field is required",
 		},
 		{
@@ -76,29 +78,28 @@ func Test_validationErrorList_Error(t *testing.T) {
 			usageFunc: func(errs *validationErrorList) {
 				errs.Invalid("myvalue", "Bar", "Baz", "Hey", "There")
 			},
-			expectedErr:    ErrFieldInvalid,
+			expectedErrs:   []error{ErrFieldInvalid},
 			expectedErrStr: "validation error for Foo.Bar.Baz.Hey.There (value: myvalue): field is invalid",
 		},
 		{
-			name:       "one invalid, using more context and append",
+			name:       "one invalid, using a custom error",
 			structName: "Foo",
 			usageFunc: func(errs *validationErrorList) {
-				validationErr := fmt.Errorf("value cannot contain dashes: %w", ErrFieldInvalid)
-				errs.Append(validationErr, "my-value", "Bar")
+				errs.Append(myCustomValidationErr, "my-value", "Bar")
 			},
-			expectedErr:    ErrFieldInvalid,
+			expectedErrs:   []error{ErrFieldInvalid},
 			expectedErrStr: "validation error for Foo.Bar (value: my-value): value cannot contain dashes: field is invalid",
 		},
 		{
 			name:       "return multiple errors",
 			structName: "Foo",
 			usageFunc: func(errs *validationErrorList) {
-				validationErr := fmt.Errorf("value cannot contain dashes: %w", ErrFieldInvalid)
-				errs.Append(validationErr, "my-value", "Bar")
+				errs.Append(myCustomValidationErr, "my-value", "Bar")
 				errs.Invalid("myvalue", "Bar", "Baz", "Hey", "There")
 				errs.Required("Bar")
 			},
-			expectedErr:    &MultiError{},
+			// We expect errors.Is to return true for all of these types
+			expectedErrs:   []error{&MultiError{}, ErrFieldInvalid, ErrFieldRequired, myCustomValidationErr},
 			expectedErrStr: multiErrorStr,
 		},
 	}
@@ -111,14 +112,89 @@ func Test_validationErrorList_Error(t *testing.T) {
 				tt.usageFunc(el)
 			}
 			err := el.Error()
-			if !errors.Is(err, tt.expectedErr) {
-				t.Errorf("validationErrorList.Error() error = %v, wantErr %v", err, tt.expectedErr)
+			// Loop through all expected errors and make sure that errors.Is returns true
+			for _, expectedErr := range tt.expectedErrs {
+				if !errors.Is(err, expectedErr) {
+					t.Errorf("validationErrorList.Error() error = %v, wantErr %v", err, expectedErr)
+				}
 			}
+			// Make sure the error string matches the expected one
 			if err != nil {
 				errStr := err.Error()
 				if errStr != tt.expectedErrStr {
 					t.Errorf("validationErrorList.Error() error string = %q, wanted %q", errStr, tt.expectedErrStr)
 				}
+			}
+		})
+	}
+}
+
+type customErrorType struct {
+	data string
+}
+
+func (e *customErrorType) Error() string {
+	return fmt.Sprintf("I'm custom, with data: %s", e.data)
+}
+
+func TestMultiError_As(t *testing.T) {
+	targetVal := &customErrorType{data: "foo"}
+	tests := []struct {
+		name        string
+		errors      []error
+		expectedVal interface{}
+		expectedOk  bool
+	}{
+		{
+			name:       "cast to MultiError, containing data, success",
+			errors:     []error{ErrAlreadyExists, ErrDomainUnsupported},
+			expectedOk: true,
+		},
+		{
+			name:        "cast to custom type embedded in error list, success",
+			errors:      []error{ErrAlreadyExists, ErrDomainUnsupported, targetVal},
+			expectedVal: targetVal,
+			expectedOk:  true,
+		},
+		{
+			name:       "cast to custom type not in error list, fail",
+			errors:     []error{ErrAlreadyExists, ErrDomainUnsupported},
+			expectedOk: false,
+		},
+	}
+	for i, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			multiErr := &MultiError{
+				Errors: tt.errors,
+			}
+			// Ideally, there would be a tt.target embedded which could let us only have one
+			// errors.As() call, but due to how errors.As() works, we need to call it with the
+			// exact type of the error it should be casted into (not behind a generic interface{}),
+			// so hence we need to split this up per-case
+			var got bool
+			var target interface{}
+			switch i {
+			case 0:
+				localTarget := &MultiError{}
+				got = errors.As(multiErr, &localTarget)
+				target = localTarget
+			case 1:
+				localTarget := &customErrorType{}
+				got = errors.As(multiErr, &localTarget)
+				target = localTarget
+			case 2:
+				localTarget := &customErrorType{}
+				got = errors.As(multiErr, &localTarget)
+				target = localTarget
+			}
+
+			// Make sure the return value was expected
+			if got != tt.expectedOk {
+				t.Errorf("errors.As(%T, %T) = %v, want %v", multiErr, target, got, tt.expectedOk)
+			}
+			// Make sure target was updated to include the right struct data
+			if tt.expectedVal != nil && !reflect.DeepEqual(target, tt.expectedVal) {
+				t.Errorf("Expected errors.As() to populate target (%v) to equal %v", target, tt.expectedVal)
 			}
 		})
 	}

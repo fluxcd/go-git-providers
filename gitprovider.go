@@ -74,7 +74,7 @@ type Creatable interface {
 	Default()
 }
 
-// Creatable is an interface which all objects that can be updated
+// Updatable is an interface which all objects that can be updated
 // (using the Client) should implement
 type Updatable interface {
 	// ValidateUpdate will be run in every .Update() client call

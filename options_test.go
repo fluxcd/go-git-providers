@@ -17,6 +17,7 @@ limitations under the License.
 package gitprovider
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 )
@@ -32,21 +33,20 @@ var (
 
 func TestMakeRepositoryCreateOptions(t *testing.T) {
 	tests := []struct {
-		name    string
-		fns     []RepositoryCreateOptionsFunc
-		want    RepositoryCreateOptions
-		wantErr bool
+		name        string
+		fns         []RepositoryCreateOptionsFunc
+		want        RepositoryCreateOptions
+		wantErr     bool
+		expectedErr error
 	}{
 		{
-			name:    "default nil pointers",
-			want:    RepositoryCreateOptions{},
-			wantErr: false,
+			name: "default nil pointers",
+			want: RepositoryCreateOptions{},
 		},
 		{
-			name:    "set all fields",
-			fns:     []RepositoryCreateOptionsFunc{WithRepositoryCreateOptions(repoCreateOpts1)},
-			want:    repoCreateOpts1,
-			wantErr: false,
+			name: "set all fields",
+			fns:  []RepositoryCreateOptionsFunc{WithRepositoryCreateOptions(repoCreateOpts1)},
+			want: repoCreateOpts1,
 		},
 		{
 			name: "latter overrides former",
@@ -54,23 +54,29 @@ func TestMakeRepositoryCreateOptions(t *testing.T) {
 				WithRepositoryCreateOptions(repoCreateOpts1),
 				WithRepositoryCreateOptions(repoCreateOpts2),
 			},
-			want:    repoCreateOpts2,
-			wantErr: false,
+			want: repoCreateOpts2,
 		},
 		{
-			name:    "invalid license template",
-			fns:     []RepositoryCreateOptionsFunc{WithRepositoryCreateOptions(invalidRepoCreateOpts)},
-			want:    invalidRepoCreateOpts,
-			wantErr: true,
+			name:        "invalid license template",
+			fns:         []RepositoryCreateOptionsFunc{WithRepositoryCreateOptions(invalidRepoCreateOpts)},
+			want:        invalidRepoCreateOpts,
+			expectedErr: ErrFieldEnumInvalid,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := MakeRepositoryCreateOptions(tt.fns...)
+			if tt.expectedErr != nil {
+				tt.wantErr = true // infer that an error is wanted
+				if !errors.Is(err, tt.expectedErr) {
+					t.Errorf("MakeRepositoryCreateOptions() error = %v, wanted %v", err, tt.expectedErr)
+				}
+			}
 			if (err != nil) != tt.wantErr {
 				t.Errorf("MakeRepositoryCreateOptions() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("MakeRepositoryCreateOptions() = %v, want %v", got, tt.want)
 			}

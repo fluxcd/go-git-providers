@@ -66,7 +66,7 @@ var knownRepoVisibilityValues = map[RepoVisibility]struct{}{
 func validateRepoVisibility(r RepoVisibility) error {
 	_, ok := knownRepoVisibilityValues[r]
 	if !ok {
-		return ErrFieldInvalid
+		return ErrFieldEnumInvalid
 	}
 	return nil
 }
@@ -111,7 +111,7 @@ var knownRepositoryPermissionValues = map[RepositoryPermission]struct{}{
 func validateRepositoryPermission(p RepositoryPermission) error {
 	_, ok := knownRepositoryPermissionValues[p]
 	if !ok {
-		return ErrFieldInvalid
+		return ErrFieldEnumInvalid
 	}
 	return nil
 }
@@ -145,7 +145,7 @@ var knownLicenseTemplateValues = map[LicenseTemplate]struct{}{
 func validateLicenseTemplate(t LicenseTemplate) error {
 	_, ok := knownLicenseTemplateValues[t]
 	if !ok {
-		return ErrFieldInvalid
+		return ErrFieldEnumInvalid
 	}
 	return nil
 }

@@ -29,7 +29,8 @@ func WithRepositoryCreateOptions(desired RepositoryCreateOptions) RepositoryCrea
 
 // MakeRepositoryCreateOptions returns a RepositoryCreateOptions based off the mutator functions
 // given to e.g. RepositoriesClient.Create(). The returned validation error might be ignored in the
-// case that the client allows e.g. other license templates than those that are common
+// case that the client allows e.g. other license templates than those that are common. ErrFieldEnumInvalid
+// is returned if the license template doesn't match known values
 func MakeRepositoryCreateOptions(fns ...RepositoryCreateOptionsFunc) (RepositoryCreateOptions, error) {
 	opts := &RepositoryCreateOptions{}
 	for _, fn := range fns {

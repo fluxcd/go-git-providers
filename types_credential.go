@@ -44,8 +44,8 @@ type RepositoryCredential interface {
 // DeployKey implements the RepositoryCredential interface.
 // DeployKey can be created and deleted
 var _ RepositoryCredential = &DeployKey{}
-var _ Creator = &DeployKey{}
-var _ Deletor = &DeployKey{}
+var _ Creatable = &DeployKey{}
+var _ Deletable = &DeployKey{}
 
 // DeployKey represents a short-lived credential (e.g. an SSH public key) used for accessing a repository
 type DeployKey struct {
@@ -103,14 +103,14 @@ func (dk *DeployKey) IsReadOnly() bool {
 	return *dk.ReadOnly
 }
 
-// Default defaults the DeployKey, implementing the Creator interface
+// Default defaults the DeployKey, implementing the Creatable interface
 func (dk *DeployKey) Default() {
 	if dk.ReadOnly == nil {
 		dk.ReadOnly = boolVar(defaultDeployKeyReadOnly)
 	}
 }
 
-// ValidateCreate validates the object at POST-time and implements the Creator interface
+// ValidateCreate validates the object at POST-time and implements the Creatable interface
 func (dk *DeployKey) ValidateCreate() error {
 	errs := newValidationErrorList("DeployKey")
 	// Common validation
@@ -124,7 +124,7 @@ func (dk *DeployKey) ValidateCreate() error {
 	return errs.Error()
 }
 
-// ValidateDelete validates the object at DELETE-time and implements the Deletor interface
+// ValidateDelete validates the object at DELETE-time and implements the Deletable interface
 func (dk *DeployKey) ValidateDelete() error {
 	errs := newValidationErrorList("DeployKey")
 	// Common validation

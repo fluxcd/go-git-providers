@@ -27,8 +27,8 @@ const (
 // Repository can be created and updated
 var _ Object = &Repository{}
 var _ RepositoryRef = &Repository{}
-var _ Creator = &Repository{}
-var _ Updator = &Repository{}
+var _ Creatable = &Repository{}
+var _ Updatable = &Repository{}
 
 // Repository represents a Git repository provided by a Git provider
 type Repository struct {
@@ -51,7 +51,7 @@ type Repository struct {
 	Visibility *RepoVisibility
 }
 
-// Default defaults the Repository, implementing the Creator interface
+// Default defaults the Repository, implementing the Creatable interface
 func (r *Repository) Default() {
 	if r.Visibility == nil {
 		visibility := defaultRepoVisibility
@@ -59,7 +59,7 @@ func (r *Repository) Default() {
 	}
 }
 
-// ValidateCreate validates the object at POST-time and implements the Creator interface
+// ValidateCreate validates the object at POST-time and implements the Creatable interface
 func (r *Repository) ValidateCreate() error {
 	errs := newValidationErrorList("Repository")
 	// Validate the embedded RepositoryInfo (and its OrganizationInfo)
@@ -71,7 +71,7 @@ func (r *Repository) ValidateCreate() error {
 	return errs.Error()
 }
 
-// ValidateUpdate validates the object at PUT/PATCH-time and implements the Updator interface
+// ValidateUpdate validates the object at PUT/PATCH-time and implements the Updatable interface
 func (r *Repository) ValidateUpdate() error {
 	// No specific update logic, just make sure required fields are set
 	return r.ValidateCreate()
@@ -80,8 +80,8 @@ func (r *Repository) ValidateUpdate() error {
 // TeamAccess implements Object and RepositoryRef interfaces
 // TeamAccess can be created and deleted
 var _ Object = &TeamAccess{}
-var _ Creator = &TeamAccess{}
-var _ Deletor = &TeamAccess{}
+var _ Creatable = &TeamAccess{}
+var _ Deletable = &TeamAccess{}
 
 // TeamAccess describes a binding between a repository and a team
 type TeamAccess struct {
@@ -107,7 +107,7 @@ type TeamAccess struct {
 	Repository *RepositoryInfo `json:"repository"`
 }
 
-// Default defaults the TeamAccess, implementing the Creator interface
+// Default defaults the TeamAccess, implementing the Creatable interface
 func (ta *TeamAccess) Default() {
 	if ta.Permission == nil {
 		permission := defaultRepoPermission
@@ -115,7 +115,7 @@ func (ta *TeamAccess) Default() {
 	}
 }
 
-// ValidateCreate validates the object at POST-time and implements the Creator interface
+// ValidateCreate validates the object at POST-time and implements the Creatable interface
 func (ta *TeamAccess) ValidateCreate() error {
 	errs := newValidationErrorList("TeamAccess")
 	// Common validation code
@@ -127,7 +127,7 @@ func (ta *TeamAccess) ValidateCreate() error {
 	return errs.Error()
 }
 
-// ValidateDelete validates the object at DELETE-time and implements the Deletor interface
+// ValidateDelete validates the object at DELETE-time and implements the Deletable interface
 func (ta *TeamAccess) ValidateDelete() error {
 	errs := newValidationErrorList("TeamAccess")
 	// Common validation code

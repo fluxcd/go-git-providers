@@ -17,7 +17,7 @@ limitations under the License.
 package gitprovider
 
 // RepositoryCreateOptionsFunc is a function mutating the given RepositoryCreateOptions argument
-// This function is passed a variable amount into RepositoriesClient.Create()
+// A variable amount of these functions can be passed into RepositoriesClient.Create()
 type RepositoryCreateOptionsFunc func(*RepositoryCreateOptions)
 
 // WithRepositoryCreateOptions lets the user set the desired RepositoryCreateOptions arguments
@@ -28,7 +28,7 @@ func WithRepositoryCreateOptions(desired RepositoryCreateOptions) RepositoryCrea
 }
 
 // MakeRepositoryCreateOptions returns a RepositoryCreateOptions based off the mutator functions
-// given to e.g. RepositoriesClient.Create(). The returned validation error might be ignored in the
+// given to e.g. RepositoriesClient.Create(). The returned validation error may be ignored in the
 // case that the client allows e.g. other license templates than those that are common. ErrFieldEnumInvalid
 // is returned if the license template doesn't match known values
 func MakeRepositoryCreateOptions(fns ...RepositoryCreateOptionsFunc) (RepositoryCreateOptions, error) {
@@ -40,8 +40,8 @@ func MakeRepositoryCreateOptions(fns ...RepositoryCreateOptionsFunc) (Repository
 	return *opts, opts.ValidateCreate()
 }
 
-// RepositoryCreateOptions implements Creator
-var _ Creator = &RepositoryCreateOptions{}
+// RepositoryCreateOptions implements Creatable
+var _ Creatable = &RepositoryCreateOptions{}
 
 // RepositoryCreateOptions specifies optional options when creating a repository
 type RepositoryCreateOptions struct {
@@ -56,7 +56,7 @@ type RepositoryCreateOptions struct {
 	LicenseTemplate *LicenseTemplate
 }
 
-// Default implements Creator, setting default values for the options if needed
+// Default implements Creatable, setting default values for the options if needed
 // For this specific case, it's ok to leave things as nil
 func (opts *RepositoryCreateOptions) Default() {}
 

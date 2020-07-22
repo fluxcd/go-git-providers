@@ -34,11 +34,11 @@ var (
 
 	// ErrNotTopLevelOrganization describes the case where it's mandatory to specify a top-level organization
 	// (e.g. for accessing teams), but a sub-organization was passed as the OrganizationRef
-	ErrNotTopLevelOrganization = errors.New("the specified organization wasn't a top-level one as expected")
+	ErrNotTopLevelOrganization = errors.New("expected top-level organization, received sub-organization instead")
 
 	// ErrAlreadyExists is returned by .Create() requests if the given resource already exists.
 	// Use .Reconcile() instead if you want to idempotently create the resource
-	ErrAlreadyExists = errors.New("resource already exists, cannot create object. Use Reconcile() to idempotently create.")
+	ErrAlreadyExists = errors.New("resource already exists, cannot create object. Use Reconcile() to create it idempotently")
 	// ErrNotFound is returned by .Get() and .Update() calls if the given resource doesn't exist
 	ErrNotFound = errors.New("the requested resource was not found")
 
@@ -52,7 +52,7 @@ var (
 	// ErrURLUnsupportedScheme is returned if an URL without the HTTPS scheme is parsed
 	ErrURLUnsupportedScheme = errors.New("unsupported URL scheme, only HTTPS supported")
 	// ErrURLUnsupportedParts is returned if an URL with fragment, query values and/or user information is parsed
-	ErrURLUnsupportedParts = errors.New("organization or repository URLs cannot have fragments, query values nor user information")
+	ErrURLUnsupportedParts = errors.New("URL cannot have fragments, query values nor user information")
 	// ErrURLInvalid is returned if an URL is invalid when parsing
 	ErrURLInvalid = errors.New("invalid organization or repository URL")
 	// ErrURLMissingRepoName is returned if there is no repository name in the URL
@@ -63,9 +63,9 @@ var (
 // The provider constants are defined in their respective packages
 type ProviderID string
 
-// Creator is an interface which all objects that can be created
+// Creatable is an interface which all objects that can be created
 // (using the Client) should implement
-type Creator interface {
+type Creatable interface {
 	// ValidateCreate will be run in every .Create() client call, before defaulting
 	// Set (non-nil) and required fields should be validated
 	ValidateCreate() error
@@ -74,18 +74,18 @@ type Creator interface {
 	Default()
 }
 
-// Creator is an interface which all objects that can be updated
+// Creatable is an interface which all objects that can be updated
 // (using the Client) should implement
-type Updator interface {
+type Updatable interface {
 	// ValidateUpdate will be run in every .Update() client call
 	// Set (non-nil) and required fields should be validated, if needed
 	// No defaulting happens for update calls
 	ValidateUpdate() error
 }
 
-// Deletor is an interface which all objects that can be deleted
+// Deletable is an interface which all objects that can be deleted
 // (using the Client) should implement
-type Deletor interface {
+type Deletable interface {
 	// ValidateDelete will be run in every .Delete() client call
 	// Set (non-nil) and required fields should be validated, if needed
 	// No defaulting happens for delete calls
@@ -108,8 +108,4 @@ type InternalHolder struct {
 // GetInternal implements the Object interface
 func (ih InternalHolder) GetInternal() interface{} {
 	return ih.Internal
-}
-
-func boolVar(b bool) *bool {
-	return &b
 }

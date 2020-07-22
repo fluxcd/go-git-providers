@@ -29,7 +29,7 @@ type Organization struct {
 	// +optional
 	InternalHolder `json:",inline"`
 
-	// Name is the human-friendly name of this organization, e.g. "Weaveworks" or "Kubernetes SIGs"
+	// Name is the human-friendly name of this organization, e.g. "Flux" or "Kubernetes SIGs"
 	// +required
 	Name string `json:"name"`
 

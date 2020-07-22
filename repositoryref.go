@@ -29,12 +29,12 @@ type OrganizationRef interface {
 	// String returns the HTTPS URL
 	fmt.Stringer
 
-	// GetDomain returns the URL-domain for the Git provider backend, e.g. gitlab.com or version.aalto.fi
+	// GetDomain returns the URL-domain for the Git provider backend, e.g. github.com or self-hosted-gitlab.com
 	GetDomain() string
-	// GetOrganization returns the top-level organization, i.e. "weaveworks" or "kubernetes-sigs"
+	// GetOrganization returns the top-level organization, i.e. "fluxcd" or "kubernetes-sigs"
 	GetOrganization() string
 	// GetSubOrganizations returns the names of sub-organizations (or sub-groups),
-	// e.g. ["engineering", "frontend"] would be returned for gitlab.com/weaveworks/engineering/frontend
+	// e.g. ["engineering", "frontend"] would be returned for gitlab.com/fluxcd/engineering/frontend
 	GetSubOrganizations() []string
 	// RefIsEmpty returns true if all the parts of a given Organization or Repository reference are empty, otherwise false
 	RefIsEmpty() bool
@@ -51,17 +51,17 @@ type RepositoryRef interface {
 
 // OrganizationInfo implements OrganizationRef
 type OrganizationInfo struct {
-	// Domain returns e.g. "github.com", "gitlab.com" or a custom domain like "version.aalto.fi" (GitLab)
+	// Domain returns e.g. "github.com", "gitlab.com" or a custom domain like "self-hosted-gitlab.com" (GitLab)
 	// The domain _might_ contain port information, in the form of "host:port", if applicable
 	// +required
 	Domain string `json:"domain"`
 
-	// Organization specifies the URL-friendly, lowercase name of the organization, e.g. "weaveworks" or "kubernetes-sigs".
+	// Organization specifies the URL-friendly, lowercase name of the organization, e.g. "fluxcd" or "kubernetes-sigs".
 	// +required
 	Organization string `json:"organization"`
 
 	// SubOrganizations point to optional sub-organizations (or sub-groups) of the given top-level organization
-	// in the Organization field. E.g. "gitlab.com/weaveworks/engineering/frontend" would yield ["engineering", "frontend"]
+	// in the Organization field. E.g. "gitlab.com/fluxcd/engineering/frontend" would yield ["engineering", "frontend"]
 	// +optional
 	SubOrganizations []string `json:"subOrganizations"`
 }
@@ -182,25 +182,25 @@ func ParseOrganizationURL(o string) (OrganizationRef, error) {
 // ParseRepositoryURL parses a HTTPS or SSH clone URL into a RepositoryRef object
 func ParseRepositoryURL(r string) (RepositoryRef, error) {
 	// First, parse the URL as an organization
-	orgInfo, err := parseOrganizationURL(r)
+	orgInfoPtr, err := parseOrganizationURL(r)
 	if err != nil {
 		return nil, err
 	}
 	// The "repository" part of the URL parsed as an organization, is the last "sub-organization"
 	// Check that there's at least one sub-organization
-	if len(orgInfo.SubOrganizations) < 1 {
+	if len(orgInfoPtr.SubOrganizations) < 1 {
 		return nil, fmt.Errorf("%w: %s", ErrURLMissingRepoName, r)
 	}
 
 	// The repository name is the last "sub-org"
-	repoName := orgInfo.SubOrganizations[len(orgInfo.SubOrganizations)-1]
+	repoName := orgInfoPtr.SubOrganizations[len(orgInfoPtr.SubOrganizations)-1]
 	// Remove the repository name from the sub-org list
-	orgInfo.SubOrganizations = orgInfo.SubOrganizations[:len(orgInfo.SubOrganizations)-1]
+	orgInfoPtr.SubOrganizations = orgInfoPtr.SubOrganizations[:len(orgInfoPtr.SubOrganizations)-1]
 
 	// Return the new RepositoryInfo
 	return RepositoryInfo{
 		RepositoryName:   repoName,
-		OrganizationInfo: *orgInfo,
+		OrganizationInfo: *orgInfoPtr,
 	}, nil
 }
 
@@ -215,12 +215,12 @@ func parseURL(str string) (*url.URL, []string, error) {
 	}
 	// Only allow explicit https URLs
 	if u.Scheme != "https" {
-		return nil, nil, ErrURLUnsupportedScheme
+		return nil, nil, fmt.Errorf("%w: %s", ErrURLUnsupportedScheme, str)
 	}
 	// Don't allow any extra things in the URL, in order to be able to do a successful
-	// round-trip or parsing the URL and encoding it back to a string
+	// round-trip of parsing the URL and encoding it back to a string
 	if len(u.Fragment) != 0 || len(u.RawQuery) != 0 || len(u.User.String()) != 0 {
-		return nil, nil, ErrURLUnsupportedParts
+		return nil, nil, fmt.Errorf("%w: %s", ErrURLUnsupportedParts, str)
 	}
 
 	// Strip any leading and trailing slash to be able to split the string cleanly

@@ -18,7 +18,6 @@ package gitprovider
 
 import (
 	"errors"
-	"fmt"
 )
 
 var (
@@ -57,17 +56,6 @@ var (
 	// ErrURLMissingRepoName is returned if there is no repository name in the URL
 	ErrURLMissingRepoName = errors.New("missing repository name")
 )
-
-// MultipleErrors is a holder struct for multiple errors returned at once
-// Each of the errors might wrap their own underlying error
-type MultipleErrors struct {
-	Errors []error
-}
-
-// Error implements the error interface
-func (e *MultipleErrors) Error() string {
-	return fmt.Sprintf("multiple errors occurred: %v", e.Errors)
-}
 
 // ProviderID is a typed string for a given Git provider
 // The provider constants are defined in their respective packages

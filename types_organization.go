@@ -61,5 +61,5 @@ type Team struct {
 	// When creating, this field is optional. However, if specified, it must match the OrganizationRef
 	// given to the client.
 	// +optional
-	Organization OrganizationInfo `json:"organization"`
+	Organization *OrganizationInfo `json:"organization"`
 }

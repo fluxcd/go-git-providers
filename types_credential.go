@@ -71,10 +71,11 @@ type DeployKey struct {
 	// When creating, this field is optional. However, if specified, it must match the RepositoryRef
 	// given to the client
 	// +optional
-	Repository RepositoryInfo `json:"repository"`
+	Repository *RepositoryInfo `json:"repository"`
 }
 
-// GetType returns the RepositoryCredentialType for this DeployKey
+// GetRepositoryRef returns the RepositoryRef for this DeployKey
+// Make sure to nil-check this before using, as it's an optional field set at GET time
 func (dk *DeployKey) GetRepositoryRef() RepositoryRef {
 	return dk.Repository
 }
@@ -112,9 +113,9 @@ func (dk *DeployKey) Default() {
 // ValidateCreate validates the object at POST-time and implements the Creator interface
 func (dk *DeployKey) ValidateCreate() error {
 	errs := newValidationErrorList("DeployKey")
-	if len(dk.Name) == 0 {
-		errs.Required("Name")
-	}
+	// Common validation
+	dk.validateNameAndRepository(errs)
+	// Key is a required field
 	if len(dk.Key) == 0 {
 		errs.Required("Key")
 	}
@@ -126,8 +127,20 @@ func (dk *DeployKey) ValidateCreate() error {
 // ValidateDelete validates the object at DELETE-time and implements the Deletor interface
 func (dk *DeployKey) ValidateDelete() error {
 	errs := newValidationErrorList("DeployKey")
+	// Common validation
+	dk.validateNameAndRepository(errs)
+	return errs.Error()
+}
+
+func (dk *DeployKey) validateNameAndRepository(errs *validationErrorList) {
+	// Make sure we've set the name of the team
 	if len(dk.Name) == 0 {
 		errs.Required("Name")
 	}
-	return errs.Error()
+	// Validate the Repository if it is set. It most likely _shouldn't be_ (there's no need to,
+	// as it's only set at GET-time), but if it is, make sure fields are ok. The RepositoryClient
+	// should make sure that if set, it also needs to match the client's RepositoryRef.
+	if dk.Repository != nil {
+		dk.Repository.validateRepositoryInfoCreate(errs)
+	}
 }

@@ -64,6 +64,10 @@ func (r *Repository) ValidateCreate() error {
 	errs := newValidationErrorList("Repository")
 	// Validate the embedded RepositoryInfo (and its OrganizationInfo)
 	r.RepositoryInfo.validateRepositoryInfoCreate(errs)
+	// Validate the Visibility enum
+	if r.Visibility != nil {
+		errs.Append(validateRepoVisibility(*r.Visibility), *r.Visibility, "Visibility")
+	}
 	return errs.Error()
 }
 
@@ -93,14 +97,14 @@ type TeamAccess struct {
 	// Default: pull
 	// Available options: See the RepositoryPermission enum
 	// +optional
-	Permission *RepositoryPermission
+	Permission *RepositoryPermission `json:"permission"`
 
 	// Repository specifies the information about what repository this TeamAccess is associated with.
 	// It is populated in .Get() and .List() calls.
 	// When creating, this field is optional. However, if specified, it must match the RepositoryRef
 	// given to the client.
 	// +optional
-	Repository RepositoryInfo `json:"repository"`
+	Repository *RepositoryInfo `json:"repository"`
 }
 
 // Default defaults the TeamAccess, implementing the Creator interface
@@ -114,17 +118,32 @@ func (ta *TeamAccess) Default() {
 // ValidateCreate validates the object at POST-time and implements the Creator interface
 func (ta *TeamAccess) ValidateCreate() error {
 	errs := newValidationErrorList("TeamAccess")
-	// Make sure we've set the name of the team
-	if len(ta.Name) == 0 {
-		errs.Required("Name")
+	// Common validation code
+	ta.validateNameAndRepository(errs)
+	// Validate the Permission enum
+	if ta.Permission != nil {
+		errs.Append(validateRepositoryPermission(*ta.Permission), *ta.Permission, "Permission")
 	}
-	// Don't care about the RepositoryInfo, as that information is coming from
-	// the RepositoryClient. In the client, we make sure that they equal.
 	return errs.Error()
 }
 
 // ValidateDelete validates the object at DELETE-time and implements the Deletor interface
 func (ta *TeamAccess) ValidateDelete() error {
-	// No specific update logic, just make sure required fields are set
-	return ta.ValidateCreate()
+	errs := newValidationErrorList("TeamAccess")
+	// Common validation code
+	ta.validateNameAndRepository(errs)
+	return errs.Error()
+}
+
+func (ta *TeamAccess) validateNameAndRepository(errs *validationErrorList) {
+	// Make sure we've set the name of the team
+	if len(ta.Name) == 0 {
+		errs.Required("Name")
+	}
+	// Validate the Repository if it is set. It most likely _shouldn't be_ (there's no need to,
+	// as it's only set at GET-time), but if it is, make sure fields are ok. The RepositoryClient
+	// should make sure that if set, it also needs to match the client's RepositoryRef.
+	if ta.Repository != nil {
+		ta.Repository.validateRepositoryInfoCreate(errs)
+	}
 }

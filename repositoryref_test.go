@@ -179,6 +179,16 @@ func TestParseRepositoryURL(t *testing.T) {
 			want: newRepoRef("github.com", "luxas", nil, "foo-bar"),
 		},
 		{
+			name: "repo name including a dot",
+			url:  "https://github.com/luxas/foo-bar.withdot",
+			want: newRepoRef("github.com", "luxas", nil, "foo-bar.withdot"),
+		},
+		{
+			name: "always strip the git suffix",
+			url:  "https://github.com/luxas/foo-bar.git",
+			want: newRepoRef("github.com", "luxas", nil, "foo-bar"),
+		},
+		{
 			name: "one sub-org",
 			url:  "https://gitlab.com/my-org/sub-org/foo-bar",
 			want: newRepoRef("gitlab.com", "my-org", []string{"sub-org"}, "foo-bar"),
@@ -271,6 +281,8 @@ func TestParseRepositoryURL(t *testing.T) {
 				}
 				// expect the round-trip to remove any trailing slashes
 				expectedURL := strings.TrimSuffix(tt.url, "/")
+				// expect any .git suffix to be removed
+				expectedURL = strings.TrimSuffix(expectedURL, ".git")
 				if got.String() != expectedURL {
 					t.Errorf("ParseRepositoryURL(): got.String() = %q, want %q", got.String(), expectedURL)
 				}

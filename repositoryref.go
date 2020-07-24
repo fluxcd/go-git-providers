@@ -45,7 +45,7 @@ type RepositoryRef interface {
 	// RepositoryRef requires an OrganizationRef to fully-qualify a repo reference
 	OrganizationRef
 
-	// GetRepository returns the name of the repository
+	// GetRepository returns the name of the repository. This name never includes the ".git"-suffix.
 	GetRepository() string
 }
 
@@ -125,7 +125,7 @@ type RepositoryInfo struct {
 // RepositoryInfo implements the RepositoryRef interface
 var _ RepositoryRef = RepositoryInfo{}
 
-// GetRepository returns the name of the repository
+// GetRepository returns the name of the repository. This name never includes the ".git"-suffix.
 func (r RepositoryInfo) GetRepository() string {
 	return r.RepositoryName
 }
@@ -199,7 +199,8 @@ func ParseRepositoryURL(r string) (RepositoryRef, error) {
 
 	// Return the new RepositoryInfo
 	return RepositoryInfo{
-		RepositoryName:   repoName,
+		// Never include any .git suffix at the end of the repository name
+		RepositoryName:   strings.TrimSuffix(repoName, ".git"),
 		OrganizationInfo: *orgInfoPtr,
 	}, nil
 }

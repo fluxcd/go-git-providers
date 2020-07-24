@@ -23,7 +23,9 @@ type Client interface {
 	// The Client allows accessing all known resources
 	ResourceClient
 
-	// SupportedDomain returns the supported domain
+	// SupportedDomain returns the domain endpoint for this client, e.g. "github.com", "gitlab.com" or
+	// "my-custom-git-server.com:6443". This allows a higher-level user to know what Client to use for
+	// what endpoints.
 	// This field is set at client creation time, and can't be changed
 	SupportedDomain() string
 
@@ -37,8 +39,8 @@ type Client interface {
 
 // ResourceClient allows access to resource-specific clients
 type ResourceClient interface {
-	// Organization gets the OrganizationClient for the specific top-level organization
-	// ErrNotTopLevelOrganization will be returned if the organization is not top-level when using
+	// Organization gets the OrganizationClient for the specific top-level organization, or user account.
+	// ErrNotTopLevelOrganization will be returned if the organization is not top-level
 	Organization(o OrganizationRef) OrganizationClient
 
 	// Organizations returns the OrganizationsClient handling sets of organizations

@@ -49,14 +49,17 @@ type RepositoryRef interface {
 	GetRepository() string
 }
 
-// OrganizationInfo implements OrganizationRef
+// OrganizationInfo implements OrganizationRef. An organization URL is split up in:
+// https://<domain>/<top-level-org>/[sub-orgs/...]
+// The <top-level-org> field might as well be an user account login name.
 type OrganizationInfo struct {
 	// Domain returns e.g. "github.com", "gitlab.com" or a custom domain like "self-hosted-gitlab.com" (GitLab)
 	// The domain _might_ contain port information, in the form of "host:port", if applicable
 	// +required
 	Domain string `json:"domain"`
 
-	// Organization specifies the URL-friendly, lowercase name of the organization, e.g. "fluxcd" or "kubernetes-sigs".
+	// Organization specifies the URL-friendly, lowercase name of the organization or user account name,
+	// e.g. "fluxcd" or "kubernetes-sigs".
 	// +required
 	Organization string `json:"organization"`
 
@@ -69,17 +72,17 @@ type OrganizationInfo struct {
 // OrganizationInfo implements OrganizationRef
 var _ OrganizationRef = OrganizationInfo{}
 
-// GetDomain returns the the domain
+// GetDomain returns the the domain part of the endpoint, can include port information.
 func (o OrganizationInfo) GetDomain() string {
 	return o.Domain
 }
 
-// GetOrganization returns the top-level organization
+// GetOrganization returns the top-level organization, or user account (login name), if applicable
 func (o OrganizationInfo) GetOrganization() string {
 	return o.Organization
 }
 
-// GetOrganization returns the top-level organization
+// GetOrganization returns the a list of all sub-organizations of this reference
 func (o OrganizationInfo) GetSubOrganizations() []string {
 	return o.SubOrganizations
 }

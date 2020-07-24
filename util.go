@@ -19,3 +19,7 @@ package gitprovider
 func boolVar(b bool) *bool {
 	return &b
 }
+
+func stringVar(s string) *string {
+	return &s
+}

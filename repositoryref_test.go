@@ -23,7 +23,7 @@ import (
 	"testing"
 )
 
-func newOrgRef(domain, org string, subOrgs []string) OrganizationInfo {
+func newOrgInfo(domain, org string, subOrgs []string) OrganizationInfo {
 	if subOrgs == nil {
 		subOrgs = []string{}
 	}
@@ -34,11 +34,21 @@ func newOrgRef(domain, org string, subOrgs []string) OrganizationInfo {
 	}
 }
 
-func newRepoRef(domain, org string, subOrgs []string, repoName string) RepositoryInfo {
+func newOrgInfoPtr(domain, org string, subOrgs []string) *OrganizationInfo {
+	orgInfo := newOrgInfo(domain, org, subOrgs)
+	return &orgInfo
+}
+
+func newRepoInfo(domain, org string, subOrgs []string, repoName string) RepositoryInfo {
 	return RepositoryInfo{
-		OrganizationInfo: newOrgRef(domain, org, subOrgs),
+		OrganizationInfo: newOrgInfo(domain, org, subOrgs),
 		RepositoryName:   repoName,
 	}
+}
+
+func newRepoInfoPtr(domain, org string, subOrgs []string, repoName string) *RepositoryInfo {
+	repoInfo := newRepoInfo(domain, org, subOrgs, repoName)
+	return &repoInfo
 }
 
 func TestParseOrganizationURL(t *testing.T) {
@@ -52,22 +62,22 @@ func TestParseOrganizationURL(t *testing.T) {
 		{
 			name: "easy",
 			url:  "https://github.com/luxas",
-			want: newOrgRef("github.com", "luxas", nil),
+			want: newOrgInfo("github.com", "luxas", nil),
 		},
 		{
 			name: "trailing slash",
 			url:  "https://github.com/luxas/",
-			want: newOrgRef("github.com", "luxas", nil),
+			want: newOrgInfo("github.com", "luxas", nil),
 		},
 		{
 			name: "one sub-org",
 			url:  "https://gitlab.com/my-org/sub-org",
-			want: newOrgRef("gitlab.com", "my-org", []string{"sub-org"}),
+			want: newOrgInfo("gitlab.com", "my-org", []string{"sub-org"}),
 		},
 		{
 			name: "three sub-orgs and custom domain",
 			url:  "https://my-gitlab.com:6443/my-org/sub-org/2/3",
-			want: newOrgRef("my-gitlab.com:6443", "my-org", []string{"sub-org", "2", "3"}),
+			want: newOrgInfo("my-gitlab.com:6443", "my-org", []string{"sub-org", "2", "3"}),
 		},
 		{
 			name: "no org specified",
@@ -171,32 +181,32 @@ func TestParseRepositoryURL(t *testing.T) {
 		{
 			name: "easy",
 			url:  "https://github.com/luxas/foo-bar",
-			want: newRepoRef("github.com", "luxas", nil, "foo-bar"),
+			want: newRepoInfo("github.com", "luxas", nil, "foo-bar"),
 		},
 		{
 			name: "trailing slash",
 			url:  "https://github.com/luxas/foo-bar/",
-			want: newRepoRef("github.com", "luxas", nil, "foo-bar"),
+			want: newRepoInfo("github.com", "luxas", nil, "foo-bar"),
 		},
 		{
 			name: "repo name including a dot",
 			url:  "https://github.com/luxas/foo-bar.withdot",
-			want: newRepoRef("github.com", "luxas", nil, "foo-bar.withdot"),
+			want: newRepoInfo("github.com", "luxas", nil, "foo-bar.withdot"),
 		},
 		{
 			name: "always strip the git suffix",
 			url:  "https://github.com/luxas/foo-bar.git",
-			want: newRepoRef("github.com", "luxas", nil, "foo-bar"),
+			want: newRepoInfo("github.com", "luxas", nil, "foo-bar"),
 		},
 		{
 			name: "one sub-org",
 			url:  "https://gitlab.com/my-org/sub-org/foo-bar",
-			want: newRepoRef("gitlab.com", "my-org", []string{"sub-org"}, "foo-bar"),
+			want: newRepoInfo("gitlab.com", "my-org", []string{"sub-org"}, "foo-bar"),
 		},
 		{
 			name: "three sub-orgs and custom domain",
 			url:  "https://my-gitlab.com:6443/my-org/sub-org/2/3/foo-bar",
-			want: newRepoRef("my-gitlab.com:6443", "my-org", []string{"sub-org", "2", "3"}, "foo-bar"),
+			want: newRepoInfo("my-gitlab.com:6443", "my-org", []string{"sub-org", "2", "3"}, "foo-bar"),
 		},
 		{
 			name:    "no repo specified",
@@ -300,25 +310,25 @@ func TestGetCloneURL(t *testing.T) {
 	}{
 		{
 			name:      "https",
-			repoinfo:  newRepoRef("github.com", "luxas", []string{"test-org", "other"}, "foo-bar"),
+			repoinfo:  newRepoInfo("github.com", "luxas", []string{"test-org", "other"}, "foo-bar"),
 			transport: TransportTypeHTTPS,
 			want:      "https://github.com/luxas/test-org/other/foo-bar.git",
 		},
 		{
 			name:      "git",
-			repoinfo:  newRepoRef("gitlab.com", "luxas", []string{"test-org", "other"}, "foo-bar"),
+			repoinfo:  newRepoInfo("gitlab.com", "luxas", []string{"test-org", "other"}, "foo-bar"),
 			transport: TransportTypeGit,
 			want:      "git@gitlab.com:luxas/test-org/other/foo-bar.git",
 		},
 		{
 			name:      "ssh",
-			repoinfo:  newRepoRef("my-gitlab.com:6443", "luxas", []string{"test-org", "other"}, "foo-bar"),
+			repoinfo:  newRepoInfo("my-gitlab.com:6443", "luxas", []string{"test-org", "other"}, "foo-bar"),
 			transport: TransportTypeSSH,
 			want:      "ssh://git@my-gitlab.com:6443/luxas/test-org/other/foo-bar",
 		},
 		{
 			name:      "none",
-			repoinfo:  newRepoRef("my-gitlab.com:6443", "luxas", []string{"test-org", "other"}, "foo-bar"),
+			repoinfo:  newRepoInfo("my-gitlab.com:6443", "luxas", []string{"test-org", "other"}, "foo-bar"),
 			transport: TransportType("random"),
 			want:      "",
 		},
@@ -335,6 +345,119 @@ func TestGetCloneURL(t *testing.T) {
 			}
 			if got1 != got2 {
 				t.Errorf("GetCloneURL() = %q and RepositoryInfo.GetCloneURL() = %q should match", got1, got2)
+			}
+		})
+	}
+}
+
+func TestOrganizationInfo_RefIsEmpty(t *testing.T) {
+	type fields struct {
+		Domain           string
+		Organization     string
+		SubOrganizations []string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   bool
+	}{
+		{
+			name: "no fields set",
+			want: true,
+		},
+		{
+			name: "domain set",
+			fields: fields{
+				Domain: "foo",
+			},
+			want: false,
+		},
+		{
+			name: "org set",
+			fields: fields{
+				Organization: "bar",
+			},
+			want: false,
+		},
+		{
+			name: "sub-org set",
+			fields: fields{
+				SubOrganizations: []string{"baz"},
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			o := OrganizationInfo{
+				Domain:           tt.fields.Domain,
+				Organization:     tt.fields.Organization,
+				SubOrganizations: tt.fields.SubOrganizations,
+			}
+			if got := o.RefIsEmpty(); got != tt.want {
+				t.Errorf("OrganizationInfo.RefIsEmpty() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRepositoryInfo_RefIsEmpty(t *testing.T) {
+	type fields struct {
+		OrganizationInfo OrganizationInfo
+		RepositoryName   string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   bool
+	}{
+		{
+			name: "no fields set",
+			want: true,
+		},
+		{
+			name: "domain set",
+			fields: fields{
+				OrganizationInfo: OrganizationInfo{
+					Domain: "foo",
+				},
+			},
+			want: false,
+		},
+		{
+			name: "org set",
+			fields: fields{
+				OrganizationInfo: OrganizationInfo{
+					Organization: "bar",
+				},
+			},
+			want: false,
+		},
+		{
+			name: "sub-org set",
+			fields: fields{
+				OrganizationInfo: OrganizationInfo{
+					SubOrganizations: []string{"baz"},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "repo set",
+			fields: fields{
+				RepositoryName: "bar",
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := RepositoryInfo{
+				OrganizationInfo: tt.fields.OrganizationInfo,
+				RepositoryName:   tt.fields.RepositoryName,
+			}
+			if got := r.RefIsEmpty(); got != tt.want {
+				t.Errorf("RepositoryInfo.RefIsEmpty() = %v, want %v", got, tt.want)
 			}
 		})
 	}

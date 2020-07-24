@@ -112,12 +112,8 @@ func Test_validationErrorList_Error(t *testing.T) {
 				tt.usageFunc(el)
 			}
 			err := el.Error()
-			// Loop through all expected errors and make sure that errors.Is returns true
-			for _, expectedErr := range tt.expectedErrs {
-				if !errors.Is(err, expectedErr) {
-					t.Errorf("validationErrorList.Error() error = %v, wantErr %v", err, expectedErr)
-				}
-			}
+			// Make sure the error embeds the following expected errors
+			expectErrors(t, "validationErrorList.Error", err, tt.expectedErrs)
 			// Make sure the error string matches the expected one
 			if err != nil {
 				errStr := err.Error()
@@ -126,6 +122,15 @@ func Test_validationErrorList_Error(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// Loop through all expected errors and make sure that errors.Is returns true
+func expectErrors(t *testing.T, funcName string, err error, expectedErrs []error) {
+	for _, expectedErr := range expectedErrs {
+		if !errors.Is(err, expectedErr) {
+			t.Errorf("%s() error = %v, wanted %v", funcName, err, expectedErr)
+		}
 	}
 }
 
@@ -195,6 +200,62 @@ func TestMultiError_As(t *testing.T) {
 			// Make sure target was updated to include the right struct data
 			if tt.expectedVal != nil && !reflect.DeepEqual(target, tt.expectedVal) {
 				t.Errorf("Expected errors.As() to populate target (%v) to equal %v", target, tt.expectedVal)
+			}
+		})
+	}
+}
+
+func TestMultiError_Is(t *testing.T) {
+	type fields struct {
+		Errors []error
+	}
+	type args struct {
+		target error
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   bool
+	}{
+		{
+			name: "has wrapped required error",
+			fields: fields{
+				Errors: []error{ErrFieldInvalid, fmt.Errorf("wrapped with cause: %w", ErrFieldRequired)},
+			},
+			args: args{
+				target: ErrFieldRequired,
+			},
+			want: true,
+		},
+		{
+			name: "doesn't have error",
+			fields: fields{
+				Errors: []error{ErrFieldInvalid, fmt.Errorf("wrapped with cause: %w", ErrFieldEnumInvalid)},
+			},
+			args: args{
+				target: ErrFieldRequired,
+			},
+			want: false,
+		},
+		{
+			name: "is multierror",
+			fields: fields{
+				Errors: []error{ErrFieldInvalid, fmt.Errorf("wrapped with cause: %w", ErrFieldEnumInvalid)},
+			},
+			args: args{
+				target: &MultiError{},
+			},
+			want: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := &MultiError{
+				Errors: tt.fields.Errors,
+			}
+			if got := e.Is(tt.args.target); got != tt.want {
+				t.Errorf("MultiError.Is() = %v, want %v", got, tt.want)
 			}
 		})
 	}

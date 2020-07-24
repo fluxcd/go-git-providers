@@ -16,32 +16,33 @@ limitations under the License.
 
 package gitprovider
 
-// RepositoryCreateOptionsFunc is a function mutating the given RepositoryCreateOptions argument
-// A variable amount of these functions can be passed into RepositoriesClient.Create()
-type RepositoryCreateOptionsFunc func(*RepositoryCreateOptions)
-
-// WithRepositoryCreateOptions lets the user set the desired RepositoryCreateOptions arguments
-func WithRepositoryCreateOptions(desired RepositoryCreateOptions) RepositoryCreateOptionsFunc {
-	return func(opts *RepositoryCreateOptions) {
-		*opts = desired
-	}
-}
-
 // MakeRepositoryCreateOptions returns a RepositoryCreateOptions based off the mutator functions
 // given to e.g. RepositoriesClient.Create(). The returned validation error may be ignored in the
 // case that the client allows e.g. other license templates than those that are common. ErrFieldEnumInvalid
 // is returned if the license template doesn't match known values
-func MakeRepositoryCreateOptions(fns ...RepositoryCreateOptionsFunc) (RepositoryCreateOptions, error) {
-	opts := &RepositoryCreateOptions{}
-	for _, fn := range fns {
-		fn(opts)
+func MakeRepositoryCreateOptions(opts ...RepositoryCreateOption) (RepositoryCreateOptions, error) {
+	o := &RepositoryCreateOptions{}
+	for _, opt := range opts {
+		opt.ApplyToRepositoryCreateOptions(o)
 	}
-	opts.Default()
-	return *opts, opts.ValidateCreate()
+	o.Default()
+	return *o, o.ValidateCreate()
 }
 
 // RepositoryCreateOptions implements Creatable
 var _ Creatable = &RepositoryCreateOptions{}
+
+// RepositoryReconcileOption is an interface for applying options to when reconciling repositories
+type RepositoryReconcileOption interface {
+	// RepositoryCreateOption is embedded, as reconcile uses the create options
+	RepositoryCreateOption
+}
+
+// RepositoryCreateOption is an interface for applying options to when creating repositories
+type RepositoryCreateOption interface {
+	// ApplyToRepositoryCreateOptions should apply relevant options to the target
+	ApplyToRepositoryCreateOptions(target *RepositoryCreateOptions)
+}
 
 // RepositoryCreateOptions specifies optional options when creating a repository
 type RepositoryCreateOptions struct {
@@ -54,6 +55,18 @@ type RepositoryCreateOptions struct {
 	// Default: nil
 	// Available options: See the LicenseTemplate enum
 	LicenseTemplate *LicenseTemplate
+}
+
+// ApplyToRepositoryCreateOptions applies the options defined in the options struct to the
+// target struct that is being completed
+func (opts *RepositoryCreateOptions) ApplyToRepositoryCreateOptions(target *RepositoryCreateOptions) {
+	// Go through each field in opts, and apply it to target if set
+	if opts.AutoInit != nil {
+		target.AutoInit = opts.AutoInit
+	}
+	if opts.LicenseTemplate != nil {
+		target.LicenseTemplate = opts.LicenseTemplate
+	}
 }
 
 // Default implements Creatable, setting default values for the options if needed

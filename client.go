@@ -106,7 +106,7 @@ type RepositoriesClient interface {
 
 	// Create creates a repository at the given organization path, with the given URL-encoded name and options
 	// ErrAlreadyExists will be returned if the resource already exists
-	Create(ctx context.Context, r *Repository, optFns ...RepositoryCreateOptionsFunc) (*Repository, error)
+	Create(ctx context.Context, r *Repository, opts ...RepositoryCreateOption) (*Repository, error)
 
 	// Update will update the desired state of the repository. Only set fields will be respected.
 	// ErrNotFound is returned if the resource does not exist
@@ -115,7 +115,7 @@ type RepositoriesClient interface {
 	// Reconcile makes sure r is the actual state in the backing Git provider. If r doesn't exist
 	// under the hood, it is created. If r is already the actual state, this is a no-op. If r isn't
 	// the actual state, the resource will be updated.
-	Reconcile(ctx context.Context, r *Repository) (*Repository, error)
+	Reconcile(ctx context.Context, r *Repository, opts ...RepositoryReconcileOption) (*Repository, error)
 }
 
 // RepositoryClient operates on a given/specific repository

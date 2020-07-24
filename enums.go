@@ -159,3 +159,8 @@ func validateLicenseTemplate(t LicenseTemplate) error {
 	}
 	return nil
 }
+
+// licenseTemplateVar returns a pointer to a LicenseTemplate
+func licenseTemplateVar(t LicenseTemplate) *LicenseTemplate {
+	return &t
+}

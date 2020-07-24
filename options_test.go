@@ -23,18 +23,18 @@ import (
 )
 
 var (
-	licenseTemplateMIT     = LicenseTemplateMIT
-	licenseTemplateApache2 = LicenseTemplateApache2
-	licenseTemplateFoo     = LicenseTemplate("foo")
-	repoCreateOpts1        = RepositoryCreateOptions{AutoInit: boolVar(true), LicenseTemplate: &licenseTemplateMIT}
-	repoCreateOpts2        = RepositoryCreateOptions{AutoInit: boolVar(false), LicenseTemplate: &licenseTemplateApache2}
-	invalidRepoCreateOpts  = RepositoryCreateOptions{LicenseTemplate: &licenseTemplateFoo}
+	unknownLicenseTemplate = LicenseTemplate("foo")
+	repoCreateOpts1        = &RepositoryCreateOptions{AutoInit: boolVar(true), LicenseTemplate: licenseTemplateVar(LicenseTemplateMIT)}
+	repoCreateOpts2        = &RepositoryCreateOptions{AutoInit: boolVar(false), LicenseTemplate: licenseTemplateVar(LicenseTemplateApache2)}
+	partialCreateOpts1     = &RepositoryCreateOptions{AutoInit: boolVar(false)}
+	partialCreateOpts2     = &RepositoryCreateOptions{LicenseTemplate: licenseTemplateVar(LicenseTemplateApache2)}
+	invalidRepoCreateOpts  = &RepositoryCreateOptions{LicenseTemplate: &unknownLicenseTemplate}
 )
 
 func TestMakeRepositoryCreateOptions(t *testing.T) {
 	tests := []struct {
 		name        string
-		fns         []RepositoryCreateOptionsFunc
+		opts        []RepositoryCreateOption
 		want        RepositoryCreateOptions
 		wantErr     bool
 		expectedErr error
@@ -45,27 +45,35 @@ func TestMakeRepositoryCreateOptions(t *testing.T) {
 		},
 		{
 			name: "set all fields",
-			fns:  []RepositoryCreateOptionsFunc{WithRepositoryCreateOptions(repoCreateOpts1)},
-			want: repoCreateOpts1,
+			opts: []RepositoryCreateOption{repoCreateOpts1},
+			want: *repoCreateOpts1,
 		},
 		{
 			name: "latter overrides former",
-			fns: []RepositoryCreateOptionsFunc{
-				WithRepositoryCreateOptions(repoCreateOpts1),
-				WithRepositoryCreateOptions(repoCreateOpts2),
+			opts: []RepositoryCreateOption{
+				repoCreateOpts1,
+				repoCreateOpts2,
 			},
-			want: repoCreateOpts2,
+			want: *repoCreateOpts2,
 		},
 		{
 			name:        "invalid license template",
-			fns:         []RepositoryCreateOptionsFunc{WithRepositoryCreateOptions(invalidRepoCreateOpts)},
-			want:        invalidRepoCreateOpts,
+			opts:        []RepositoryCreateOption{invalidRepoCreateOpts},
+			want:        *invalidRepoCreateOpts,
 			expectedErr: ErrFieldEnumInvalid,
+		},
+		{
+			name: "partial options can form an unit",
+			opts: []RepositoryCreateOption{
+				partialCreateOpts1,
+				partialCreateOpts2,
+			},
+			want: *repoCreateOpts2,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := MakeRepositoryCreateOptions(tt.fns...)
+			got, err := MakeRepositoryCreateOptions(tt.opts...)
 			if tt.expectedErr != nil {
 				tt.wantErr = true // infer that an error is wanted
 				if !errors.Is(err, tt.expectedErr) {

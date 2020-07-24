@@ -71,6 +71,11 @@ func validateRepoVisibility(r RepoVisibility) error {
 	return nil
 }
 
+// repoVisibilityVar returns a pointer to a RepoVisibility
+func repoVisibilityVar(r RepoVisibility) *RepoVisibility {
+	return &r
+}
+
 // RepositoryPermission is an enum specifying the access level for a certain team or person
 // for a given repository
 type RepositoryPermission string
@@ -114,6 +119,11 @@ func validateRepositoryPermission(p RepositoryPermission) error {
 		return ErrFieldEnumInvalid
 	}
 	return nil
+}
+
+// repositoryPermissionVar returns a pointer to a RepositoryPermission
+func repositoryPermissionVar(p RepositoryPermission) *RepositoryPermission {
+	return &p
 }
 
 // LicenseTemplate is an enum specifying a license template that can be used when creating a

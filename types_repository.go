@@ -54,8 +54,7 @@ type Repository struct {
 // Default defaults the Repository, implementing the Creatable interface
 func (r *Repository) Default() {
 	if r.Visibility == nil {
-		visibility := defaultRepoVisibility
-		r.Visibility = &visibility
+		r.Visibility = repoVisibilityVar(defaultRepoVisibility)
 	}
 }
 
@@ -110,8 +109,7 @@ type TeamAccess struct {
 // Default defaults the TeamAccess, implementing the Creatable interface
 func (ta *TeamAccess) Default() {
 	if ta.Permission == nil {
-		permission := defaultRepoPermission
-		ta.Permission = &permission
+		ta.Permission = repositoryPermissionVar(defaultRepoPermission)
 	}
 }
 

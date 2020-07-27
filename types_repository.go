@@ -21,6 +21,10 @@ const (
 	defaultRepoVisibility = RepoVisibilityPrivate
 	// the default repository permission is "pull" (or read)
 	defaultRepoPermission = RepositoryPermissionPull
+	// the default branch name.
+	// TODO: When enough Git providers support setting this at both POST and PATCH-time
+	// (including when auto-initing), change this to "main"
+	defaultBranchName = "master"
 )
 
 // Repository implements Object and RepositoryRef interfaces
@@ -45,6 +49,13 @@ type Repository struct {
 	// +optional
 	Description *string `json:"description"`
 
+	// DefaultBranch describes the default branch for the given repository. This has
+	// historically been "master" (and is as of writing still the Git default), but is
+	// expected to be changed to e.g. "main" shortly in the future.
+	// Default value at POST-time: master (but this can and will change in future library versions!)
+	// +optional
+	DefaultBranch *string `json:"defaultBranch"`
+
 	// Visibility returns the desired visibility for the repository
 	// Default value at POST-time: RepoVisibilityPrivate
 	// +optional
@@ -55,6 +66,9 @@ type Repository struct {
 func (r *Repository) Default() {
 	if r.Visibility == nil {
 		r.Visibility = repoVisibilityVar(defaultRepoVisibility)
+	}
+	if r.DefaultBranch == nil {
+		r.DefaultBranch = stringVar(defaultBranchName)
 	}
 }
 

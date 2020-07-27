@@ -23,26 +23,26 @@ import (
 	"testing"
 )
 
-func newOrgInfo(domain, org string, subOrgs []string) OrganizationInfo {
+func newIdentityInfo(domain, org string, subOrgs []string) IdentityInfo {
 	if subOrgs == nil {
 		subOrgs = []string{}
 	}
-	return OrganizationInfo{
+	return IdentityInfo{
 		Domain:           domain,
 		Organization:     org,
 		SubOrganizations: subOrgs,
 	}
 }
 
-func newOrgInfoPtr(domain, org string, subOrgs []string) *OrganizationInfo {
-	orgInfo := newOrgInfo(domain, org, subOrgs)
+func newIdentityInfoPtr(domain, org string, subOrgs []string) *IdentityInfo {
+	orgInfo := newIdentityInfo(domain, org, subOrgs)
 	return &orgInfo
 }
 
 func newRepoInfo(domain, org string, subOrgs []string, repoName string) RepositoryInfo {
 	return RepositoryInfo{
-		OrganizationInfo: newOrgInfo(domain, org, subOrgs),
-		RepositoryName:   repoName,
+		IdentityInfo:   newIdentityInfo(domain, org, subOrgs),
+		RepositoryName: repoName,
 	}
 }
 
@@ -55,29 +55,29 @@ func TestParseOrganizationURL(t *testing.T) {
 	tests := []struct {
 		name    string
 		url     string
-		want    OrganizationRef
+		want    IdentityRef
 		wantErr bool
 		err     error
 	}{
 		{
 			name: "easy",
 			url:  "https://github.com/luxas",
-			want: newOrgInfo("github.com", "luxas", nil),
+			want: newIdentityInfo("github.com", "luxas", nil),
 		},
 		{
 			name: "trailing slash",
 			url:  "https://github.com/luxas/",
-			want: newOrgInfo("github.com", "luxas", nil),
+			want: newIdentityInfo("github.com", "luxas", nil),
 		},
 		{
 			name: "one sub-org",
 			url:  "https://gitlab.com/my-org/sub-org",
-			want: newOrgInfo("gitlab.com", "my-org", []string{"sub-org"}),
+			want: newIdentityInfo("gitlab.com", "my-org", []string{"sub-org"}),
 		},
 		{
 			name: "three sub-orgs and custom domain",
 			url:  "https://my-gitlab.com:6443/my-org/sub-org/2/3",
-			want: newOrgInfo("my-gitlab.com:6443", "my-org", []string{"sub-org", "2", "3"}),
+			want: newIdentityInfo("my-gitlab.com:6443", "my-org", []string{"sub-org", "2", "3"}),
 		},
 		{
 			name: "no org specified",
@@ -157,8 +157,8 @@ func TestParseOrganizationURL(t *testing.T) {
 			}
 			// Ensure a non-pointer return and that roundtrip data is preserved
 			if got != nil {
-				if _, ok := got.(OrganizationInfo); !ok {
-					t.Error("ParseOrganizationURL(): Expected OrganizationInfo struct to be returned")
+				if _, ok := got.(IdentityInfo); !ok {
+					t.Error("ParseOrganizationURL(): Expected IdentityInfo struct to be returned")
 				}
 				// expect the round-trip to remove any trailing slashes
 				expectedURL := strings.TrimSuffix(tt.url, "/")
@@ -350,7 +350,7 @@ func TestGetCloneURL(t *testing.T) {
 	}
 }
 
-func TestOrganizationInfo_RefIsEmpty(t *testing.T) {
+func TestIdentityInfo_RefIsEmpty(t *testing.T) {
 	type fields struct {
 		Domain           string
 		Organization     string
@@ -389,13 +389,13 @@ func TestOrganizationInfo_RefIsEmpty(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			o := OrganizationInfo{
+			o := IdentityInfo{
 				Domain:           tt.fields.Domain,
 				Organization:     tt.fields.Organization,
 				SubOrganizations: tt.fields.SubOrganizations,
 			}
 			if got := o.RefIsEmpty(); got != tt.want {
-				t.Errorf("OrganizationInfo.RefIsEmpty() = %v, want %v", got, tt.want)
+				t.Errorf("IdentityInfo.RefIsEmpty() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -403,8 +403,8 @@ func TestOrganizationInfo_RefIsEmpty(t *testing.T) {
 
 func TestRepositoryInfo_RefIsEmpty(t *testing.T) {
 	type fields struct {
-		OrganizationInfo OrganizationInfo
-		RepositoryName   string
+		IdentityInfo   IdentityInfo
+		RepositoryName string
 	}
 	tests := []struct {
 		name   string
@@ -418,7 +418,7 @@ func TestRepositoryInfo_RefIsEmpty(t *testing.T) {
 		{
 			name: "domain set",
 			fields: fields{
-				OrganizationInfo: OrganizationInfo{
+				IdentityInfo: IdentityInfo{
 					Domain: "foo",
 				},
 			},
@@ -427,7 +427,7 @@ func TestRepositoryInfo_RefIsEmpty(t *testing.T) {
 		{
 			name: "org set",
 			fields: fields{
-				OrganizationInfo: OrganizationInfo{
+				IdentityInfo: IdentityInfo{
 					Organization: "bar",
 				},
 			},
@@ -436,7 +436,7 @@ func TestRepositoryInfo_RefIsEmpty(t *testing.T) {
 		{
 			name: "sub-org set",
 			fields: fields{
-				OrganizationInfo: OrganizationInfo{
+				IdentityInfo: IdentityInfo{
 					SubOrganizations: []string{"baz"},
 				},
 			},
@@ -453,8 +453,8 @@ func TestRepositoryInfo_RefIsEmpty(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := RepositoryInfo{
-				OrganizationInfo: tt.fields.OrganizationInfo,
-				RepositoryName:   tt.fields.RepositoryName,
+				IdentityInfo:   tt.fields.IdentityInfo,
+				RepositoryName: tt.fields.RepositoryName,
 			}
 			if got := r.RefIsEmpty(); got != tt.want {
 				t.Errorf("RepositoryInfo.RefIsEmpty() = %v, want %v", got, tt.want)

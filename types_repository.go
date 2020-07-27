@@ -75,7 +75,7 @@ func (r *Repository) Default() {
 // ValidateCreate validates the object at POST-time and implements the Creatable interface
 func (r *Repository) ValidateCreate() error {
 	errs := newValidationErrorList("Repository")
-	// Validate the embedded RepositoryInfo (and its OrganizationInfo)
+	// Validate the embedded RepositoryInfo (and its IdentityInfo)
 	r.RepositoryInfo.validateRepositoryInfoCreate(errs)
 	// Validate the Visibility enum
 	if r.Visibility != nil {

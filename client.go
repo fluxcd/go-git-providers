@@ -41,7 +41,7 @@ type Client interface {
 type ResourceClient interface {
 	// Organization gets the OrganizationClient for the specific top-level organization, or user account.
 	// ErrNotTopLevelOrganization will be returned if the organization is not top-level
-	Organization(o OrganizationRef) OrganizationClient
+	Organization(o IdentityRef) OrganizationClient
 
 	// Organizations returns the OrganizationsClient handling sets of organizations
 	Organizations() OrganizationsClient
@@ -58,17 +58,17 @@ type OrganizationsClient interface {
 	// Get a specific organization the user has access to
 	// This might also refer to a sub-organization
 	// ErrNotFound is returned if the resource does not exist
-	Get(ctx context.Context, o OrganizationRef) (*Organization, error)
+	Get(ctx context.Context, o IdentityRef) (*Organization, error)
 
 	// List all top-level organizations the specific user has access to
 	// List should return all available organizations, using multiple paginated requests if needed
 	List(ctx context.Context) ([]Organization, error)
 
-	// Children returns the immediate child-organizations for the specific OrganizationRef o.
-	// The OrganizationRef may point to any sub-organization that exists
+	// Children returns the immediate child-organizations for the specific IdentityRef o.
+	// The IdentityRef may point to any sub-organization that exists
 	// This is not supported in GitHub
 	// Children should return all available organizations, using multiple paginated requests if needed
-	Children(ctx context.Context, o OrganizationRef) ([]Organization, error)
+	Children(ctx context.Context, o IdentityRef) ([]Organization, error)
 
 	// Possibly add Create/Update/Delete methods later
 }
@@ -102,7 +102,7 @@ type RepositoriesClient interface {
 
 	// List all repositories in the given organization
 	// List should return all available organizations, using multiple paginated requests if needed
-	List(ctx context.Context, o OrganizationRef) ([]Repository, error)
+	List(ctx context.Context, o IdentityRef) ([]Repository, error)
 
 	// Create creates a repository at the given organization path, with the given URL-encoded name and options
 	// ErrAlreadyExists will be returned if the resource already exists

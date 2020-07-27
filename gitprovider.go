@@ -33,7 +33,7 @@ var (
 	ErrRateLimited = errors.New("hit rate limit")
 
 	// ErrNotTopLevelOrganization describes the case where it's mandatory to specify a top-level organization
-	// (e.g. for accessing teams), but a sub-organization was passed as the OrganizationRef
+	// (e.g. for accessing teams), but a sub-organization was passed as the IdentityRef
 	ErrNotTopLevelOrganization = errors.New("expected top-level organization, received sub-organization instead")
 
 	// ErrAlreadyExists is returned by .Create() requests if the given resource already exists.

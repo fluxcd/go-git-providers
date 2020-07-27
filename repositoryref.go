@@ -22,10 +22,10 @@ import (
 	"strings"
 )
 
-// TODO: Add equality methods for OrganizationRef and RepositoryRefs
+// TODO: Add equality methods for IdentityRef and RepositoryRefs
 
-// OrganizationRef references an organization in a Git provider
-type OrganizationRef interface {
+// IdentityRef references an organization in a Git provider
+type IdentityRef interface {
 	// String returns the HTTPS URL
 	fmt.Stringer
 
@@ -42,21 +42,23 @@ type OrganizationRef interface {
 
 // RepositoryRef references a repository hosted by a Git provider
 type RepositoryRef interface {
-	// RepositoryRef requires an OrganizationRef to fully-qualify a repo reference
-	OrganizationRef
+	// RepositoryRef requires an IdentityRef to fully-qualify a repo reference
+	IdentityRef
 
 	// GetRepository returns the name of the repository. This name never includes the ".git"-suffix.
 	GetRepository() string
 }
 
-// OrganizationInfo implements OrganizationRef. An organization URL is split up in:
+// IdentityInfo implements IdentityRef. An organization URL is split up in:
 // https://<domain>/<top-level-org>/[sub-orgs/...]
 // The <top-level-org> field might as well be an user account login name.
-type OrganizationInfo struct {
+type IdentityInfo struct {
 	// Domain returns e.g. "github.com", "gitlab.com" or a custom domain like "self-hosted-gitlab.com" (GitLab)
 	// The domain _might_ contain port information, in the form of "host:port", if applicable
 	// +required
 	Domain string `json:"domain"`
+
+	UserLogin string `json:"userLogin"`
 
 	// Organization specifies the URL-friendly, lowercase name of the organization or user account name,
 	// e.g. "fluxcd" or "kubernetes-sigs".
@@ -69,42 +71,42 @@ type OrganizationInfo struct {
 	SubOrganizations []string `json:"subOrganizations"`
 }
 
-// OrganizationInfo implements OrganizationRef
-var _ OrganizationRef = OrganizationInfo{}
+// IdentityInfo implements IdentityRef
+var _ IdentityRef = IdentityInfo{}
 
 // GetDomain returns the the domain part of the endpoint, can include port information.
-func (o OrganizationInfo) GetDomain() string {
+func (o IdentityInfo) GetDomain() string {
 	return o.Domain
 }
 
 // GetOrganization returns the top-level organization, or user account (login name), if applicable
-func (o OrganizationInfo) GetOrganization() string {
+func (o IdentityInfo) GetOrganization() string {
 	return o.Organization
 }
 
 // GetOrganization returns the a list of all sub-organizations of this reference
-func (o OrganizationInfo) GetSubOrganizations() []string {
+func (o IdentityInfo) GetSubOrganizations() []string {
 	return o.SubOrganizations
 }
 
-// organizationString returns the organizations of an OrganizationRef slash-separated
-func organizationString(o OrganizationRef) string {
+// organizationString returns the organizations of an IdentityRef slash-separated
+func organizationString(o IdentityRef) string {
 	orgParts := append([]string{o.GetOrganization()}, o.GetSubOrganizations()...)
 	return strings.Join(orgParts, "/")
 }
 
 // String returns the HTTPS URL to access the Organization
-func (o OrganizationInfo) String() string {
+func (o IdentityInfo) String() string {
 	return fmt.Sprintf("https://%s/%s", o.GetDomain(), organizationString(o))
 }
 
-// RefIsEmpty returns true if all the parts of the given OrganizationInfo are empty, otherwise false
-func (o OrganizationInfo) RefIsEmpty() bool {
+// RefIsEmpty returns true if all the parts of the given IdentityInfo are empty, otherwise false
+func (o IdentityInfo) RefIsEmpty() bool {
 	return len(o.Domain) == 0 && len(o.Organization) == 0 && len(o.SubOrganizations) == 0
 }
 
-// validateOrganizationInfoCreate validates its own field into a given error list
-func (o OrganizationInfo) validateOrganizationInfoCreate(errs *validationErrorList) {
+// validateIdentityInfoCreate validates its own field into a given error list
+func (o IdentityInfo) validateIdentityInfoCreate(errs *validationErrorList) {
 	// Require the Domain and Organization to be set
 	if len(o.Domain) == 0 {
 		errs.Required("Domain")
@@ -116,8 +118,8 @@ func (o OrganizationInfo) validateOrganizationInfoCreate(errs *validationErrorLi
 
 // RepositoryInfo is an implementation of RepositoryRef
 type RepositoryInfo struct {
-	// RepositoryInfo embeds everything in OrganizationInfo inline
-	OrganizationInfo `json:",inline"`
+	// RepositoryInfo embeds everything in IdentityInfo inline
+	IdentityInfo `json:",inline"`
 
 	// Name specifies the Git repository name. This field is URL-friendly,
 	// e.g. "kubernetes" or "cluster-api-provider-aws"
@@ -135,18 +137,18 @@ func (r RepositoryInfo) GetRepository() string {
 
 // String returns the HTTPS URL to access the Repository
 func (r RepositoryInfo) String() string {
-	return fmt.Sprintf("%s/%s", r.OrganizationInfo.String(), r.GetRepository())
+	return fmt.Sprintf("%s/%s", r.IdentityInfo.String(), r.GetRepository())
 }
 
 // RefIsEmpty returns true if all the parts of the given RepositoryInfo are empty, otherwise false
 func (r RepositoryInfo) RefIsEmpty() bool {
-	return r.OrganizationInfo.RefIsEmpty() && len(r.RepositoryName) == 0
+	return r.IdentityInfo.RefIsEmpty() && len(r.RepositoryName) == 0
 }
 
 // validateRepositoryInfoCreate validates its own field into a given error list
 func (r RepositoryInfo) validateRepositoryInfoCreate(errs *validationErrorList) {
-	// First, validate the embedded OrganizationInfo
-	r.validateOrganizationInfoCreate(errs)
+	// First, validate the embedded IdentityInfo
+	r.validateIdentityInfoCreate(errs)
 	// Require RepositoryName to be set
 	if len(r.RepositoryName) == 0 {
 		errs.Required("RepositoryName")
@@ -172,9 +174,9 @@ func GetCloneURL(rs RepositoryRef, transport TransportType) string {
 	return ""
 }
 
-// ParseOrganizationURL parses an URL to an organization into a OrganizationRef object
-func ParseOrganizationURL(o string) (OrganizationRef, error) {
-	// Always return OrganizationInfo dereferenced, not as a pointer
+// ParseOrganizationURL parses an URL to an organization into a IdentityRef object
+func ParseOrganizationURL(o string) (IdentityRef, error) {
+	// Always return IdentityInfo dereferenced, not as a pointer
 	orgInfoPtr, err := parseOrganizationURL(o)
 	if err != nil {
 		return nil, err
@@ -203,8 +205,8 @@ func ParseRepositoryURL(r string) (RepositoryRef, error) {
 	// Return the new RepositoryInfo
 	return RepositoryInfo{
 		// Never include any .git suffix at the end of the repository name
-		RepositoryName:   strings.TrimSuffix(repoName, ".git"),
-		OrganizationInfo: *orgInfoPtr,
+		RepositoryName: strings.TrimSuffix(repoName, ".git"),
+		IdentityInfo:   *orgInfoPtr,
 	}, nil
 }
 
@@ -243,13 +245,13 @@ func parseURL(str string) (*url.URL, []string, error) {
 	return u, parts, nil
 }
 
-func parseOrganizationURL(o string) (*OrganizationInfo, error) {
+func parseOrganizationURL(o string) (*IdentityInfo, error) {
 	u, parts, err := parseURL(o)
 	if err != nil {
 		return nil, err
 	}
-	// Create the OrganizationInfo object
-	info := &OrganizationInfo{
+	// Create the IdentityInfo object
+	info := &IdentityInfo{
 		Domain:           u.Host,
 		Organization:     parts[0],
 		SubOrganizations: []string{},

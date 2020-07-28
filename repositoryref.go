@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+
+	"github.com/fluxcd/go-git-providers/validation"
 )
 
 // TODO: Add equality methods for IdentityRef and RepositoryRefs
@@ -28,6 +30,8 @@ import (
 type IdentityRef interface {
 	// String returns the HTTPS URL
 	fmt.Stringer
+	// IdentityRef implements ValidateTarget so it can easily be validated as a field
+	validation.ValidateTarget
 
 	// GetDomain returns the URL-domain for the Git provider backend, e.g. github.com or self-hosted-gitlab.com
 	GetDomain() string
@@ -105,14 +109,14 @@ func (o IdentityInfo) RefIsEmpty() bool {
 	return len(o.Domain) == 0 && len(o.Organization) == 0 && len(o.SubOrganizations) == 0
 }
 
-// validateIdentityInfoCreate validates its own field into a given error list
-func (o IdentityInfo) validateIdentityInfoCreate(errs *validationErrorList) {
+// ValidateFields validates its own fields for a given validator
+func (o IdentityInfo) ValidateFields(validator validation.Validator) {
 	// Require the Domain and Organization to be set
 	if len(o.Domain) == 0 {
-		errs.Required("Domain")
+		validator.Required("Domain")
 	}
 	if len(o.Organization) == 0 {
-		errs.Required("Organization")
+		validator.Required("Organization")
 	}
 }
 
@@ -145,13 +149,13 @@ func (r RepositoryInfo) RefIsEmpty() bool {
 	return r.IdentityInfo.RefIsEmpty() && len(r.RepositoryName) == 0
 }
 
-// validateRepositoryInfoCreate validates its own field into a given error list
-func (r RepositoryInfo) validateRepositoryInfoCreate(errs *validationErrorList) {
+// ValidateFields validates its own fields for a given validator
+func (r RepositoryInfo) ValidateFields(validator validation.Validator) {
 	// First, validate the embedded IdentityInfo
-	r.validateIdentityInfoCreate(errs)
+	r.IdentityInfo.ValidateFields(validator)
 	// Require RepositoryName to be set
 	if len(r.RepositoryName) == 0 {
-		errs.Required("RepositoryName")
+		validator.Required("RepositoryName")
 	}
 }
 

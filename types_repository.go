@@ -16,6 +16,8 @@ limitations under the License.
 
 package gitprovider
 
+import "github.com/fluxcd/go-git-providers/validation"
+
 const (
 	// the default repository visibility is private
 	defaultRepoVisibility = RepoVisibilityPrivate
@@ -74,14 +76,14 @@ func (r *Repository) Default() {
 
 // ValidateCreate validates the object at POST-time and implements the Creatable interface
 func (r *Repository) ValidateCreate() error {
-	errs := newValidationErrorList("Repository")
+	validator := validation.New("Repository")
 	// Validate the embedded RepositoryInfo (and its IdentityInfo)
-	r.RepositoryInfo.validateRepositoryInfoCreate(errs)
+	r.RepositoryInfo.ValidateFields(validator)
 	// Validate the Visibility enum
 	if r.Visibility != nil {
-		errs.Append(validateRepoVisibility(*r.Visibility), *r.Visibility, "Visibility")
+		validator.Append(validateRepoVisibility(*r.Visibility), *r.Visibility, "Visibility")
 	}
-	return errs.Error()
+	return validator.Error()
 }
 
 // ValidateUpdate validates the object at PUT/PATCH-time and implements the Updatable interface
@@ -129,33 +131,33 @@ func (ta *TeamAccess) Default() {
 
 // ValidateCreate validates the object at POST-time and implements the Creatable interface
 func (ta *TeamAccess) ValidateCreate() error {
-	errs := newValidationErrorList("TeamAccess")
+	validator := validation.New("TeamAccess")
 	// Common validation code
-	ta.validateNameAndRepository(errs)
+	ta.validateNameAndRepository(validator)
 	// Validate the Permission enum
 	if ta.Permission != nil {
-		errs.Append(validateRepositoryPermission(*ta.Permission), *ta.Permission, "Permission")
+		validator.Append(validateRepositoryPermission(*ta.Permission), *ta.Permission, "Permission")
 	}
-	return errs.Error()
+	return validator.Error()
 }
 
 // ValidateDelete validates the object at DELETE-time and implements the Deletable interface
 func (ta *TeamAccess) ValidateDelete() error {
-	errs := newValidationErrorList("TeamAccess")
+	validator := validation.New("TeamAccess")
 	// Common validation code
-	ta.validateNameAndRepository(errs)
-	return errs.Error()
+	ta.validateNameAndRepository(validator)
+	return validator.Error()
 }
 
-func (ta *TeamAccess) validateNameAndRepository(errs *validationErrorList) {
+func (ta *TeamAccess) validateNameAndRepository(validator validation.Validator) {
 	// Make sure we've set the name of the team
 	if len(ta.Name) == 0 {
-		errs.Required("Name")
+		validator.Required("Name")
 	}
 	// Validate the Repository if it is set. It most likely _shouldn't be_ (there's no need to,
 	// as it's only set at GET-time), but if it is, make sure fields are ok. The RepositoryClient
 	// should make sure that if set, it also needs to match the client's RepositoryRef.
 	if ta.Repository != nil {
-		ta.Repository.validateRepositoryInfoCreate(errs)
+		ta.Repository.ValidateFields(validator)
 	}
 }

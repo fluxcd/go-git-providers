@@ -16,6 +16,8 @@ limitations under the License.
 
 package gitprovider
 
+import "github.com/fluxcd/go-git-providers/validation"
+
 // TransportType is an enum specifying the transport type used when cloning a repository
 type TransportType string
 
@@ -66,7 +68,7 @@ var knownRepoVisibilityValues = map[RepoVisibility]struct{}{
 func validateRepoVisibility(r RepoVisibility) error {
 	_, ok := knownRepoVisibilityValues[r]
 	if !ok {
-		return ErrFieldEnumInvalid
+		return validation.ErrFieldEnumInvalid
 	}
 	return nil
 }
@@ -116,7 +118,7 @@ var knownRepositoryPermissionValues = map[RepositoryPermission]struct{}{
 func validateRepositoryPermission(p RepositoryPermission) error {
 	_, ok := knownRepositoryPermissionValues[p]
 	if !ok {
-		return ErrFieldEnumInvalid
+		return validation.ErrFieldEnumInvalid
 	}
 	return nil
 }
@@ -155,7 +157,7 @@ var knownLicenseTemplateValues = map[LicenseTemplate]struct{}{
 func validateLicenseTemplate(t LicenseTemplate) error {
 	_, ok := knownLicenseTemplateValues[t]
 	if !ok {
-		return ErrFieldEnumInvalid
+		return validation.ErrFieldEnumInvalid
 	}
 	return nil
 }

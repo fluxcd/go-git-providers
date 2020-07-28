@@ -16,10 +16,12 @@ limitations under the License.
 
 package gitprovider
 
+import "github.com/fluxcd/go-git-providers/validation"
+
 // MakeRepositoryCreateOptions returns a RepositoryCreateOptions based off the mutator functions
 // given to e.g. RepositoriesClient.Create(). The returned validation error may be ignored in the
-// case that the client allows e.g. other license templates than those that are common. ErrFieldEnumInvalid
-// is returned if the license template doesn't match known values
+// case that the client allows e.g. other license templates than those that are common.
+// validation.ErrFieldEnumInvalid is returned if the license template doesn't match known values
 func MakeRepositoryCreateOptions(opts ...RepositoryCreateOption) (RepositoryCreateOptions, error) {
 	o := &RepositoryCreateOptions{}
 	for _, opt := range opts {
@@ -75,7 +77,7 @@ func (opts *RepositoryCreateOptions) Default() {}
 
 // ValidateCreate validates that the options are valid
 func (opts *RepositoryCreateOptions) ValidateCreate() error {
-	errs := newValidationErrorList("RepositoryCreateOptions")
+	errs := validation.New("RepositoryCreateOptions")
 	if opts.LicenseTemplate != nil {
 		errs.Append(validateLicenseTemplate(*opts.LicenseTemplate), *opts.LicenseTemplate, "LicenseTemplate")
 	}

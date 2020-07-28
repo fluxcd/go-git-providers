@@ -42,13 +42,6 @@ var (
 	// ErrNotFound is returned by .Get() and .Update() calls if the given resource doesn't exist
 	ErrNotFound = errors.New("the requested resource was not found")
 
-	// ErrFieldRequired specifies the case where a required field isn't populated at use time
-	ErrFieldRequired = errors.New("field is required")
-	// ErrFieldInvalid specifies the case where a field isn't populated in a valid manner
-	ErrFieldInvalid = errors.New("field is invalid")
-	// ErrFieldEnumInvalid specifies the case where the given value isn't part of the known values in the enum
-	ErrFieldEnumInvalid = errors.New("field value isn't known to this enum")
-
 	// ErrURLUnsupportedScheme is returned if an URL without the HTTPS scheme is parsed
 	ErrURLUnsupportedScheme = errors.New("unsupported URL scheme, only HTTPS supported")
 	// ErrURLUnsupportedParts is returned if an URL with fragment, query values and/or user information is parsed

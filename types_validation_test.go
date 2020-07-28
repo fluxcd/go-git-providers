@@ -19,6 +19,8 @@ package gitprovider
 import (
 	"fmt"
 	"testing"
+
+	"github.com/fluxcd/go-git-providers/validation"
 )
 
 type validateMethod string
@@ -40,7 +42,7 @@ func assertValidation(t *testing.T, structName string, method validateMethod, va
 		t.Errorf("%s() error = %v, wantErr %v", funcName, err, wantErr)
 	}
 	// Make sure the error embeds the following expected errors
-	expectErrors(t, funcName, err, expectedErrs)
+	validation.TestExpectErrors(t, funcName, err, expectedErrs)
 }
 
 func TestDeployKey_Validate(t *testing.T) {
@@ -88,13 +90,13 @@ func TestDeployKey_Validate(t *testing.T) {
 			key: DeployKey{
 				Key: []byte("some-data"),
 			},
-			expectedErrs: []error{ErrFieldRequired},
+			expectedErrs: []error{validation.ErrFieldRequired},
 			methods:      []validateMethod{validateCreate},
 		},
 		{
 			name:         "invalid delete, missing name",
 			key:          DeployKey{},
-			expectedErrs: []error{ErrFieldRequired},
+			expectedErrs: []error{validation.ErrFieldRequired},
 			methods:      []validateMethod{validateDelete},
 		},
 		{
@@ -102,7 +104,7 @@ func TestDeployKey_Validate(t *testing.T) {
 			key: DeployKey{
 				Name: "foo-deploykey",
 			},
-			expectedErrs: []error{ErrFieldRequired},
+			expectedErrs: []error{validation.ErrFieldRequired},
 			methods:      []validateMethod{validateCreate},
 		},
 		{
@@ -112,7 +114,7 @@ func TestDeployKey_Validate(t *testing.T) {
 				Key:        []byte("some-data"),
 				Repository: newRepoInfoPtr("github.com", "", nil, "foo-repo"),
 			},
-			expectedErrs: []error{ErrFieldRequired},
+			expectedErrs: []error{validation.ErrFieldRequired},
 			methods:      []validateMethod{validateCreate},
 		},
 		{
@@ -121,7 +123,7 @@ func TestDeployKey_Validate(t *testing.T) {
 				Name:       "foo-deploykey",
 				Repository: newRepoInfoPtr("github.com", "", nil, "foo-repo"),
 			},
-			expectedErrs: []error{ErrFieldRequired},
+			expectedErrs: []error{validation.ErrFieldRequired},
 			methods:      []validateMethod{validateDelete},
 		},
 		{
@@ -131,7 +133,7 @@ func TestDeployKey_Validate(t *testing.T) {
 				Key:        []byte("some-data"),
 				Repository: newRepoInfoPtr("github.com", "foo-org", nil, ""),
 			},
-			expectedErrs: []error{ErrFieldRequired},
+			expectedErrs: []error{validation.ErrFieldRequired},
 			methods:      []validateMethod{validateCreate},
 		},
 		{
@@ -140,7 +142,7 @@ func TestDeployKey_Validate(t *testing.T) {
 				Name:       "foo-deploykey",
 				Repository: newRepoInfoPtr("github.com", "foo-org", nil, ""),
 			},
-			expectedErrs: []error{ErrFieldRequired},
+			expectedErrs: []error{validation.ErrFieldRequired},
 			methods:      []validateMethod{validateDelete},
 		},
 	}
@@ -195,7 +197,7 @@ func TestRepository_Validate(t *testing.T) {
 				Visibility:     &unknownRepoVisibility,
 			},
 			methods:      []validateMethod{validateCreate, validateUpdate},
-			expectedErrs: []error{ErrFieldEnumInvalid},
+			expectedErrs: []error{validation.ErrFieldEnumInvalid},
 		},
 		{
 			name: "invalid create and update, invalid repo info",
@@ -204,7 +206,7 @@ func TestRepository_Validate(t *testing.T) {
 				Visibility:     repoVisibilityVar(RepoVisibilityPrivate),
 			},
 			methods:      []validateMethod{validateCreate, validateUpdate},
-			expectedErrs: []error{ErrFieldRequired},
+			expectedErrs: []error{validation.ErrFieldRequired},
 		},
 		{
 			name: "invalid create and update, invalid org info",
@@ -213,7 +215,7 @@ func TestRepository_Validate(t *testing.T) {
 				Description:    stringVar(""),                                  // description isn't validated, doesn't need any for now
 			},
 			methods:      []validateMethod{validateCreate, validateUpdate},
-			expectedErrs: []error{ErrFieldRequired},
+			expectedErrs: []error{validation.ErrFieldRequired},
 		},
 	}
 	for _, tt := range tests {
@@ -255,7 +257,7 @@ func TestTeamAccess_Validate(t *testing.T) {
 			name:         "invalid create and delete, required name",
 			ta:           TeamAccess{},
 			methods:      []validateMethod{validateCreate, validateDelete},
-			expectedErrs: []error{ErrFieldRequired},
+			expectedErrs: []error{validation.ErrFieldRequired},
 		},
 		{
 			name: "valid create and delete, also including valid repoinfo",
@@ -272,7 +274,7 @@ func TestTeamAccess_Validate(t *testing.T) {
 				Repository: newRepoInfoPtr("github.com", "foo-org", nil, ""),
 			},
 			methods:      []validateMethod{validateCreate, validateDelete},
-			expectedErrs: []error{ErrFieldRequired},
+			expectedErrs: []error{validation.ErrFieldRequired},
 		},
 		{
 			name: "invalid create and delete, invalid orginfo",
@@ -281,7 +283,7 @@ func TestTeamAccess_Validate(t *testing.T) {
 				Repository: newRepoInfoPtr("", "foo-org", nil, "foo-repo"),
 			},
 			methods:      []validateMethod{validateCreate, validateDelete},
-			expectedErrs: []error{ErrFieldRequired},
+			expectedErrs: []error{validation.ErrFieldRequired},
 		},
 		{
 			name: "valid create, with valid enum",
@@ -298,7 +300,7 @@ func TestTeamAccess_Validate(t *testing.T) {
 				Permission: &invalidPermission,
 			},
 			methods:      []validateMethod{validateCreate},
-			expectedErrs: []error{ErrFieldEnumInvalid},
+			expectedErrs: []error{validation.ErrFieldEnumInvalid},
 		},
 	}
 	for _, tt := range tests {

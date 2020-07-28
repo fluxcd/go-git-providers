@@ -16,6 +16,8 @@ limitations under the License.
 
 package gitprovider
 
+import "github.com/fluxcd/go-git-providers/validation"
+
 const (
 	// by default, deploy keys are read-only
 	defaultDeployKeyReadOnly = true
@@ -112,35 +114,35 @@ func (dk *DeployKey) Default() {
 
 // ValidateCreate validates the object at POST-time and implements the Creatable interface
 func (dk *DeployKey) ValidateCreate() error {
-	errs := newValidationErrorList("DeployKey")
+	validator := validation.New("DeployKey")
 	// Common validation
-	dk.validateNameAndRepository(errs)
+	dk.validateNameAndRepository(validator)
 	// Key is a required field
 	if len(dk.Key) == 0 {
-		errs.Required("Key")
+		validator.Required("Key")
 	}
 	// Don't care about the RepositoryInfo, as that information is coming from
 	// the RepositoryClient. In the client, we make sure that they equal.
-	return errs.Error()
+	return validator.Error()
 }
 
 // ValidateDelete validates the object at DELETE-time and implements the Deletable interface
 func (dk *DeployKey) ValidateDelete() error {
-	errs := newValidationErrorList("DeployKey")
+	validator := validation.New("DeployKey")
 	// Common validation
-	dk.validateNameAndRepository(errs)
-	return errs.Error()
+	dk.validateNameAndRepository(validator)
+	return validator.Error()
 }
 
-func (dk *DeployKey) validateNameAndRepository(errs *validationErrorList) {
+func (dk *DeployKey) validateNameAndRepository(validator validation.Validator) {
 	// Make sure we've set the name of the team
 	if len(dk.Name) == 0 {
-		errs.Required("Name")
+		validator.Required("Name")
 	}
 	// Validate the Repository if it is set. It most likely _shouldn't be_ (there's no need to,
 	// as it's only set at GET-time), but if it is, make sure fields are ok. The RepositoryClient
 	// should make sure that if set, it also needs to match the client's RepositoryRef.
 	if dk.Repository != nil {
-		dk.Repository.validateRepositoryInfoCreate(errs)
+		dk.Repository.ValidateFields(validator)
 	}
 }

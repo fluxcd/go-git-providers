@@ -20,6 +20,8 @@ import (
 	"errors"
 	"reflect"
 	"testing"
+
+	"github.com/fluxcd/go-git-providers/validation"
 )
 
 var (
@@ -60,7 +62,7 @@ func TestMakeRepositoryCreateOptions(t *testing.T) {
 			name:        "invalid license template",
 			opts:        []RepositoryCreateOption{invalidRepoCreateOpts},
 			want:        *invalidRepoCreateOpts,
-			expectedErr: ErrFieldEnumInvalid,
+			expectedErr: validation.ErrFieldEnumInvalid,
 		},
 		{
 			name: "partial options can form an unit",

@@ -33,7 +33,7 @@ var (
 	ErrRateLimited = errors.New("hit rate limit")
 
 	// ErrNotTopLevelOrganization describes the case where it's mandatory to specify a top-level organization
-	// (e.g. for accessing teams), but a sub-organization was passed as the IdentityRef
+	// (e.g. for accessing teams), but a sub-organization was passed as the OrganizationRef
 	ErrNotTopLevelOrganization = errors.New("expected top-level organization, received sub-organization instead")
 
 	// ErrAlreadyExists is returned by .Create() requests if the given resource already exists.
@@ -47,7 +47,7 @@ var (
 	// ErrURLUnsupportedParts is returned if an URL with fragment, query values and/or user information is parsed
 	ErrURLUnsupportedParts = errors.New("URL cannot have fragments, query values nor user information")
 	// ErrURLInvalid is returned if an URL is invalid when parsing
-	ErrURLInvalid = errors.New("invalid organization or repository URL")
+	ErrURLInvalid = errors.New("invalid organization, user or repository URL")
 	// ErrURLMissingRepoName is returned if there is no repository name in the URL
 	ErrURLMissingRepoName = errors.New("missing repository name")
 )

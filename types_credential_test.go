@@ -36,7 +36,7 @@ func TestDeployKey_Getters(t *testing.T) {
 				Name:       "foo",
 				Key:        []byte("data"),
 				ReadOnly:   boolVar(true),
-				Repository: newRepoInfoPtr("github.com", "foo-org", nil, "foo-repo"),
+				Repository: newOrgRepoInfoPtr("github.com", "foo-org", nil, "foo-repo"),
 			},
 			wantReadOnly: true,
 		},

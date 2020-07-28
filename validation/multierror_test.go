@@ -19,6 +19,7 @@ package validation
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"reflect"
 	"testing"
 )
@@ -174,16 +175,48 @@ func Test_ExpectErrors(t *testing.T) {
 			errCount:     1,
 		},
 		{
+			name:         "two different fmt.Errors should not be equal",
+			err:          fmt.Errorf("wrapped error: %w", ErrFieldInvalid),
+			expectedErrs: []error{fmt.Errorf("other error: %w", ErrFieldInvalid)},
+			errCount:     1,
+		},
+		{
+			name:         "two different fmt.Errors should not be equal",
+			err:          fmt.Errorf("wrapped error: %w", ErrFieldInvalid),
+			expectedErrs: []error{fmt.Errorf("other error")},
+			errCount:     1,
+		},
+		{
+			name:         "two different errorStrings should not match",
+			err:          errors.New("first error"),
+			expectedErrs: []error{errors.New("other error")},
+			errCount:     1,
+		},
+		{
 			name:         "two errors not found in multierror",
 			err:          &MultiError{Errors: []error{ErrFieldInvalid}},
 			expectedErrs: []error{&MultiError{}, ErrFieldRequired, ErrFieldEnumInvalid},
 			errCount:     2,
 		},
+		{
+			name:     "expected no error, got one",
+			err:      fmt.Errorf("wrapped error: %w", ErrFieldInvalid),
+			errCount: 1,
+		},
+		{
+			name: "expected no error, got none",
+			err:  nil,
+		},
+		{
+			name:         "struct types",
+			err:          &url.Error{Op: "foo", URL: "bar", Err: fmt.Errorf("baz")},
+			expectedErrs: []error{&url.Error{}},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t2 := &fakeT{t, 0}
-			TestExpectErrors(t2, "", tt.err, tt.expectedErrs)
+			TestExpectErrors(t2, "", tt.err, tt.expectedErrs...)
 			if t2.calledErrorf != tt.errCount {
 				t.Errorf("TestExpectErrors() errCount = %d, wanted %d", t2.calledErrorf, tt.errCount)
 			}

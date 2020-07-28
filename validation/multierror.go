@@ -19,6 +19,7 @@ package validation
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"testing"
 )
 
@@ -94,12 +95,40 @@ func (e *MultiError) As(target interface{}) bool {
 	return false
 }
 
+// disallowedCompareAsErrorNames contains a list of which errors should NOT be compared for equality
+// using errors.As, as they could be very different errors although being the same type
+var disallowedCompareAsErrorNames = map[string]struct{}{
+	"*errors.errorString": {},
+	"*fmt.wrapError":      {},
+}
+
 // TestExpectErrors loops through all expected errors and make sure that errors.Is returns true
-// for all of them
-func TestExpectErrors(t testing.TB, funcName string, err error, expectedErrs []error) {
+// for all of them. If there aren't any expected errors, and err != nil, an error will be reported too
+func TestExpectErrors(t testing.TB, funcName string, err error, expectedErrs ...error) {
 	for _, expectedErr := range expectedErrs {
-		if !errors.Is(err, expectedErr) {
-			t.Errorf("%s() error = %v, wanted %v", funcName, err, expectedErr)
+		// Check equality between the errors using errors.Is
+		if errors.Is(err, expectedErr) {
+			continue
 		}
+		// If errors.Is returned false (e.g. in the case of two similar but not exactly equal
+		// struct errors without an Is method, e.g. net/url.Error), also check for equality
+		// using errors.As. Make sure we don't check for equality using errors.As for the stdlib
+		// error types though.
+		expectedType := reflect.TypeOf(expectedErr)
+		expectedTypeName := expectedType.String()
+		_, nameDisallowed := disallowedCompareAsErrorNames[expectedTypeName]
+		if expectedType == reflect.TypeOf(err) && !nameDisallowed {
+			target := expectedErr.(interface{})
+			if errors.As(err, &target) {
+				continue
+			}
+		}
+
+		// If we didn't find equality between the errors, report the failure
+		t.Errorf("%s() error = %v, wanted %v", funcName, err, expectedErr)
+	}
+	// Catch the case if we didn't expect any error but got one
+	if len(expectedErrs) == 0 && err != nil {
+		t.Errorf("%s() expected no error, got %v", funcName, err)
 	}
 }

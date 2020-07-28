@@ -111,7 +111,7 @@ func Test_validator_Error(t *testing.T) {
 			}
 			err := v.Error()
 			// Make sure the error embeds the following expected errors
-			TestExpectErrors(t, "validator.Error", err, tt.expectedErrs)
+			TestExpectErrors(t, "validator.Error", err, tt.expectedErrs...)
 			// Make sure the error string matches the expected one
 			if err != nil {
 				errStr := err.Error()

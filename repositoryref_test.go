@@ -36,11 +36,6 @@ func newOrgInfo(domain, org string, subOrgs []string) OrganizationInfo {
 	}
 }
 
-func newOrgInfoPtr(domain, org string, subOrgs []string) *OrganizationInfo {
-	orgInfo := newOrgInfo(domain, org, subOrgs)
-	return &orgInfo
-}
-
 func newOrgRepoInfo(domain, org string, subOrgs []string, repoName string) RepositoryInfo {
 	return RepositoryInfo{
 		IdentityRef:    newOrgInfo(domain, org, subOrgs),
@@ -58,11 +53,6 @@ func newUserInfo(domain, userLogin string) UserInfo {
 		Domain:    domain,
 		UserLogin: userLogin,
 	}
-}
-
-func newUserInfoPtr(domain, userLogin string) *UserInfo {
-	userInfo := newUserInfo(domain, userLogin)
-	return &userInfo
 }
 
 func newUserRepoInfo(domain, userLogin, repoName string) RepositoryInfo {
@@ -618,10 +608,6 @@ func TestUserInfo_RefIsEmpty(t *testing.T) {
 }
 
 func TestRepositoryInfo_RefIsEmpty(t *testing.T) {
-	type fields struct {
-		IdentityRef    IdentityRef
-		RepositoryName string
-	}
 	tests := []struct {
 		name string
 		repo RepositoryInfo

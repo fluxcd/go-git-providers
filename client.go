@@ -120,7 +120,7 @@ type RepositoriesClient interface {
 
 // RepositoryClient operates on a given/specific repository
 type RepositoryClient interface {
-	// TeamAccess gives access to what teams have access to this specific repository
+	// TeamAccess returns a client for operating on the teams that have access to this specific repository
 	TeamAccess() RepositoryTeamAccessClient
 
 	// Credentials gives access to manipulating credentials for accessing this specific repository

@@ -42,13 +42,16 @@ type ResourceClient interface {
 	// Organization gets the OrganizationClient for the specific top-level organization, or user account.
 	//
 	// ErrNotTopLevelOrganization will be returned at usage time if the organization is not top-level.
-	Organization(o OrganizationRef) OrganizationClient
+	// ErrNotFound is returned if the organization does not exist.
+	Organization(o OrganizationRef) (OrganizationClient, error)
 
 	// Organizations returns the OrganizationsClient handling sets of organizations.
 	Organizations() OrganizationsClient
 
 	// Repository gets the RepositoryClient for the specified RepositoryRef.
-	Repository(r RepositoryRef) RepositoryClient
+	//
+	// ErrNotFound is returned if the repository does not exist.
+	Repository(r RepositoryRef) (RepositoryClient, error)
 
 	// Repositories returns the RepositoriesClient handling sets of organizations.
 	Repositories() RepositoriesClient
@@ -64,15 +67,15 @@ type OrganizationsClient interface {
 
 	// List all top-level organizations the specific user has access to.
 	//
-	// List should return all available organizations, using multiple paginated requests if needed.
+	// List returns all available organizations, using multiple paginated requests if needed.
 	List(ctx context.Context) ([]Organization, error)
 
 	// Children returns the immediate child-organizations for the specific OrganizationRef o.
-	// The OrganizationRef may point to any sub-organization that exists.
+	// The OrganizationRef may point to any existing sub-organization.
 	//
 	// This is not supported in GitHub.
 	//
-	// Children should return all available organizations, using multiple paginated requests if needed.
+	// Children returns all available organizations, using multiple paginated requests if needed.
 	Children(ctx context.Context, o OrganizationRef) ([]Organization, error)
 
 	// Possibly add Create/Update/Delete methods later
@@ -88,7 +91,7 @@ type OrganizationClient interface {
 type OrganizationTeamsClient interface {
 	// Get a team within the specific organization.
 	//
-	// teamName may include slashes, to point to e.g. subgroups in Gitlab.
+	// teamName may include slashes, to point to e.g. subgroups in GitLab.
 	// teamName must not be an empty string.
 	//
 	// ErrNotFound is returned if the resource does not exist.
@@ -96,7 +99,7 @@ type OrganizationTeamsClient interface {
 
 	// List all teams (recursively, in terms of subgroups) within the specific organization
 	//
-	// List should return all available organizations, using multiple paginated requests if needed.
+	// List returns all available organizations, using multiple paginated requests if needed.
 	List(ctx context.Context) ([]Team, error)
 
 	// Possibly add Create/Update/Delete methods later

@@ -39,19 +39,23 @@ type Client interface {
 
 // ResourceClient allows access to resource-specific clients
 type ResourceClient interface {
-	// Organization gets the OrganizationClient for the specific top-level organization, or user account.
+	// Organization gets the OrganizationClient for a specific top-level organization.
+	// It is ensured that the organization the reference points to exists, as it's looked up
+	// and returned as the second argument.
 	//
 	// ErrNotTopLevelOrganization will be returned at usage time if the organization is not top-level.
 	// ErrNotFound is returned if the organization does not exist.
-	Organization(o OrganizationRef) (OrganizationClient, error)
+	Organization(ctx context.Context, o OrganizationRef) (OrganizationClient, *Organization, error)
 
 	// Organizations returns the OrganizationsClient handling sets of organizations.
 	Organizations() OrganizationsClient
 
 	// Repository gets the RepositoryClient for the specified RepositoryRef.
+	// It is ensured that the repository the reference points to exists, as it's looked up
+	// and returned as the second argument.
 	//
 	// ErrNotFound is returned if the repository does not exist.
-	Repository(r RepositoryRef) (RepositoryClient, error)
+	Repository(ctx context.Context, r RepositoryRef) (RepositoryClient, *Repository, error)
 
 	// Repositories returns the RepositoriesClient handling sets of organizations.
 	Repositories() RepositoriesClient

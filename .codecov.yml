@@ -1,0 +1,15 @@
+coverage:
+  range: "90..100"
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 50
+        base: auto
+    patch: off
+
+comment:
+  require_changes: true
+  branches:
+  - "!docs"
+  - "!release"

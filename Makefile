@@ -12,7 +12,7 @@ vet:
 	go vet ./...
 
 test: tidy fmt vet
-	go test ./... -coverprofile cover.out
+	go test -race -coverprofile=coverage.txt -covermode=atomic ./...
 
 release:
 	git checkout master

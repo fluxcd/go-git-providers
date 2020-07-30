@@ -26,9 +26,9 @@ import (
 
 var (
 	unknownLicenseTemplate = LicenseTemplate("foo")
-	repoCreateOpts1        = &RepositoryCreateOptions{AutoInit: boolVar(true), LicenseTemplate: licenseTemplateVar(LicenseTemplateMIT)}
-	repoCreateOpts2        = &RepositoryCreateOptions{AutoInit: boolVar(false), LicenseTemplate: licenseTemplateVar(LicenseTemplateApache2)}
-	partialCreateOpts1     = &RepositoryCreateOptions{AutoInit: boolVar(false)}
+	repoCreateOpts1        = &RepositoryCreateOptions{AutoInit: BoolVar(true), LicenseTemplate: licenseTemplateVar(LicenseTemplateMIT)}
+	repoCreateOpts2        = &RepositoryCreateOptions{AutoInit: BoolVar(false), LicenseTemplate: licenseTemplateVar(LicenseTemplateApache2)}
+	partialCreateOpts1     = &RepositoryCreateOptions{AutoInit: BoolVar(false)}
 	partialCreateOpts2     = &RepositoryCreateOptions{LicenseTemplate: licenseTemplateVar(LicenseTemplateApache2)}
 	invalidRepoCreateOpts  = &RepositoryCreateOptions{LicenseTemplate: &unknownLicenseTemplate}
 )

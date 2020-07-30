@@ -33,27 +33,27 @@ func TestDefaulting(t *testing.T) {
 			structName: "DeployKey",
 			object:     &DeployKey{},
 			expected: &DeployKey{
-				ReadOnly: boolVar(true),
+				ReadOnly: BoolVar(true),
 			},
 		},
 		{
 			name:       "DeployKey: don't set if non-nil (default)",
 			structName: "DeployKey",
 			object: &DeployKey{
-				ReadOnly: boolVar(true),
+				ReadOnly: BoolVar(true),
 			},
 			expected: &DeployKey{
-				ReadOnly: boolVar(true),
+				ReadOnly: BoolVar(true),
 			},
 		},
 		{
 			name:       "DeployKey: don't set if non-nil (non-default)",
 			structName: "DeployKey",
 			object: &DeployKey{
-				ReadOnly: boolVar(false),
+				ReadOnly: BoolVar(false),
 			},
 			expected: &DeployKey{
-				ReadOnly: boolVar(false),
+				ReadOnly: BoolVar(false),
 			},
 		},
 		{
@@ -62,7 +62,7 @@ func TestDefaulting(t *testing.T) {
 			object:     &Repository{},
 			expected: &Repository{
 				Visibility:    repoVisibilityVar(RepoVisibilityPrivate),
-				DefaultBranch: stringVar("master"),
+				DefaultBranch: StringVar("master"),
 			},
 		},
 		{
@@ -70,11 +70,11 @@ func TestDefaulting(t *testing.T) {
 			structName: "Repository",
 			object: &Repository{
 				Visibility:    repoVisibilityVar(RepoVisibilityPrivate),
-				DefaultBranch: stringVar("master"),
+				DefaultBranch: StringVar("master"),
 			},
 			expected: &Repository{
 				Visibility:    repoVisibilityVar(RepoVisibilityPrivate),
-				DefaultBranch: stringVar("master"),
+				DefaultBranch: StringVar("master"),
 			},
 		},
 		{
@@ -82,11 +82,11 @@ func TestDefaulting(t *testing.T) {
 			structName: "Repository",
 			object: &Repository{
 				Visibility:    repoVisibilityVar(RepoVisibilityInternal),
-				DefaultBranch: stringVar("main"),
+				DefaultBranch: StringVar("main"),
 			},
 			expected: &Repository{
 				Visibility:    repoVisibilityVar(RepoVisibilityInternal),
-				DefaultBranch: stringVar("main"),
+				DefaultBranch: StringVar("main"),
 			},
 		},
 		{

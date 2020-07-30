@@ -70,7 +70,7 @@ func (r *Repository) Default() {
 		r.Visibility = repoVisibilityVar(defaultRepoVisibility)
 	}
 	if r.DefaultBranch == nil {
-		r.DefaultBranch = stringVar(defaultBranchName)
+		r.DefaultBranch = StringVar(defaultBranchName)
 	}
 }
 

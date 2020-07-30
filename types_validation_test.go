@@ -192,7 +192,7 @@ func TestRepository_Validate(t *testing.T) {
 			name: "valid create and update, with valid enum and description",
 			repo: Repository{
 				RepositoryInfo: newOrgRepoInfo("github.com", "foo-org", nil, "foo-repo"),
-				Description:    stringVar("foo-description"),
+				Description:    StringVar("foo-description"),
 				Visibility:     repoVisibilityVar(RepoVisibilityPublic),
 			},
 			methods: []validateMethod{validateCreate, validateUpdate},
@@ -219,7 +219,7 @@ func TestRepository_Validate(t *testing.T) {
 			name: "invalid create and update, invalid org info",
 			repo: Repository{
 				RepositoryInfo: newOrgRepoInfo("github.com", "", nil, "foo-repo"), // invalid org name
-				Description:    stringVar(""),                                     // description isn't validated, doesn't need any for now
+				Description:    StringVar(""),                                     // description isn't validated, doesn't need any for now
 			},
 			methods:      []validateMethod{validateCreate, validateUpdate},
 			expectedErrs: []error{validation.ErrFieldRequired},

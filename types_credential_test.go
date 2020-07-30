@@ -35,7 +35,7 @@ func TestDeployKey_Getters(t *testing.T) {
 				},
 				Name:       "foo",
 				Key:        []byte("data"),
-				ReadOnly:   boolVar(true),
+				ReadOnly:   BoolVar(true),
 				Repository: newOrgRepoInfoPtr("github.com", "foo-org", nil, "foo-repo"),
 			},
 			wantReadOnly: true,
@@ -48,7 +48,7 @@ func TestDeployKey_Getters(t *testing.T) {
 		{
 			name: "respect non-default read only",
 			key: DeployKey{
-				ReadOnly: boolVar(false),
+				ReadOnly: BoolVar(false),
 			},
 			wantReadOnly: false,
 		},

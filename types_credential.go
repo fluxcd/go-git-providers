@@ -108,7 +108,7 @@ func (dk *DeployKey) IsReadOnly() bool {
 // Default defaults the DeployKey, implementing the Creatable interface
 func (dk *DeployKey) Default() {
 	if dk.ReadOnly == nil {
-		dk.ReadOnly = boolVar(defaultDeployKeyReadOnly)
+		dk.ReadOnly = BoolVar(defaultDeployKeyReadOnly)
 	}
 }
 

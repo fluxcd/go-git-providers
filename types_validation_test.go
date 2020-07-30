@@ -193,7 +193,7 @@ func TestRepository_Validate(t *testing.T) {
 			repo: Repository{
 				RepositoryInfo: newOrgRepoInfo("github.com", "foo-org", nil, "foo-repo"),
 				Description:    StringVar("foo-description"),
-				Visibility:     repositoryVisibilityVar(RepositoryVisibilityPublic),
+				Visibility:     RepositoryVisibilityVar(RepositoryVisibilityPublic),
 			},
 			methods: []validateMethod{validateCreate, validateUpdate},
 		},
@@ -210,7 +210,7 @@ func TestRepository_Validate(t *testing.T) {
 			name: "invalid create and update, invalid repo info",
 			repo: Repository{
 				RepositoryInfo: newOrgRepoInfo("github.com", "foo-org", nil, ""),
-				Visibility:     repositoryVisibilityVar(RepositoryVisibilityPrivate),
+				Visibility:     RepositoryVisibilityVar(RepositoryVisibilityPrivate),
 			},
 			methods:      []validateMethod{validateCreate, validateUpdate},
 			expectedErrs: []error{validation.ErrFieldRequired},
@@ -305,7 +305,7 @@ func TestTeamAccess_Validate(t *testing.T) {
 			name: "valid create, with valid enum",
 			ta: TeamAccess{
 				Name:       "foo-team",
-				Permission: repositoryPermissionVar(RepositoryPermissionPull),
+				Permission: RepositoryPermissionVar(RepositoryPermissionPull),
 			},
 			methods: []validateMethod{validateCreate},
 		},

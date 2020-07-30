@@ -61,7 +61,7 @@ func TestDefaulting(t *testing.T) {
 			structName: "Repository",
 			object:     &Repository{},
 			expected: &Repository{
-				Visibility:    repositoryVisibilityVar(RepositoryVisibilityPrivate),
+				Visibility:    RepositoryVisibilityVar(RepositoryVisibilityPrivate),
 				DefaultBranch: StringVar("master"),
 			},
 		},
@@ -69,11 +69,11 @@ func TestDefaulting(t *testing.T) {
 			name:       "Repository: don't set if non-nil (default)",
 			structName: "Repository",
 			object: &Repository{
-				Visibility:    repositoryVisibilityVar(RepositoryVisibilityPrivate),
+				Visibility:    RepositoryVisibilityVar(RepositoryVisibilityPrivate),
 				DefaultBranch: StringVar("master"),
 			},
 			expected: &Repository{
-				Visibility:    repositoryVisibilityVar(RepositoryVisibilityPrivate),
+				Visibility:    RepositoryVisibilityVar(RepositoryVisibilityPrivate),
 				DefaultBranch: StringVar("master"),
 			},
 		},
@@ -81,11 +81,11 @@ func TestDefaulting(t *testing.T) {
 			name:       "Repository: don't set if non-nil (non-default)",
 			structName: "Repository",
 			object: &Repository{
-				Visibility:    repositoryVisibilityVar(RepositoryVisibilityInternal),
+				Visibility:    RepositoryVisibilityVar(RepositoryVisibilityInternal),
 				DefaultBranch: StringVar("main"),
 			},
 			expected: &Repository{
-				Visibility:    repositoryVisibilityVar(RepositoryVisibilityInternal),
+				Visibility:    RepositoryVisibilityVar(RepositoryVisibilityInternal),
 				DefaultBranch: StringVar("main"),
 			},
 		},
@@ -94,27 +94,27 @@ func TestDefaulting(t *testing.T) {
 			structName: "TeamAccess",
 			object:     &TeamAccess{},
 			expected: &TeamAccess{
-				Permission: repositoryPermissionVar(RepositoryPermissionPull),
+				Permission: RepositoryPermissionVar(RepositoryPermissionPull),
 			},
 		},
 		{
 			name:       "TeamAccess: don't set if non-nil (default)",
 			structName: "Repository",
 			object: &TeamAccess{
-				Permission: repositoryPermissionVar(RepositoryPermissionPull),
+				Permission: RepositoryPermissionVar(RepositoryPermissionPull),
 			},
 			expected: &TeamAccess{
-				Permission: repositoryPermissionVar(RepositoryPermissionPull),
+				Permission: RepositoryPermissionVar(RepositoryPermissionPull),
 			},
 		},
 		{
 			name:       "TeamAccess: don't set if non-nil (non-default)",
 			structName: "TeamAccess",
 			object: &TeamAccess{
-				Permission: repositoryPermissionVar(RepositoryPermissionPush),
+				Permission: RepositoryPermissionVar(RepositoryPermissionPush),
 			},
 			expected: &TeamAccess{
-				Permission: repositoryPermissionVar(RepositoryPermissionPush),
+				Permission: RepositoryPermissionVar(RepositoryPermissionPush),
 			},
 		},
 	}

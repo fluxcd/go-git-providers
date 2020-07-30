@@ -67,7 +67,7 @@ type Repository struct {
 // Default defaults the Repository, implementing the Creatable interface
 func (r *Repository) Default() {
 	if r.Visibility == nil {
-		r.Visibility = repositoryVisibilityVar(defaultRepositoryVisibility)
+		r.Visibility = RepositoryVisibilityVar(defaultRepositoryVisibility)
 	}
 	if r.DefaultBranch == nil {
 		r.DefaultBranch = StringVar(defaultBranchName)
@@ -81,7 +81,7 @@ func (r *Repository) ValidateCreate() error {
 	r.RepositoryInfo.ValidateFields(validator)
 	// Validate the Visibility enum
 	if r.Visibility != nil {
-		validator.Append(validateRepositoryVisibility(*r.Visibility), *r.Visibility, "Visibility")
+		validator.Append(ValidateRepositoryVisibility(*r.Visibility), *r.Visibility, "Visibility")
 	}
 	return validator.Error()
 }
@@ -125,7 +125,7 @@ type TeamAccess struct {
 // Default defaults the TeamAccess, implementing the Creatable interface
 func (ta *TeamAccess) Default() {
 	if ta.Permission == nil {
-		ta.Permission = repositoryPermissionVar(defaultRepoPermission)
+		ta.Permission = RepositoryPermissionVar(defaultRepoPermission)
 	}
 }
 
@@ -136,7 +136,7 @@ func (ta *TeamAccess) ValidateCreate() error {
 	ta.validateNameAndRepository(validator)
 	// Validate the Permission enum
 	if ta.Permission != nil {
-		validator.Append(validateRepositoryPermission(*ta.Permission), *ta.Permission, "Permission")
+		validator.Append(ValidateRepositoryPermission(*ta.Permission), *ta.Permission, "Permission")
 	}
 	return validator.Error()
 }

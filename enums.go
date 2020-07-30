@@ -63,9 +63,9 @@ var knownRepositoryVisibilityValues = map[RepositoryVisibility]struct{}{
 	RepositoryVisibilityPrivate:  {},
 }
 
-// validateRepositoryVisibility validates a given RepositoryVisibility.
-// Use as errs.Append(validateRepositoryVisibility(visibility), visibility, "FieldName")
-func validateRepositoryVisibility(r RepositoryVisibility) error {
+// ValidateRepositoryVisibility validates a given RepositoryVisibility.
+// Use as errs.Append(ValidateRepositoryVisibility(visibility), visibility, "FieldName")
+func ValidateRepositoryVisibility(r RepositoryVisibility) error {
 	_, ok := knownRepositoryVisibilityValues[r]
 	if !ok {
 		return validation.ErrFieldEnumInvalid
@@ -73,8 +73,8 @@ func validateRepositoryVisibility(r RepositoryVisibility) error {
 	return nil
 }
 
-// repositoryVisibilityVar returns a pointer to a RepositoryVisibility
-func repositoryVisibilityVar(r RepositoryVisibility) *RepositoryVisibility {
+// RepositoryVisibilityVar returns a pointer to a RepositoryVisibility
+func RepositoryVisibilityVar(r RepositoryVisibility) *RepositoryVisibility {
 	return &r
 }
 
@@ -113,9 +113,9 @@ var knownRepositoryPermissionValues = map[RepositoryPermission]struct{}{
 	RepositoryPermissionAdmin:    {},
 }
 
-// validateRepositoryPermission validates a given RepositoryPermission.
-// Use as errs.Append(validateRepositoryPermission(permission), permission, "FieldName")
-func validateRepositoryPermission(p RepositoryPermission) error {
+// ValidateRepositoryPermission validates a given RepositoryPermission.
+// Use as errs.Append(ValidateRepositoryPermission(permission), permission, "FieldName")
+func ValidateRepositoryPermission(p RepositoryPermission) error {
 	_, ok := knownRepositoryPermissionValues[p]
 	if !ok {
 		return validation.ErrFieldEnumInvalid
@@ -123,8 +123,8 @@ func validateRepositoryPermission(p RepositoryPermission) error {
 	return nil
 }
 
-// repositoryPermissionVar returns a pointer to a RepositoryPermission
-func repositoryPermissionVar(p RepositoryPermission) *RepositoryPermission {
+// RepositoryPermissionVar returns a pointer to a RepositoryPermission
+func RepositoryPermissionVar(p RepositoryPermission) *RepositoryPermission {
 	return &p
 }
 
@@ -152,9 +152,9 @@ var knownLicenseTemplateValues = map[LicenseTemplate]struct{}{
 	LicenseTemplateGPL3:    {},
 }
 
-// validateLicenseTemplate validates a given LicenseTemplate.
-// Use as errs.Append(validateLicenseTemplate(template), template, "FieldName")
-func validateLicenseTemplate(t LicenseTemplate) error {
+// ValidateLicenseTemplate validates a given LicenseTemplate.
+// Use as errs.Append(ValidateLicenseTemplate(template), template, "FieldName")
+func ValidateLicenseTemplate(t LicenseTemplate) error {
 	_, ok := knownLicenseTemplateValues[t]
 	if !ok {
 		return validation.ErrFieldEnumInvalid
@@ -162,7 +162,7 @@ func validateLicenseTemplate(t LicenseTemplate) error {
 	return nil
 }
 
-// licenseTemplateVar returns a pointer to a LicenseTemplate
-func licenseTemplateVar(t LicenseTemplate) *LicenseTemplate {
+// LicenseTemplateVar returns a pointer to a LicenseTemplate
+func LicenseTemplateVar(t LicenseTemplate) *LicenseTemplate {
 	return &t
 }

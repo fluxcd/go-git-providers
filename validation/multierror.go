@@ -23,6 +23,13 @@ import (
 	"testing"
 )
 
+// NewMultiError returns a new *MultiError instance for the given errors.
+func NewMultiError(errs ...error) *MultiError {
+	return &MultiError{
+		Errors: errs,
+	}
+}
+
 // MultiError is a holder struct for multiple errors returned at once
 // Each of the errors might wrap their own underlying error.
 // In order to check whether an error returned from a function was a

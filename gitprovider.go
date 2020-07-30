@@ -37,6 +37,8 @@ var (
 	ErrNotTopLevelOrganization = errors.New("expected top-level organization, received sub-organization instead")
 	// ErrInvalidArgument describes a generic error where an invalid argument have been specified to a function
 	ErrInvalidArgument = errors.New("invalid argument specified")
+	// ErrUnexpectedEvent describes a case where something really unexpected happened in the program
+	ErrUnexpectedEvent = errors.New("something unexpected happened")
 
 	// ErrAlreadyExists is returned by .Create() requests if the given resource already exists.
 	// Use .Reconcile() instead if you want to idempotently create the resource

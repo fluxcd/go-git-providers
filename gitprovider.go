@@ -35,6 +35,8 @@ var (
 	// ErrNotTopLevelOrganization describes the case where it's mandatory to specify a top-level organization
 	// (e.g. for accessing teams), but a sub-organization was passed as the OrganizationRef
 	ErrNotTopLevelOrganization = errors.New("expected top-level organization, received sub-organization instead")
+	// ErrInvalidArgument describes a generic error where an invalid argument have been specified to a function
+	ErrInvalidArgument = errors.New("invalid argument specified")
 
 	// ErrAlreadyExists is returned by .Create() requests if the given resource already exists.
 	// Use .Reconcile() instead if you want to idempotently create the resource

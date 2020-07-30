@@ -61,7 +61,7 @@ func TestDefaulting(t *testing.T) {
 			structName: "Repository",
 			object:     &Repository{},
 			expected: &Repository{
-				Visibility:    repoVisibilityVar(RepoVisibilityPrivate),
+				Visibility:    repositoryVisibilityVar(RepositoryVisibilityPrivate),
 				DefaultBranch: StringVar("master"),
 			},
 		},
@@ -69,11 +69,11 @@ func TestDefaulting(t *testing.T) {
 			name:       "Repository: don't set if non-nil (default)",
 			structName: "Repository",
 			object: &Repository{
-				Visibility:    repoVisibilityVar(RepoVisibilityPrivate),
+				Visibility:    repositoryVisibilityVar(RepositoryVisibilityPrivate),
 				DefaultBranch: StringVar("master"),
 			},
 			expected: &Repository{
-				Visibility:    repoVisibilityVar(RepoVisibilityPrivate),
+				Visibility:    repositoryVisibilityVar(RepositoryVisibilityPrivate),
 				DefaultBranch: StringVar("master"),
 			},
 		},
@@ -81,11 +81,11 @@ func TestDefaulting(t *testing.T) {
 			name:       "Repository: don't set if non-nil (non-default)",
 			structName: "Repository",
 			object: &Repository{
-				Visibility:    repoVisibilityVar(RepoVisibilityInternal),
+				Visibility:    repositoryVisibilityVar(RepositoryVisibilityInternal),
 				DefaultBranch: StringVar("main"),
 			},
 			expected: &Repository{
-				Visibility:    repoVisibilityVar(RepoVisibilityInternal),
+				Visibility:    repositoryVisibilityVar(RepositoryVisibilityInternal),
 				DefaultBranch: StringVar("main"),
 			},
 		},

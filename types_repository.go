@@ -20,7 +20,7 @@ import "github.com/fluxcd/go-git-providers/validation"
 
 const (
 	// the default repository visibility is private
-	defaultRepoVisibility = RepoVisibilityPrivate
+	defaultRepositoryVisibility = RepositoryVisibilityPrivate
 	// the default repository permission is "pull" (or read)
 	defaultRepoPermission = RepositoryPermissionPull
 	// the default branch name.
@@ -59,15 +59,15 @@ type Repository struct {
 	DefaultBranch *string `json:"defaultBranch"`
 
 	// Visibility returns the desired visibility for the repository
-	// Default value at POST-time: RepoVisibilityPrivate
+	// Default value at POST-time: RepositoryVisibilityPrivate
 	// +optional
-	Visibility *RepoVisibility
+	Visibility *RepositoryVisibility
 }
 
 // Default defaults the Repository, implementing the Creatable interface
 func (r *Repository) Default() {
 	if r.Visibility == nil {
-		r.Visibility = repoVisibilityVar(defaultRepoVisibility)
+		r.Visibility = repositoryVisibilityVar(defaultRepositoryVisibility)
 	}
 	if r.DefaultBranch == nil {
 		r.DefaultBranch = StringVar(defaultBranchName)
@@ -81,7 +81,7 @@ func (r *Repository) ValidateCreate() error {
 	r.RepositoryInfo.ValidateFields(validator)
 	// Validate the Visibility enum
 	if r.Visibility != nil {
-		validator.Append(validateRepoVisibility(*r.Visibility), *r.Visibility, "Visibility")
+		validator.Append(validateRepositoryVisibility(*r.Visibility), *r.Visibility, "Visibility")
 	}
 	return validator.Error()
 }

@@ -42,39 +42,39 @@ const (
 	RepositoryCredentialTypeDeployKey = RepositoryCredentialType("deploykey")
 )
 
-// RepoVisibility is an enum specifying the visibility of a repository
-type RepoVisibility string
+// RepositoryVisibility is an enum specifying the visibility of a repository
+type RepositoryVisibility string
 
 const (
-	// RepoVisibilityPublic specifies that the repository should be publicly accessible
-	RepoVisibilityPublic = RepoVisibility("public")
-	// RepoVisibilityInternal specifies that the repository should accessible within the
+	// RepositoryVisibilityPublic specifies that the repository should be publicly accessible
+	RepositoryVisibilityPublic = RepositoryVisibility("public")
+	// RepositoryVisibilityInternal specifies that the repository should accessible within the
 	// own organization
-	RepoVisibilityInternal = RepoVisibility("internal")
-	// RepoVisibilityPrivate specifies that the repository should only be accessible by
+	RepositoryVisibilityInternal = RepositoryVisibility("internal")
+	// RepositoryVisibilityPrivate specifies that the repository should only be accessible by
 	// specifically added team members
-	RepoVisibilityPrivate = RepoVisibility("private")
+	RepositoryVisibilityPrivate = RepositoryVisibility("private")
 )
 
-// knownRepoVisibilityValues is a map of known RepoVisibility values, used for validation
-var knownRepoVisibilityValues = map[RepoVisibility]struct{}{
-	RepoVisibilityPublic:   {},
-	RepoVisibilityInternal: {},
-	RepoVisibilityPrivate:  {},
+// knownRepositoryVisibilityValues is a map of known RepositoryVisibility values, used for validation
+var knownRepositoryVisibilityValues = map[RepositoryVisibility]struct{}{
+	RepositoryVisibilityPublic:   {},
+	RepositoryVisibilityInternal: {},
+	RepositoryVisibilityPrivate:  {},
 }
 
-// validateRepoVisibility validates a given RepoVisibility.
-// Use as errs.Append(validateRepoVisibility(visibility), visibility, "FieldName")
-func validateRepoVisibility(r RepoVisibility) error {
-	_, ok := knownRepoVisibilityValues[r]
+// validateRepositoryVisibility validates a given RepositoryVisibility.
+// Use as errs.Append(validateRepositoryVisibility(visibility), visibility, "FieldName")
+func validateRepositoryVisibility(r RepositoryVisibility) error {
+	_, ok := knownRepositoryVisibilityValues[r]
 	if !ok {
 		return validation.ErrFieldEnumInvalid
 	}
 	return nil
 }
 
-// repoVisibilityVar returns a pointer to a RepoVisibility
-func repoVisibilityVar(r RepoVisibility) *RepoVisibility {
+// repositoryVisibilityVar returns a pointer to a RepositoryVisibility
+func repositoryVisibilityVar(r RepositoryVisibility) *RepositoryVisibility {
 	return &r
 }
 
@@ -104,7 +104,7 @@ const (
 	RepositoryPermissionAdmin = RepositoryPermission("admin")
 )
 
-// knownRepoVisibilityValues is a map of known RepositoryPermission values, used for validation
+// knownRepositoryVisibilityValues is a map of known RepositoryPermission values, used for validation
 var knownRepositoryPermissionValues = map[RepositoryPermission]struct{}{
 	RepositoryPermissionPull:     {},
 	RepositoryPermissionTriage:   {},

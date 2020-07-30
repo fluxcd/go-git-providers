@@ -167,7 +167,7 @@ func TestDeployKey_Validate(t *testing.T) {
 }
 
 func TestRepository_Validate(t *testing.T) {
-	unknownRepoVisibility := RepoVisibility("unknown")
+	unknownRepositoryVisibility := RepositoryVisibility("unknown")
 	tests := []struct {
 		name         string
 		repo         Repository
@@ -193,7 +193,7 @@ func TestRepository_Validate(t *testing.T) {
 			repo: Repository{
 				RepositoryInfo: newOrgRepoInfo("github.com", "foo-org", nil, "foo-repo"),
 				Description:    StringVar("foo-description"),
-				Visibility:     repoVisibilityVar(RepoVisibilityPublic),
+				Visibility:     repositoryVisibilityVar(RepositoryVisibilityPublic),
 			},
 			methods: []validateMethod{validateCreate, validateUpdate},
 		},
@@ -201,7 +201,7 @@ func TestRepository_Validate(t *testing.T) {
 			name: "invalid create and update, invalid enum",
 			repo: Repository{
 				RepositoryInfo: newUserRepoInfo("github.com", "foo-org", "foo-repo"),
-				Visibility:     &unknownRepoVisibility,
+				Visibility:     &unknownRepositoryVisibility,
 			},
 			methods:      []validateMethod{validateCreate, validateUpdate},
 			expectedErrs: []error{validation.ErrFieldEnumInvalid},
@@ -210,7 +210,7 @@ func TestRepository_Validate(t *testing.T) {
 			name: "invalid create and update, invalid repo info",
 			repo: Repository{
 				RepositoryInfo: newOrgRepoInfo("github.com", "foo-org", nil, ""),
-				Visibility:     repoVisibilityVar(RepoVisibilityPrivate),
+				Visibility:     repositoryVisibilityVar(RepositoryVisibilityPrivate),
 			},
 			methods:      []validateMethod{validateCreate, validateUpdate},
 			expectedErrs: []error{validation.ErrFieldRequired},

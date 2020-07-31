@@ -122,3 +122,55 @@ func Test_validator_Error(t *testing.T) {
 		})
 	}
 }
+
+type fakeValidateTarget struct {
+	errs []error
+}
+
+func (t *fakeValidateTarget) ValidateFields(v Validator) {
+	for _, err := range t.errs {
+		v.Append(err, nil)
+	}
+}
+
+func TestValidateTargets(t *testing.T) {
+	tests := []struct {
+		name         string
+		structName   string
+		targets      []ValidateTarget
+		expectedErrs []error
+	}{
+		{
+			name:       "multiple passing",
+			structName: "IdentityRef",
+			targets: []ValidateTarget{
+				&fakeValidateTarget{},
+				&fakeValidateTarget{},
+			},
+		},
+		{
+			name:       "two failing for one specific",
+			structName: "IdentityRef",
+			targets: []ValidateTarget{
+				&fakeValidateTarget{[]error{ErrFieldRequired, ErrFieldInvalid}},
+				&fakeValidateTarget{},
+			},
+			expectedErrs: []error{&MultiError{}, ErrFieldRequired, ErrFieldInvalid},
+		},
+		{
+			name:       "two failing, one for each",
+			structName: "IdentityRef",
+			targets: []ValidateTarget{
+				&fakeValidateTarget{[]error{ErrFieldInvalid}},
+				&fakeValidateTarget{[]error{ErrFieldRequired}},
+			},
+			expectedErrs: []error{&MultiError{}, ErrFieldRequired, ErrFieldInvalid},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateTargets(tt.structName, tt.targets...)
+			TestExpectErrors(t, "ValidateTargets", err, tt.expectedErrs...)
+		})
+	}
+}

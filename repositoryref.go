@@ -57,9 +57,6 @@ type IdentityRef interface {
 	// IdentityTypeSuborganization are returned, this IdentityRef can be casted to a OrganizationRef.
 	GetType() IdentityType
 
-	// RefIsEmpty returns true if all the parts of this IdentityRef are empty, otherwise false
-	RefIsEmpty() bool
-
 	// String returns the HTTPS URL, and implements fmt.Stringer
 	String() string
 }
@@ -134,11 +131,6 @@ func (u UserInfo) String() string {
 	return fmt.Sprintf("https://%s/%s", u.GetDomain(), u.GetIdentity())
 }
 
-// RefIsEmpty returns true if all the parts of the given IdentityInfo are empty, otherwise false
-func (u UserInfo) RefIsEmpty() bool {
-	return len(u.Domain) == 0 && len(u.UserLogin) == 0
-}
-
 // ValidateFields validates its own fields for a given validator
 func (u UserInfo) ValidateFields(validator validation.Validator) {
 	// Require the Domain and Organization to be set
@@ -205,11 +197,6 @@ func (o OrganizationInfo) String() string {
 	return fmt.Sprintf("https://%s/%s", o.GetDomain(), o.GetIdentity())
 }
 
-// RefIsEmpty returns true if all the parts of the given IdentityInfo are empty, otherwise false
-func (o OrganizationInfo) RefIsEmpty() bool {
-	return len(o.Domain) == 0 && len(o.Organization) == 0 && len(o.SubOrganizations) == 0
-}
-
 // ValidateFields validates its own fields for a given validator
 func (o OrganizationInfo) ValidateFields(validator validation.Validator) {
 	// Require the Domain and Organization to be set
@@ -243,11 +230,6 @@ func (r RepositoryInfo) GetRepository() string {
 // String returns the HTTPS URL to access the Repository
 func (r RepositoryInfo) String() string {
 	return fmt.Sprintf("%s/%s", r.IdentityRef.String(), r.GetRepository())
-}
-
-// RefIsEmpty returns true if all the parts of the given RepositoryInfo are empty, otherwise false
-func (r RepositoryInfo) RefIsEmpty() bool {
-	return (r.IdentityRef == nil || r.IdentityRef.RefIsEmpty()) && len(r.RepositoryName) == 0
 }
 
 // ValidateFields validates its own fields for a given validator

@@ -153,8 +153,8 @@ type RepositoryClient interface {
 	// TeamAccess returns a client for operating on the teams that have access to this specific repository
 	TeamAccess() RepositoryTeamAccessClient
 
-	// Credentials gives access to manipulating credentials for accessing this specific repository
-	Credentials() RepositoryCredentialsClient
+	// DeployKeys gives access to manipulating deploy keys for accessing this specific repository
+	DeployKeys() DeployKeyClient
 }
 
 // RepositoryTeamAccessClient operates on the teams list for a specific repository
@@ -197,32 +197,32 @@ type RepositoryTeamAccessClient interface {
 	Reconcile(ctx context.Context, req *TeamAccess) (resp *TeamAccess, actionTaken bool, err error)
 }
 
-// RepositoryCredentialsClient operates on the access credential list for a specific repository
-type RepositoryCredentialsClient interface {
-	// List lists all repository credentials of the given credential type.
+// DeployKeyClient operates on the access credential list for a specific repository
+type DeployKeyClient interface {
+	// List lists all deploy keys of the given credential type.
 	//
-	// List returns all available repository credentials for the given type,
+	// List returns all available deploy keys for the given type,
 	// using multiple paginated requests if needed.
-	List(ctx context.Context, t RepositoryCredentialType) ([]RepositoryCredential, error)
+	List(ctx context.Context) ([]DeployKey, error)
 
-	// Create creates a credential with the given specifications.
+	// Create creates a deploy key with the given specifications.
 	//
 	// ErrAlreadyExists will be returned if the resource already exists.
 	//
 	// resp will contain any updated information given by the server; hence it is encouraged
 	// to stop using req after this call, and use resp instead.
 	//
-	// req.GetRepositoryRef() does not need to be populated, but if it is,
+	// req.Repository does not need to be populated, but if it is,
 	// it must equal to the RepositoryRef given to the RepositoryClient.
-	Create(ctx context.Context, req RepositoryCredential) (resp RepositoryCredential, err error)
+	Create(ctx context.Context, req *DeployKey) (resp *DeployKey, err error)
 
 	// Delete deletes a credential from the repository.
 	//
 	// ErrNotFound is returned if the resource does not exist.
 	//
-	// req.GetRepositoryRef() does not need to be populated, but if it is,
+	// req.Repository does not need to be populated, but if it is,
 	// it must equal to the RepositoryRef given to the RepositoryClient.
-	Delete(ctx context.Context, req RepositoryCredential) error
+	Delete(ctx context.Context, req *DeployKey) error
 
 	// Reconcile makes sure req is the actual state in the backing Git provider.
 	//
@@ -233,7 +233,7 @@ type RepositoryCredentialsClient interface {
 	// resp will contain any updated information given by the server; hence it is encouraged
 	// to stop using req after this call, and use resp instead.
 	//
-	// req.GetRepositoryRef() does not need to be populated, but if it is,
+	// req.Repository does not need to be populated, but if it is,
 	// it must equal to the RepositoryRef given to the RepositoryClient.
-	Reconcile(ctx context.Context, req RepositoryCredential) (resp RepositoryCredential, actionTaken bool, err error)
+	Reconcile(ctx context.Context, req *DeployKey) (resp *DeployKey, actionTaken bool, err error)
 }

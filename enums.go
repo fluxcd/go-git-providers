@@ -33,15 +33,6 @@ const (
 	TransportTypeSSH = TransportType("ssh")
 )
 
-// RepositoryCredentialType is an enum specifying the type of a certain repository credential
-type RepositoryCredentialType string
-
-const (
-	// RepositoryCredentialTypeDeployKey is the Deploy Key credential type
-	// The struct used is DeployKey in this package
-	RepositoryCredentialTypeDeployKey = RepositoryCredentialType("deploykey")
-)
-
 // RepositoryVisibility is an enum specifying the visibility of a repository
 type RepositoryVisibility string
 

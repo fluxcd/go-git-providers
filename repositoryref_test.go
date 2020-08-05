@@ -25,20 +25,25 @@ import (
 	"github.com/fluxcd/go-git-providers/validation"
 )
 
-func newOrgRef(domain, org string, subOrgs []string) *OrganizationRef {
+func newOrgRef(domain, org string, subOrgs []string) OrganizationRef {
 	if subOrgs == nil {
 		subOrgs = []string{}
 	}
-	return &OrganizationRef{
+	return OrganizationRef{
 		Domain:           domain,
 		Organization:     org,
 		SubOrganizations: subOrgs,
 	}
 }
 
+func newOrgRefPtr(domain, org string, subOrgs []string) *OrganizationRef {
+	orgRef := newOrgRef(domain, org, subOrgs)
+	return &orgRef
+}
+
 func newOrgRepoRef(domain, org string, subOrgs []string, repoName string) RepositoryRef {
 	return RepositoryRef{
-		IdentityRef:    *newOrgRef(domain, org, subOrgs),
+		IdentityRef:    newOrgRef(domain, org, subOrgs),
 		RepositoryName: repoName,
 	}
 }
@@ -48,16 +53,21 @@ func newOrgRepoRefPtr(domain, org string, subOrgs []string, repoName string) *Re
 	return &repoInfo
 }
 
-func newUserRef(domain, userLogin string) *UserRef {
-	return &UserRef{
+func newUserRef(domain, userLogin string) UserRef {
+	return UserRef{
 		Domain:    domain,
 		UserLogin: userLogin,
 	}
 }
 
+func newUserRefPtr(domain, userLogin string) *UserRef {
+	userRef := newUserRef(domain, userLogin)
+	return &userRef
+}
+
 func newUserRepoRef(domain, userLogin, repoName string) RepositoryRef {
 	return RepositoryRef{
-		IdentityRef:    *newUserRef(domain, userLogin),
+		IdentityRef:    newUserRef(domain, userLogin),
 		RepositoryName: repoName,
 	}
 }
@@ -77,22 +87,22 @@ func TestParseOrganizationURL(t *testing.T) {
 		{
 			name: "easy",
 			url:  "https://github.com/my-org",
-			want: newOrgRef("github.com", "my-org", nil),
+			want: newOrgRefPtr("github.com", "my-org", nil),
 		},
 		{
 			name: "trailing slash",
 			url:  "https://github.com/my-org/",
-			want: newOrgRef("github.com", "my-org", nil),
+			want: newOrgRefPtr("github.com", "my-org", nil),
 		},
 		{
 			name: "one sub-org",
 			url:  "https://gitlab.com/my-org/sub-org",
-			want: newOrgRef("gitlab.com", "my-org", []string{"sub-org"}),
+			want: newOrgRefPtr("gitlab.com", "my-org", []string{"sub-org"}),
 		},
 		{
 			name: "three sub-orgs and custom domain",
 			url:  "https://my-gitlab.com:6443/my-org/sub-org/2/3",
-			want: newOrgRef("my-gitlab.com:6443", "my-org", []string{"sub-org", "2", "3"}),
+			want: newOrgRefPtr("my-gitlab.com:6443", "my-org", []string{"sub-org", "2", "3"}),
 		},
 		{
 			name: "no org specified",
@@ -181,17 +191,17 @@ func TestParseUserURL(t *testing.T) {
 		{
 			name: "easy",
 			url:  "https://github.com/my-user",
-			want: newUserRef("github.com", "my-user"),
+			want: newUserRefPtr("github.com", "my-user"),
 		},
 		{
 			name: "trailing slash",
 			url:  "https://github.com/my-user/",
-			want: newUserRef("github.com", "my-user"),
+			want: newUserRefPtr("github.com", "my-user"),
 		},
 		{
 			name: "custom domain",
 			url:  "https://my-gitlab.com:6443/my-user/",
-			want: newUserRef("my-gitlab.com:6443", "my-user"),
+			want: newUserRefPtr("my-gitlab.com:6443", "my-user"),
 		},
 		{
 			name: "can't have sub-orgs",
@@ -536,12 +546,12 @@ func TestIdentityRef_GetType(t *testing.T) {
 		},
 		{
 			name: "sample top-level org",
-			ref:  *newOrgRef("github.com", "bar", nil),
+			ref:  newOrgRef("github.com", "bar", nil),
 			want: IdentityTypeOrganization,
 		},
 		{
 			name: "sample sub-org",
-			ref:  *newOrgRef("github.com", "bar", []string{"baz"}),
+			ref:  newOrgRef("github.com", "bar", []string{"baz"}),
 			want: IdentityTypeSuborganization,
 		},
 	}

@@ -61,15 +61,6 @@ type IdentityRef interface {
 	String() string
 }
 
-// UserRef represents a reference to an user account in a Git provider. UserRef is a superset of
-// IdentityRef.
-type UserRef interface {
-	IdentityRef
-
-	// GetUserLogin returns the user account name
-	GetUserLogin() string
-}
-
 // OrganizationRef represents a reference to a top-level- or sub-organization. OrganizationInfo
 // is an implementation of this interface. OrganizationRef is a superset of IdentityRef.
 type OrganizationRef interface {
@@ -91,8 +82,8 @@ type RepositoryRef interface {
 	GetRepository() string
 }
 
-// UserInfo implements UserRef. UserInfo represents an user account in a Git provider.
-type UserInfo struct {
+// UserRef represents an user account in a Git provider.
+type UserRef struct {
 	// Domain returns e.g. "github.com", "gitlab.com" or a custom domain like "self-hosted-gitlab.com" (GitLab)
 	// The domain _might_ contain port information, in the form of "host:port", if applicable
 	// +required
@@ -103,36 +94,31 @@ type UserInfo struct {
 	UserLogin string `json:"userLogin"`
 }
 
-// UserInfo implements IdentityRef
-var _ IdentityRef = UserInfo{}
+// UserRef implements IdentityRef
+var _ IdentityRef = UserRef{}
 
 // GetDomain returns the the domain part of the endpoint, can include port information.
-func (u UserInfo) GetDomain() string {
+func (u UserRef) GetDomain() string {
 	return u.Domain
 }
 
 // GetIdentity returns the identity of this actor, which in this case is the user login name
-func (u UserInfo) GetIdentity() string {
-	return u.GetUserLogin()
-}
-
-// GetType marks this UserInfo as being a IdentityTypeUser
-func (u UserInfo) GetType() IdentityType {
-	return IdentityTypeUser
-}
-
-// GetUserLogin returns the user login name
-func (u UserInfo) GetUserLogin() string {
+func (u UserRef) GetIdentity() string {
 	return u.UserLogin
 }
 
+// GetType marks this UserRef as being a IdentityTypeUser
+func (u UserRef) GetType() IdentityType {
+	return IdentityTypeUser
+}
+
 // String returns the HTTPS URL to access the User
-func (u UserInfo) String() string {
+func (u UserRef) String() string {
 	return fmt.Sprintf("https://%s/%s", u.GetDomain(), u.GetIdentity())
 }
 
 // ValidateFields validates its own fields for a given validator
-func (u UserInfo) ValidateFields(validator validation.Validator) {
+func (u UserRef) ValidateFields(validator validation.Validator) {
 	// Require the Domain and Organization to be set
 	if len(u.Domain) == 0 {
 		validator.Required("Domain")
@@ -174,7 +160,7 @@ func (o OrganizationInfo) GetIdentity() string {
 	return strings.Join(orgParts, "/")
 }
 
-// GetType marks this UserInfo as being a IdentityTypeUser
+// GetType marks this UserRef as being a IdentityTypeUser
 func (o OrganizationInfo) GetType() IdentityType {
 	if len(o.SubOrganizations) > 0 {
 		return IdentityTypeSuborganization
@@ -272,8 +258,8 @@ func ParseOrganizationURL(o string) (OrganizationRef, error) {
 }
 
 // ParseUserURL parses an URL to an organization into a UserRef object
-func ParseUserURL(u string) (UserRef, error) {
-	// Use the same logic as for parsing organization URLs, but return an UserInfo object
+func ParseUserURL(u string) (*UserRef, error) {
+	// Use the same logic as for parsing organization URLs, but return an UserRef object
 	orgInfoPtr, err := parseOrganizationURL(u)
 	if err != nil {
 		return nil, err
@@ -307,11 +293,15 @@ func ParseRepositoryURL(r string, isOrganization bool) (RepositoryRef, error) {
 	var identityRef IdentityRef
 	if isOrganization {
 		identityRef, err = orgInfoPtrToOrganizationRef(orgInfoPtr)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %s", ErrURLInvalid, r)
+		}
 	} else {
-		identityRef, err = orgInfoPtrToUserRef(orgInfoPtr)
-	}
-	if err != nil {
-		return nil, fmt.Errorf("%w: %s", ErrURLInvalid, r)
+		userRef, err := orgInfoPtrToUserRef(orgInfoPtr)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %s", ErrURLInvalid, r)
+		}
+		identityRef = *userRef
 	}
 
 	// Return the new RepositoryInfo
@@ -380,13 +370,13 @@ func orgInfoPtrToOrganizationRef(orgInfoPtr *OrganizationInfo) (OrganizationRef,
 	return *orgInfoPtr, nil
 }
 
-func orgInfoPtrToUserRef(orgInfoPtr *OrganizationInfo) (UserRef, error) {
+func orgInfoPtrToUserRef(orgInfoPtr *OrganizationInfo) (*UserRef, error) {
 	// Don't tolerate that there are "sub-parts" for an user URL
 	if len(orgInfoPtr.GetSubOrganizations()) > 0 {
 		return nil, ErrURLInvalid
 	}
-	// Return an UserInfo struct
-	return UserInfo{
+	// Return an UserRef struct
+	return &UserRef{
 		Domain:    orgInfoPtr.Domain,
 		UserLogin: orgInfoPtr.Organization,
 	}, nil

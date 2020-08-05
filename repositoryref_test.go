@@ -48,8 +48,8 @@ func newOrgRepoInfoPtr(domain, org string, subOrgs []string, repoName string) *R
 	return &repoInfo
 }
 
-func newUserInfo(domain, userLogin string) UserInfo {
-	return UserInfo{
+func newUserRef(domain, userLogin string) *UserRef {
+	return &UserRef{
 		Domain:    domain,
 		UserLogin: userLogin,
 	}
@@ -57,7 +57,7 @@ func newUserInfo(domain, userLogin string) UserInfo {
 
 func newUserRepoInfo(domain, userLogin, repoName string) RepositoryInfo {
 	return RepositoryInfo{
-		IdentityRef:    newUserInfo(domain, userLogin),
+		IdentityRef:    *newUserRef(domain, userLogin),
 		RepositoryName: repoName,
 	}
 }
@@ -178,23 +178,23 @@ func TestParseUserURL(t *testing.T) {
 	tests := []struct {
 		name string
 		url  string
-		want UserRef
+		want *UserRef
 		err  error
 	}{
 		{
 			name: "easy",
 			url:  "https://github.com/my-user",
-			want: newUserInfo("github.com", "my-user"),
+			want: newUserRef("github.com", "my-user"),
 		},
 		{
 			name: "trailing slash",
 			url:  "https://github.com/my-user/",
-			want: newUserInfo("github.com", "my-user"),
+			want: newUserRef("github.com", "my-user"),
 		},
 		{
 			name: "custom domain",
 			url:  "https://my-gitlab.com:6443/my-user/",
-			want: newUserInfo("my-gitlab.com:6443", "my-user"),
+			want: newUserRef("my-gitlab.com:6443", "my-user"),
 		},
 		{
 			name: "can't have sub-orgs",
@@ -266,11 +266,8 @@ func TestParseUserURL(t *testing.T) {
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ParseUserURL() = %v, want %v", got, tt.want)
 			}
-			// Ensure a non-pointer return and that roundtrip data is preserved
+			// Ensure that roundtrip data is preserved
 			if got != nil {
-				if _, ok := got.(UserInfo); !ok {
-					t.Error("ParseUserURL(): Expected UserInfo struct to be returned")
-				}
 				// expect the round-trip to remove any trailing slashes
 				expectedURL := strings.TrimSuffix(tt.url, "/")
 				if got.String() != expectedURL {
@@ -540,7 +537,7 @@ func TestIdentityRef_GetType(t *testing.T) {
 	}{
 		{
 			name: "sample user",
-			ref:  newUserInfo("github.com", "bar"),
+			ref:  newUserRef("github.com", "bar"),
 			want: IdentityTypeUser,
 		},
 		{

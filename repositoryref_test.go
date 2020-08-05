@@ -25,11 +25,11 @@ import (
 	"github.com/fluxcd/go-git-providers/validation"
 )
 
-func newOrgInfo(domain, org string, subOrgs []string) OrganizationInfo {
+func newOrgRef(domain, org string, subOrgs []string) *OrganizationRef {
 	if subOrgs == nil {
 		subOrgs = []string{}
 	}
-	return OrganizationInfo{
+	return &OrganizationRef{
 		Domain:           domain,
 		Organization:     org,
 		SubOrganizations: subOrgs,
@@ -38,7 +38,7 @@ func newOrgInfo(domain, org string, subOrgs []string) OrganizationInfo {
 
 func newOrgRepoInfo(domain, org string, subOrgs []string, repoName string) RepositoryInfo {
 	return RepositoryInfo{
-		IdentityRef:    newOrgInfo(domain, org, subOrgs),
+		IdentityRef:    *newOrgRef(domain, org, subOrgs),
 		RepositoryName: repoName,
 	}
 }
@@ -71,28 +71,28 @@ func TestParseOrganizationURL(t *testing.T) {
 	tests := []struct {
 		name string
 		url  string
-		want OrganizationRef
+		want *OrganizationRef
 		err  error
 	}{
 		{
 			name: "easy",
 			url:  "https://github.com/my-org",
-			want: newOrgInfo("github.com", "my-org", nil),
+			want: newOrgRef("github.com", "my-org", nil),
 		},
 		{
 			name: "trailing slash",
 			url:  "https://github.com/my-org/",
-			want: newOrgInfo("github.com", "my-org", nil),
+			want: newOrgRef("github.com", "my-org", nil),
 		},
 		{
 			name: "one sub-org",
 			url:  "https://gitlab.com/my-org/sub-org",
-			want: newOrgInfo("gitlab.com", "my-org", []string{"sub-org"}),
+			want: newOrgRef("gitlab.com", "my-org", []string{"sub-org"}),
 		},
 		{
 			name: "three sub-orgs and custom domain",
 			url:  "https://my-gitlab.com:6443/my-org/sub-org/2/3",
-			want: newOrgInfo("my-gitlab.com:6443", "my-org", []string{"sub-org", "2", "3"}),
+			want: newOrgRef("my-gitlab.com:6443", "my-org", []string{"sub-org", "2", "3"}),
 		},
 		{
 			name: "no org specified",
@@ -159,11 +159,8 @@ func TestParseOrganizationURL(t *testing.T) {
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ParseOrganizationURL() = %v, want %v", got, tt.want)
 			}
-			// Ensure a non-pointer return and that roundtrip data is preserved
+			// Ensure that roundtrip data is preserved
 			if got != nil {
-				if _, ok := got.(OrganizationInfo); !ok {
-					t.Error("ParseOrganizationURL(): Expected OrganizationInfo struct to be returned")
-				}
 				// expect the round-trip to remove any trailing slashes
 				expectedURL := strings.TrimSuffix(tt.url, "/")
 				if got.String() != expectedURL {
@@ -542,12 +539,12 @@ func TestIdentityRef_GetType(t *testing.T) {
 		},
 		{
 			name: "sample top-level org",
-			ref:  newOrgInfo("github.com", "bar", nil),
+			ref:  *newOrgRef("github.com", "bar", nil),
 			want: IdentityTypeOrganization,
 		},
 		{
 			name: "sample sub-org",
-			ref:  newOrgInfo("github.com", "bar", []string{"baz"}),
+			ref:  *newOrgRef("github.com", "bar", []string{"baz"}),
 			want: IdentityTypeSuborganization,
 		},
 	}

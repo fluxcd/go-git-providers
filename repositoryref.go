@@ -61,18 +61,6 @@ type IdentityRef interface {
 	String() string
 }
 
-// OrganizationRef represents a reference to a top-level- or sub-organization. OrganizationInfo
-// is an implementation of this interface. OrganizationRef is a superset of IdentityRef.
-type OrganizationRef interface {
-	IdentityRef
-
-	// GetOrganization returns the top-level organization, i.e. "fluxcd" or "kubernetes-sigs"
-	GetOrganization() string
-	// GetSubOrganizations returns the names of sub-organizations (or sub-groups),
-	// e.g. ["engineering", "frontend"] would be returned for gitlab.com/fluxcd/engineering/frontend
-	GetSubOrganizations() []string
-}
-
 // RepositoryRef references a repository hosted by a Git provider
 type RepositoryRef interface {
 	// RepositoryRef requires an IdentityRef to fully-qualify a repo reference
@@ -128,11 +116,11 @@ func (u UserRef) ValidateFields(validator validation.Validator) {
 	}
 }
 
-// OrganizationInfo implements IdentityRef
-var _ IdentityRef = OrganizationInfo{}
+// OrganizationRef implements IdentityRef
+var _ IdentityRef = OrganizationRef{}
 
-// OrganizationInfo is an implementation of OrganizationRef
-type OrganizationInfo struct {
+// OrganizationRef is an implementation of OrganizationRef
+type OrganizationRef struct {
 	// Domain returns e.g. "github.com", "gitlab.com" or a custom domain like "self-hosted-gitlab.com" (GitLab)
 	// The domain _might_ contain port information, in the form of "host:port", if applicable
 	// +required
@@ -150,41 +138,31 @@ type OrganizationInfo struct {
 }
 
 // GetDomain returns the the domain part of the endpoint, can include port information.
-func (o OrganizationInfo) GetDomain() string {
+func (o OrganizationRef) GetDomain() string {
 	return o.Domain
 }
 
 // GetIdentity returns the identity of this actor, which in this case is the user login name
-func (o OrganizationInfo) GetIdentity() string {
-	orgParts := append([]string{o.GetOrganization()}, o.GetSubOrganizations()...)
+func (o OrganizationRef) GetIdentity() string {
+	orgParts := append([]string{o.Organization}, o.SubOrganizations...)
 	return strings.Join(orgParts, "/")
 }
 
 // GetType marks this UserRef as being a IdentityTypeUser
-func (o OrganizationInfo) GetType() IdentityType {
+func (o OrganizationRef) GetType() IdentityType {
 	if len(o.SubOrganizations) > 0 {
 		return IdentityTypeSuborganization
 	}
 	return IdentityTypeOrganization
 }
 
-// GetOrganization returns top-level organization name
-func (o OrganizationInfo) GetOrganization() string {
-	return o.Organization
-}
-
-// GetOrganization returns sub-organization names
-func (o OrganizationInfo) GetSubOrganizations() []string {
-	return o.SubOrganizations
-}
-
 // String returns the HTTPS URL to access the Organization
-func (o OrganizationInfo) String() string {
+func (o OrganizationRef) String() string {
 	return fmt.Sprintf("https://%s/%s", o.GetDomain(), o.GetIdentity())
 }
 
 // ValidateFields validates its own fields for a given validator
-func (o OrganizationInfo) ValidateFields(validator validation.Validator) {
+func (o OrganizationRef) ValidateFields(validator validation.Validator) {
 	// Require the Domain and Organization to be set
 	if len(o.Domain) == 0 {
 		validator.Required("Domain")
@@ -247,20 +225,10 @@ func GetCloneURL(rs RepositoryRef, transport TransportType) string {
 	return ""
 }
 
-// ParseOrganizationURL parses an URL to an organization into a OrganizationRef object
-func ParseOrganizationURL(o string) (OrganizationRef, error) {
-	// Always return IdentityInfo dereferenced, not as a pointer
-	orgInfoPtr, err := parseOrganizationURL(o)
-	if err != nil {
-		return nil, err
-	}
-	return orgInfoPtrToOrganizationRef(orgInfoPtr)
-}
-
 // ParseUserURL parses an URL to an organization into a UserRef object
 func ParseUserURL(u string) (*UserRef, error) {
 	// Use the same logic as for parsing organization URLs, but return an UserRef object
-	orgInfoPtr, err := parseOrganizationURL(u)
+	orgInfoPtr, err := ParseOrganizationURL(u)
 	if err != nil {
 		return nil, err
 	}
@@ -274,7 +242,7 @@ func ParseUserURL(u string) (*UserRef, error) {
 // ParseRepositoryURL parses a HTTPS or SSH clone URL into a RepositoryRef object
 func ParseRepositoryURL(r string, isOrganization bool) (RepositoryRef, error) {
 	// First, parse the URL as an organization
-	orgInfoPtr, err := parseOrganizationURL(r)
+	orgInfoPtr, err := ParseOrganizationURL(r)
 	if err != nil {
 		return nil, err
 	}
@@ -292,10 +260,7 @@ func ParseRepositoryURL(r string, isOrganization bool) (RepositoryRef, error) {
 	// Depending on the isOrganization flag, set the embedded identityRef to the right struct
 	var identityRef IdentityRef
 	if isOrganization {
-		identityRef, err = orgInfoPtrToOrganizationRef(orgInfoPtr)
-		if err != nil {
-			return nil, fmt.Errorf("%w: %s", ErrURLInvalid, r)
-		}
+		identityRef = *orgInfoPtr
 	} else {
 		userRef, err := orgInfoPtrToUserRef(orgInfoPtr)
 		if err != nil {
@@ -347,14 +312,14 @@ func parseURL(str string) (*url.URL, []string, error) {
 	return u, parts, nil
 }
 
-// parseOrganizationURL parses the string into an OrganizationInfo object
-func parseOrganizationURL(o string) (*OrganizationInfo, error) {
+// ParseOrganizationURL parses an URL to an organization into a OrganizationRef object
+func ParseOrganizationURL(o string) (*OrganizationRef, error) {
 	u, parts, err := parseURL(o)
 	if err != nil {
 		return nil, err
 	}
 	// Create the IdentityInfo object
-	info := &OrganizationInfo{
+	info := &OrganizationRef{
 		Domain:           u.Host,
 		Organization:     parts[0],
 		SubOrganizations: []string{},
@@ -366,13 +331,9 @@ func parseOrganizationURL(o string) (*OrganizationInfo, error) {
 	return info, nil
 }
 
-func orgInfoPtrToOrganizationRef(orgInfoPtr *OrganizationInfo) (OrganizationRef, error) {
-	return *orgInfoPtr, nil
-}
-
-func orgInfoPtrToUserRef(orgInfoPtr *OrganizationInfo) (*UserRef, error) {
+func orgInfoPtrToUserRef(orgInfoPtr *OrganizationRef) (*UserRef, error) {
 	// Don't tolerate that there are "sub-parts" for an user URL
-	if len(orgInfoPtr.GetSubOrganizations()) > 0 {
+	if len(orgInfoPtr.SubOrganizations) > 0 {
 		return nil, ErrURLInvalid
 	}
 	// Return an UserRef struct

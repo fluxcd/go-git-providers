@@ -61,15 +61,6 @@ type IdentityRef interface {
 	String() string
 }
 
-// RepositoryRef references a repository hosted by a Git provider
-type RepositoryRef interface {
-	// RepositoryRef requires an IdentityRef to fully-qualify a repo reference
-	IdentityRef
-
-	// GetRepository returns the name of the repository. This name never includes the ".git"-suffix.
-	GetRepository() string
-}
-
 // UserRef represents an user account in a Git provider.
 type UserRef struct {
 	// Domain returns e.g. "github.com", "gitlab.com" or a custom domain like "self-hosted-gitlab.com" (GitLab)
@@ -172,9 +163,9 @@ func (o OrganizationRef) ValidateFields(validator validation.Validator) {
 	}
 }
 
-// RepositoryInfo is an implementation of RepositoryRef
-type RepositoryInfo struct {
-	// RepositoryInfo embeds an in IdentityRef inline
+// RepositoryRef is an implementation of RepositoryRef
+type RepositoryRef struct {
+	// RepositoryRef embeds an in IdentityRef inline
 	IdentityRef `json:",inline"`
 
 	// Name specifies the Git repository name. This field is URL-friendly,
@@ -183,21 +174,13 @@ type RepositoryInfo struct {
 	RepositoryName string `json:"repositoryName"`
 }
 
-// RepositoryInfo implements the RepositoryRef interface
-var _ RepositoryRef = RepositoryInfo{}
-
-// GetRepository returns the name of the repository. This name never includes the ".git"-suffix.
-func (r RepositoryInfo) GetRepository() string {
-	return r.RepositoryName
-}
-
 // String returns the HTTPS URL to access the Repository
-func (r RepositoryInfo) String() string {
-	return fmt.Sprintf("%s/%s", r.IdentityRef.String(), r.GetRepository())
+func (r RepositoryRef) String() string {
+	return fmt.Sprintf("%s/%s", r.IdentityRef.String(), r.RepositoryName)
 }
 
 // ValidateFields validates its own fields for a given validator
-func (r RepositoryInfo) ValidateFields(validator validation.Validator) {
+func (r RepositoryRef) ValidateFields(validator validation.Validator) {
 	// First, validate the embedded IdentityRef
 	r.IdentityRef.ValidateFields(validator)
 	// Require RepositoryName to be set
@@ -207,7 +190,7 @@ func (r RepositoryInfo) ValidateFields(validator validation.Validator) {
 }
 
 // GetCloneURL gets the clone URL for the specified transport type
-func (r RepositoryInfo) GetCloneURL(transport TransportType) string {
+func (r RepositoryRef) GetCloneURL(transport TransportType) string {
 	return GetCloneURL(r, transport)
 }
 
@@ -218,9 +201,9 @@ func GetCloneURL(rs RepositoryRef, transport TransportType) string {
 	case TransportTypeHTTPS:
 		return fmt.Sprintf("%s.git", rs.String())
 	case TransportTypeGit:
-		return fmt.Sprintf("git@%s:%s/%s.git", rs.GetDomain(), rs.GetIdentity(), rs.GetRepository())
+		return fmt.Sprintf("git@%s:%s/%s.git", rs.GetDomain(), rs.GetIdentity(), rs.RepositoryName)
 	case TransportTypeSSH:
-		return fmt.Sprintf("ssh://git@%s/%s/%s", rs.GetDomain(), rs.GetIdentity(), rs.GetRepository())
+		return fmt.Sprintf("ssh://git@%s/%s/%s", rs.GetDomain(), rs.GetIdentity(), rs.RepositoryName)
 	}
 	return ""
 }
@@ -240,7 +223,7 @@ func ParseUserURL(u string) (*UserRef, error) {
 }
 
 // ParseRepositoryURL parses a HTTPS or SSH clone URL into a RepositoryRef object
-func ParseRepositoryURL(r string, isOrganization bool) (RepositoryRef, error) {
+func ParseRepositoryURL(r string, isOrganization bool) (*RepositoryRef, error) {
 	// First, parse the URL as an organization
 	orgInfoPtr, err := ParseOrganizationURL(r)
 	if err != nil {
@@ -269,8 +252,8 @@ func ParseRepositoryURL(r string, isOrganization bool) (RepositoryRef, error) {
 		identityRef = *userRef
 	}
 
-	// Return the new RepositoryInfo
-	return RepositoryInfo{
+	// Return the new RepositoryRef
+	return &RepositoryRef{
 		// Never include any .git suffix at the end of the repository name
 		RepositoryName: strings.TrimSuffix(repoName, ".git"),
 		IdentityRef:    identityRef,

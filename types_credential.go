@@ -28,7 +28,7 @@ type RepositoryCredential interface {
 	Object
 
 	// GetRepositoryRef gets the repository that this credential is associated with
-	GetRepositoryRef() RepositoryRef
+	GetRepositoryRef() *RepositoryRef
 
 	// GetType returns the type of the credential
 	GetType() RepositoryCredentialType
@@ -73,12 +73,12 @@ type DeployKey struct {
 	// When creating, this field is optional. However, if specified, it must match the RepositoryRef
 	// given to the client
 	// +optional
-	Repository *RepositoryInfo `json:"repository"`
+	Repository *RepositoryRef `json:"repository"`
 }
 
 // GetRepositoryRef returns the RepositoryRef for this DeployKey
 // Make sure to nil-check this before using, as it's an optional field set at GET time
-func (dk *DeployKey) GetRepositoryRef() RepositoryRef {
+func (dk *DeployKey) GetRepositoryRef() *RepositoryRef {
 	return dk.Repository
 }
 
@@ -121,7 +121,7 @@ func (dk *DeployKey) ValidateCreate() error {
 	if len(dk.Key) == 0 {
 		validator.Required("Key")
 	}
-	// Don't care about the RepositoryInfo, as that information is coming from
+	// Don't care about the RepositoryRef, as that information is coming from
 	// the RepositoryClient. In the client, we make sure that they equal.
 	return validator.Error()
 }

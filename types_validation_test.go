@@ -73,7 +73,7 @@ func TestDeployKey_Validate(t *testing.T) {
 			key: DeployKey{
 				Name:       "foo-deploykey",
 				Key:        []byte("some-data"),
-				Repository: newOrgRepoInfoPtr("github.com", "foo-org", nil, "foo-repo"),
+				Repository: newOrgRepoRefPtr("github.com", "foo-org", nil, "foo-repo"),
 			},
 			methods: []validateMethod{validateCreate},
 		},
@@ -81,7 +81,7 @@ func TestDeployKey_Validate(t *testing.T) {
 			name: "valid delete, with all checked fields populated",
 			key: DeployKey{
 				Name:       "foo-deploykey",
-				Repository: newOrgRepoInfoPtr("github.com", "foo-org", nil, "foo-repo"),
+				Repository: newOrgRepoRefPtr("github.com", "foo-org", nil, "foo-repo"),
 			},
 			methods: []validateMethod{validateDelete},
 		},
@@ -112,7 +112,7 @@ func TestDeployKey_Validate(t *testing.T) {
 			key: DeployKey{
 				Name:       "foo-deploykey",
 				Key:        []byte("some-data"),
-				Repository: newOrgRepoInfoPtr("github.com", "", nil, "foo-repo"),
+				Repository: newOrgRepoRefPtr("github.com", "", nil, "foo-repo"),
 			},
 			expectedErrs: []error{validation.ErrFieldRequired},
 			methods:      []validateMethod{validateCreate},
@@ -121,7 +121,7 @@ func TestDeployKey_Validate(t *testing.T) {
 			name: "invalid delete, invalid org info",
 			key: DeployKey{
 				Name:       "foo-deploykey",
-				Repository: newOrgRepoInfoPtr("github.com", "", nil, "foo-repo"),
+				Repository: newOrgRepoRefPtr("github.com", "", nil, "foo-repo"),
 			},
 			expectedErrs: []error{validation.ErrFieldRequired},
 			methods:      []validateMethod{validateDelete},
@@ -131,7 +131,7 @@ func TestDeployKey_Validate(t *testing.T) {
 			key: DeployKey{
 				Name:       "foo-deploykey",
 				Key:        []byte("some-data"),
-				Repository: newUserRepoInfoPtr("github.com", "foo-org", ""),
+				Repository: newUserRepoRefPtr("github.com", "foo-org", ""),
 			},
 			expectedErrs: []error{validation.ErrFieldRequired},
 			methods:      []validateMethod{validateCreate},
@@ -140,7 +140,7 @@ func TestDeployKey_Validate(t *testing.T) {
 			name: "invalid delete, invalid user repo info",
 			key: DeployKey{
 				Name:       "foo-deploykey",
-				Repository: newUserRepoInfoPtr("", "foo-org", "my-repo"),
+				Repository: newUserRepoRefPtr("", "foo-org", "my-repo"),
 			},
 			expectedErrs: []error{validation.ErrFieldRequired},
 			methods:      []validateMethod{validateDelete},
@@ -177,31 +177,31 @@ func TestRepository_Validate(t *testing.T) {
 		{
 			name: "valid org create and update, without enums",
 			repo: Repository{
-				RepositoryInfo: newOrgRepoInfo("github.com", "foo-org", nil, "foo-repo"),
+				RepositoryRef: newOrgRepoRef("github.com", "foo-org", nil, "foo-repo"),
 			},
 			methods: []validateMethod{validateCreate, validateUpdate},
 		},
 		{
 			name: "valid user create and update, without enums",
 			repo: Repository{
-				RepositoryInfo: newUserRepoInfo("github.com", "user", "foo-repo"),
+				RepositoryRef: newUserRepoRef("github.com", "user", "foo-repo"),
 			},
 			methods: []validateMethod{validateCreate, validateUpdate},
 		},
 		{
 			name: "valid create and update, with valid enum and description",
 			repo: Repository{
-				RepositoryInfo: newOrgRepoInfo("github.com", "foo-org", nil, "foo-repo"),
-				Description:    StringVar("foo-description"),
-				Visibility:     RepositoryVisibilityVar(RepositoryVisibilityPublic),
+				RepositoryRef: newOrgRepoRef("github.com", "foo-org", nil, "foo-repo"),
+				Description:   StringVar("foo-description"),
+				Visibility:    RepositoryVisibilityVar(RepositoryVisibilityPublic),
 			},
 			methods: []validateMethod{validateCreate, validateUpdate},
 		},
 		{
 			name: "invalid create and update, invalid enum",
 			repo: Repository{
-				RepositoryInfo: newUserRepoInfo("github.com", "foo-org", "foo-repo"),
-				Visibility:     &unknownRepositoryVisibility,
+				RepositoryRef: newUserRepoRef("github.com", "foo-org", "foo-repo"),
+				Visibility:    &unknownRepositoryVisibility,
 			},
 			methods:      []validateMethod{validateCreate, validateUpdate},
 			expectedErrs: []error{validation.ErrFieldEnumInvalid},
@@ -209,8 +209,8 @@ func TestRepository_Validate(t *testing.T) {
 		{
 			name: "invalid create and update, invalid repo info",
 			repo: Repository{
-				RepositoryInfo: newOrgRepoInfo("github.com", "foo-org", nil, ""),
-				Visibility:     RepositoryVisibilityVar(RepositoryVisibilityPrivate),
+				RepositoryRef: newOrgRepoRef("github.com", "foo-org", nil, ""),
+				Visibility:    RepositoryVisibilityVar(RepositoryVisibilityPrivate),
 			},
 			methods:      []validateMethod{validateCreate, validateUpdate},
 			expectedErrs: []error{validation.ErrFieldRequired},
@@ -218,8 +218,8 @@ func TestRepository_Validate(t *testing.T) {
 		{
 			name: "invalid create and update, invalid org info",
 			repo: Repository{
-				RepositoryInfo: newOrgRepoInfo("github.com", "", nil, "foo-repo"), // invalid org name
-				Description:    StringVar(""),                                     // description isn't validated, doesn't need any for now
+				RepositoryRef: newOrgRepoRef("github.com", "", nil, "foo-repo"), // invalid org name
+				Description:   StringVar(""),                                    // description isn't validated, doesn't need any for now
 			},
 			methods:      []validateMethod{validateCreate, validateUpdate},
 			expectedErrs: []error{validation.ErrFieldRequired},
@@ -270,7 +270,7 @@ func TestTeamAccess_Validate(t *testing.T) {
 			name: "valid create and delete, also including valid repoinfo",
 			ta: TeamAccess{
 				Name:       "foo-team",
-				Repository: newOrgRepoInfoPtr("github.com", "foo-org", nil, "foo-repo"),
+				Repository: newOrgRepoRefPtr("github.com", "foo-org", nil, "foo-repo"),
 			},
 			methods: []validateMethod{validateCreate, validateDelete},
 		},
@@ -278,7 +278,7 @@ func TestTeamAccess_Validate(t *testing.T) {
 			name: "invalid create and delete, invalid repoinfo",
 			ta: TeamAccess{
 				Name:       "foo-team",
-				Repository: newOrgRepoInfoPtr("github.com", "foo-org", nil, ""),
+				Repository: newOrgRepoRefPtr("github.com", "foo-org", nil, ""),
 			},
 			methods:      []validateMethod{validateCreate, validateDelete},
 			expectedErrs: []error{validation.ErrFieldRequired},
@@ -287,7 +287,7 @@ func TestTeamAccess_Validate(t *testing.T) {
 			name: "invalid create and delete, invalid orginfo",
 			ta: TeamAccess{
 				Name:       "foo-team",
-				Repository: newOrgRepoInfoPtr("", "foo-org", nil, "foo-repo"),
+				Repository: newOrgRepoRefPtr("", "foo-org", nil, "foo-repo"),
 			},
 			methods:      []validateMethod{validateCreate, validateDelete},
 			expectedErrs: []error{validation.ErrFieldRequired},
@@ -296,7 +296,7 @@ func TestTeamAccess_Validate(t *testing.T) {
 			name: "invalid create and delete, invalid userinfo",
 			ta: TeamAccess{
 				Name:       "foo-team",
-				Repository: newUserRepoInfoPtr("github.com", "", "foo-repo"),
+				Repository: newUserRepoRefPtr("github.com", "", "foo-repo"),
 			},
 			methods:      []validateMethod{validateCreate, validateDelete},
 			expectedErrs: []error{validation.ErrFieldRequired},

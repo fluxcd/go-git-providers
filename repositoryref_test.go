@@ -36,15 +36,15 @@ func newOrgRef(domain, org string, subOrgs []string) *OrganizationRef {
 	}
 }
 
-func newOrgRepoInfo(domain, org string, subOrgs []string, repoName string) RepositoryInfo {
-	return RepositoryInfo{
+func newOrgRepoRef(domain, org string, subOrgs []string, repoName string) RepositoryRef {
+	return RepositoryRef{
 		IdentityRef:    *newOrgRef(domain, org, subOrgs),
 		RepositoryName: repoName,
 	}
 }
 
-func newOrgRepoInfoPtr(domain, org string, subOrgs []string, repoName string) *RepositoryInfo {
-	repoInfo := newOrgRepoInfo(domain, org, subOrgs, repoName)
+func newOrgRepoRefPtr(domain, org string, subOrgs []string, repoName string) *RepositoryRef {
+	repoInfo := newOrgRepoRef(domain, org, subOrgs, repoName)
 	return &repoInfo
 }
 
@@ -55,15 +55,15 @@ func newUserRef(domain, userLogin string) *UserRef {
 	}
 }
 
-func newUserRepoInfo(domain, userLogin, repoName string) RepositoryInfo {
-	return RepositoryInfo{
+func newUserRepoRef(domain, userLogin, repoName string) RepositoryRef {
+	return RepositoryRef{
 		IdentityRef:    *newUserRef(domain, userLogin),
 		RepositoryName: repoName,
 	}
 }
 
-func newUserRepoInfoPtr(domain, userLogin, repoName string) *RepositoryInfo {
-	repoInfo := newUserRepoInfo(domain, userLogin, repoName)
+func newUserRepoRefPtr(domain, userLogin, repoName string) *RepositoryRef {
+	repoInfo := newUserRepoRef(domain, userLogin, repoName)
 	return &repoInfo
 }
 
@@ -280,56 +280,56 @@ func TestParseRepositoryURL(t *testing.T) {
 		name  string
 		url   string
 		isOrg []bool
-		want  RepositoryRef
+		want  *RepositoryRef
 		err   error // expected error
 	}{
 		{
 			name:  "easy user",
 			url:   "https://github.com/luxas/foo-bar",
 			isOrg: []bool{false},
-			want:  newUserRepoInfo("github.com", "luxas", "foo-bar"),
+			want:  newUserRepoRefPtr("github.com", "luxas", "foo-bar"),
 		},
 		{
 			name:  "easy organization",
 			url:   "https://github.com/my-org/foo-bar",
 			isOrg: []bool{true},
-			want:  newOrgRepoInfo("github.com", "my-org", nil, "foo-bar"),
+			want:  newOrgRepoRefPtr("github.com", "my-org", nil, "foo-bar"),
 		},
 		{
 			name:  "user, trailing slash",
 			url:   "https://github.com/luxas/foo-bar/",
 			isOrg: []bool{false},
-			want:  newUserRepoInfo("github.com", "luxas", "foo-bar"),
+			want:  newUserRepoRefPtr("github.com", "luxas", "foo-bar"),
 		},
 		{
 			name:  "organization, trailing slash",
 			url:   "https://github.com/my-org/foo-bar/",
 			isOrg: []bool{true},
-			want:  newOrgRepoInfo("github.com", "my-org", nil, "foo-bar"),
+			want:  newOrgRepoRefPtr("github.com", "my-org", nil, "foo-bar"),
 		},
 		{
 			name:  "user, including a dot",
 			url:   "https://github.com/luxas/foo-bar.withdot",
 			isOrg: []bool{false},
-			want:  newUserRepoInfo("github.com", "luxas", "foo-bar.withdot"),
+			want:  newUserRepoRefPtr("github.com", "luxas", "foo-bar.withdot"),
 		},
 		{
 			name:  "organization, including a dot",
 			url:   "https://github.com/my-org/foo-bar.withdot",
 			isOrg: []bool{true},
-			want:  newOrgRepoInfo("github.com", "my-org", nil, "foo-bar.withdot"),
+			want:  newOrgRepoRefPtr("github.com", "my-org", nil, "foo-bar.withdot"),
 		},
 		{
 			name:  "user, strip git suffix",
 			url:   "https://github.com/luxas/foo-bar.git",
 			isOrg: []bool{false},
-			want:  newUserRepoInfo("github.com", "luxas", "foo-bar"),
+			want:  newUserRepoRefPtr("github.com", "luxas", "foo-bar"),
 		},
 		{
 			name:  "organization, strip git suffix",
 			url:   "https://github.com/my-org/foo-bar.git",
 			isOrg: []bool{true},
-			want:  newOrgRepoInfo("github.com", "my-org", nil, "foo-bar"),
+			want:  newOrgRepoRefPtr("github.com", "my-org", nil, "foo-bar"),
 		},
 		{
 			name:  "user, one sub-org",
@@ -341,7 +341,7 @@ func TestParseRepositoryURL(t *testing.T) {
 			name:  "organization, one sub-org",
 			url:   "https://gitlab.com/my-org/sub-org/foo-bar",
 			isOrg: []bool{true},
-			want:  newOrgRepoInfo("gitlab.com", "my-org", []string{"sub-org"}, "foo-bar"),
+			want:  newOrgRepoRefPtr("gitlab.com", "my-org", []string{"sub-org"}, "foo-bar"),
 		},
 		{
 			name:  "user, three sub-orgs and custom domain",
@@ -353,7 +353,7 @@ func TestParseRepositoryURL(t *testing.T) {
 			name:  "organization, three sub-orgs and custom domain",
 			url:   "https://my-gitlab.com:6443/my-org/sub-org/2/3/foo-bar",
 			isOrg: []bool{true},
-			want:  newOrgRepoInfo("my-gitlab.com:6443", "my-org", []string{"sub-org", "2", "3"}, "foo-bar"),
+			want:  newOrgRepoRefPtr("my-gitlab.com:6443", "my-org", []string{"sub-org", "2", "3"}, "foo-bar"),
 		},
 		{
 			name:  "no repo specified",
@@ -435,11 +435,8 @@ func TestParseRepositoryURL(t *testing.T) {
 				if !reflect.DeepEqual(got, tt.want) {
 					t.Errorf("ParseRepositoryURL() = %v, want %v", got, tt.want)
 				}
-				// Ensure a non-pointer return and that roundtrip data is preserved
+				// Ensure that roundtrip data is preserved
 				if got != nil {
-					if _, ok := got.(RepositoryInfo); !ok {
-						t.Error("ParseRepositoryURL(): Expected RepositoryInfo struct to be returned")
-					}
 					// expect the round-trip to remove any trailing slashes
 					expectedURL := strings.TrimSuffix(tt.url, "/")
 					// expect any .git suffix to be removed
@@ -456,55 +453,55 @@ func TestParseRepositoryURL(t *testing.T) {
 func TestGetCloneURL(t *testing.T) {
 	tests := []struct {
 		name      string
-		repoinfo  RepositoryInfo
+		repoinfo  RepositoryRef
 		transport TransportType
 		want      string
 	}{
 		{
 			name:      "org: https",
-			repoinfo:  newOrgRepoInfo("github.com", "luxas", []string{"test-org", "other"}, "foo-bar"),
+			repoinfo:  newOrgRepoRef("github.com", "luxas", []string{"test-org", "other"}, "foo-bar"),
 			transport: TransportTypeHTTPS,
 			want:      "https://github.com/luxas/test-org/other/foo-bar.git",
 		},
 		{
 			name:      "org: git",
-			repoinfo:  newOrgRepoInfo("gitlab.com", "luxas", []string{"test-org", "other"}, "foo-bar"),
+			repoinfo:  newOrgRepoRef("gitlab.com", "luxas", []string{"test-org", "other"}, "foo-bar"),
 			transport: TransportTypeGit,
 			want:      "git@gitlab.com:luxas/test-org/other/foo-bar.git",
 		},
 		{
 			name:      "org: ssh",
-			repoinfo:  newOrgRepoInfo("my-gitlab.com:6443", "luxas", []string{"test-org", "other"}, "foo-bar"),
+			repoinfo:  newOrgRepoRef("my-gitlab.com:6443", "luxas", []string{"test-org", "other"}, "foo-bar"),
 			transport: TransportTypeSSH,
 			want:      "ssh://git@my-gitlab.com:6443/luxas/test-org/other/foo-bar",
 		},
 		{
 			name:      "org: none",
-			repoinfo:  newOrgRepoInfo("my-gitlab.com:6443", "luxas", []string{"test-org", "other"}, "foo-bar"),
+			repoinfo:  newOrgRepoRef("my-gitlab.com:6443", "luxas", []string{"test-org", "other"}, "foo-bar"),
 			transport: TransportType("random"),
 			want:      "",
 		},
 		{
 			name:      "user: https",
-			repoinfo:  newUserRepoInfo("github.com", "luxas", "foo-bar"),
+			repoinfo:  newUserRepoRef("github.com", "luxas", "foo-bar"),
 			transport: TransportTypeHTTPS,
 			want:      "https://github.com/luxas/foo-bar.git",
 		},
 		{
 			name:      "user: git",
-			repoinfo:  newUserRepoInfo("gitlab.com", "luxas", "foo-bar"),
+			repoinfo:  newUserRepoRef("gitlab.com", "luxas", "foo-bar"),
 			transport: TransportTypeGit,
 			want:      "git@gitlab.com:luxas/foo-bar.git",
 		},
 		{
 			name:      "user: ssh",
-			repoinfo:  newUserRepoInfo("my-gitlab.com:6443", "luxas", "foo-bar"),
+			repoinfo:  newUserRepoRef("my-gitlab.com:6443", "luxas", "foo-bar"),
 			transport: TransportTypeSSH,
 			want:      "ssh://git@my-gitlab.com:6443/luxas/foo-bar",
 		},
 		{
 			name:      "user: none",
-			repoinfo:  newUserRepoInfo("my-gitlab.com:6443", "luxas", "foo-bar"),
+			repoinfo:  newUserRepoRef("my-gitlab.com:6443", "luxas", "foo-bar"),
 			transport: TransportType("random"),
 			want:      "",
 		},
@@ -517,10 +514,10 @@ func TestGetCloneURL(t *testing.T) {
 			}
 			got2 := tt.repoinfo.GetCloneURL(tt.transport)
 			if got2 != tt.want {
-				t.Errorf("RepositoryInfo.GetCloneURL() = %v, want %v", got1, tt.want)
+				t.Errorf("RepositoryRef.GetCloneURL() = %v, want %v", got1, tt.want)
 			}
 			if got1 != got2 {
-				t.Errorf("GetCloneURL() = %q and RepositoryInfo.GetCloneURL() = %q should match", got1, got2)
+				t.Errorf("GetCloneURL() = %q and RepositoryRef.GetCloneURL() = %q should match", got1, got2)
 			}
 		})
 	}

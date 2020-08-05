@@ -32,16 +32,15 @@ const (
 // Repository implements Object and RepositoryRef interfaces
 // Repository can be created and updated
 var _ Object = &Repository{}
-var _ RepositoryRef = &Repository{}
 var _ Creatable = &Repository{}
 var _ Updatable = &Repository{}
 
 // Repository represents a Git repository provided by a Git provider
 type Repository struct {
-	// RepositoryInfo provides the required fields
+	// RepositoryRef provides the required fields
 	// (Domain, Organization, SubOrganizations and RepositoryName)
 	// required for being an RepositoryRef
-	RepositoryInfo `json:",inline"`
+	RepositoryRef `json:",inline"`
 	// InternalHolder implements the InternalGetter interface
 	// +optional
 	InternalHolder `json:",inline"`
@@ -77,8 +76,8 @@ func (r *Repository) Default() {
 // ValidateCreate validates the object at POST-time and implements the Creatable interface
 func (r *Repository) ValidateCreate() error {
 	validator := validation.New("Repository")
-	// Validate the embedded RepositoryInfo (and its IdentityInfo)
-	r.RepositoryInfo.ValidateFields(validator)
+	// Validate the embedded RepositoryRef (and its IdentityInfo)
+	r.RepositoryRef.ValidateFields(validator)
 	// Validate the Visibility enum
 	if r.Visibility != nil {
 		validator.Append(ValidateRepositoryVisibility(*r.Visibility), *r.Visibility, "Visibility")
@@ -119,7 +118,7 @@ type TeamAccess struct {
 	// When creating, this field is optional. However, if specified, it must match the RepositoryRef
 	// given to the client.
 	// +optional
-	Repository *RepositoryInfo `json:"repository"`
+	Repository *RepositoryRef `json:"repository"`
 }
 
 // Default defaults the TeamAccess, implementing the Creatable interface

@@ -61,6 +61,18 @@ type IdentityRef interface {
 	String() string
 }
 
+// RepositoryRef describes a reference to a repository owned by either an user account or organization.
+type RepositoryRef interface {
+	// RepositoryRef is a superset of IdentityRef.
+	IdentityRef
+
+	// GetRepository returns the repository name for this repo.
+	GetRepository() string
+
+	// GetCloneURL gets the clone URL for the specified transport type.
+	GetCloneURL(transport TransportType) string
+}
+
 // UserRef represents an user account in a Git provider.
 type UserRef struct {
 	// Domain returns e.g. "github.com", "gitlab.com" or a custom domain like "self-hosted-gitlab.com" (GitLab)
@@ -125,7 +137,7 @@ type OrganizationRef struct {
 	// SubOrganizations point to optional sub-organizations (or sub-groups) of the given top-level organization
 	// in the Organization field. E.g. "gitlab.com/fluxcd/engineering/frontend" would yield ["engineering", "frontend"]
 	// +optional
-	SubOrganizations []string `json:"subOrganizations"`
+	SubOrganizations []string `json:"subOrganizations,omitempty"`
 }
 
 // GetDomain returns the the domain part of the endpoint, can include port information.
@@ -163,26 +175,31 @@ func (o OrganizationRef) ValidateFields(validator validation.Validator) {
 	}
 }
 
-// RepositoryRef is an implementation of RepositoryRef
-type RepositoryRef struct {
-	// RepositoryRef embeds an in IdentityRef inline
-	IdentityRef `json:",inline"`
+// OrgRepositoryRef is a struct with information about a specific repository owned by an organization.
+type OrgRepositoryRef struct {
+	// OrgRepositoryRef embeds OrganizationRef inline.
+	OrganizationRef `json:",inline"`
 
-	// Name specifies the Git repository name. This field is URL-friendly,
+	// RepositoryName specifies the Git repository name. This field is URL-friendly,
 	// e.g. "kubernetes" or "cluster-api-provider-aws"
 	// +required
 	RepositoryName string `json:"repositoryName"`
 }
 
-// String returns the HTTPS URL to access the Repository
-func (r RepositoryRef) String() string {
-	return fmt.Sprintf("%s/%s", r.IdentityRef.String(), r.RepositoryName)
+// String returns the HTTPS URL to access the repository.
+func (r OrgRepositoryRef) String() string {
+	return fmt.Sprintf("%s/%s", r.OrganizationRef.String(), r.RepositoryName)
+}
+
+// GetRepository returns the repository name for this repo.
+func (r OrgRepositoryRef) GetRepository() string {
+	return r.RepositoryName
 }
 
 // ValidateFields validates its own fields for a given validator
-func (r RepositoryRef) ValidateFields(validator validation.Validator) {
-	// First, validate the embedded IdentityRef
-	r.IdentityRef.ValidateFields(validator)
+func (r OrgRepositoryRef) ValidateFields(validator validation.Validator) {
+	// First, validate the embedded OrganizationRef
+	r.OrganizationRef.ValidateFields(validator)
 	// Require RepositoryName to be set
 	if len(r.RepositoryName) == 0 {
 		validator.Required("RepositoryName")
@@ -190,7 +207,43 @@ func (r RepositoryRef) ValidateFields(validator validation.Validator) {
 }
 
 // GetCloneURL gets the clone URL for the specified transport type
-func (r RepositoryRef) GetCloneURL(transport TransportType) string {
+func (r OrgRepositoryRef) GetCloneURL(transport TransportType) string {
+	return GetCloneURL(r, transport)
+}
+
+// UserRepositoryRef is a struct with information about a specific repository owned by a user.
+type UserRepositoryRef struct {
+	// UserRepositoryRef embeds UserRef inline.
+	UserRef `json:",inline"`
+
+	// RepositoryName specifies the Git repository name. This field is URL-friendly,
+	// e.g. "kubernetes" or "cluster-api-provider-aws"
+	// +required
+	RepositoryName string `json:"repositoryName"`
+}
+
+// String returns the HTTPS URL to access the repository
+func (r UserRepositoryRef) String() string {
+	return fmt.Sprintf("%s/%s", r.UserRef.String(), r.RepositoryName)
+}
+
+// GetRepository returns the repository name for this repo.
+func (r UserRepositoryRef) GetRepository() string {
+	return r.RepositoryName
+}
+
+// ValidateFields validates its own fields for a given validator
+func (r UserRepositoryRef) ValidateFields(validator validation.Validator) {
+	// First, validate the embedded OrganizationRef
+	r.UserRef.ValidateFields(validator)
+	// Require RepositoryName to be set
+	if len(r.RepositoryName) == 0 {
+		validator.Required("RepositoryName")
+	}
+}
+
+// GetCloneURL gets the clone URL for the specified transport type
+func (r UserRepositoryRef) GetCloneURL(transport TransportType) string {
 	return GetCloneURL(r, transport)
 }
 
@@ -201,11 +254,30 @@ func GetCloneURL(rs RepositoryRef, transport TransportType) string {
 	case TransportTypeHTTPS:
 		return fmt.Sprintf("%s.git", rs.String())
 	case TransportTypeGit:
-		return fmt.Sprintf("git@%s:%s/%s.git", rs.GetDomain(), rs.GetIdentity(), rs.RepositoryName)
+		return fmt.Sprintf("git@%s:%s/%s.git", rs.GetDomain(), rs.GetIdentity(), rs.GetRepository())
 	case TransportTypeSSH:
-		return fmt.Sprintf("ssh://git@%s/%s/%s", rs.GetDomain(), rs.GetIdentity(), rs.RepositoryName)
+		return fmt.Sprintf("ssh://git@%s/%s/%s", rs.GetDomain(), rs.GetIdentity(), rs.GetRepository())
 	}
 	return ""
+}
+
+// ParseOrganizationURL parses an URL to an organization into a OrganizationRef object
+func ParseOrganizationURL(o string) (*OrganizationRef, error) {
+	u, parts, err := parseURL(o)
+	if err != nil {
+		return nil, err
+	}
+	// Create the IdentityInfo object
+	info := &OrganizationRef{
+		Domain:           u.Host,
+		Organization:     parts[0],
+		SubOrganizations: []string{},
+	}
+	// If we've got more than one part, assume they are sub-organizations
+	if len(parts) > 1 {
+		info.SubOrganizations = parts[1:]
+	}
+	return info, nil
 }
 
 // ParseUserURL parses an URL to an organization into a UserRef object
@@ -222,42 +294,57 @@ func ParseUserURL(u string) (*UserRef, error) {
 	return userRef, nil
 }
 
-// ParseRepositoryURL parses a HTTPS or SSH clone URL into a RepositoryRef object
-func ParseRepositoryURL(r string, isOrganization bool) (*RepositoryRef, error) {
-	// First, parse the URL as an organization
-	orgInfoPtr, err := ParseOrganizationURL(r)
+// ParseUserRepositoryURL parses a HTTPS clone URL into a UserRepositoryRef object
+func ParseUserRepositoryURL(r string) (*UserRepositoryRef, error) {
+	orgInfoPtr, repoName, err := parseRepositoryURL(r)
 	if err != nil {
 		return nil, err
+	}
+
+	userRef, err := orgInfoPtrToUserRef(orgInfoPtr)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s", ErrURLInvalid, r)
+	}
+
+	return &UserRepositoryRef{
+		UserRef:        *userRef,
+		RepositoryName: repoName,
+	}, nil
+}
+
+// ParseOrgRepositoryURL parses a HTTPS clone URL into a OrgRepositoryRef object
+func ParseOrgRepositoryURL(r string) (*OrgRepositoryRef, error) {
+	orgInfoPtr, repoName, err := parseRepositoryURL(r)
+	if err != nil {
+		return nil, err
+	}
+
+	return &OrgRepositoryRef{
+		OrganizationRef: *orgInfoPtr,
+		RepositoryName:  repoName,
+	}, nil
+}
+
+func parseRepositoryURL(r string) (orgInfoPtr *OrganizationRef, repoName string, err error) {
+	// First, parse the URL as an organization
+	orgInfoPtr, err = ParseOrganizationURL(r)
+	if err != nil {
+		return nil, "", err
 	}
 	// The "repository" part of the URL parsed as an organization, is the last "sub-organization"
 	// Check that there's at least one sub-organization
 	if len(orgInfoPtr.SubOrganizations) < 1 {
-		return nil, fmt.Errorf("%w: %s", ErrURLMissingRepoName, r)
+		return nil, "", fmt.Errorf("%w: %s", ErrURLMissingRepoName, r)
 	}
 
 	// The repository name is the last "sub-org"
-	repoName := orgInfoPtr.SubOrganizations[len(orgInfoPtr.SubOrganizations)-1]
+	repoName = orgInfoPtr.SubOrganizations[len(orgInfoPtr.SubOrganizations)-1]
+	// Never include any .git suffix at the end of the repository name
+	repoName = strings.TrimSuffix(repoName, ".git")
+
 	// Remove the repository name from the sub-org list
 	orgInfoPtr.SubOrganizations = orgInfoPtr.SubOrganizations[:len(orgInfoPtr.SubOrganizations)-1]
-
-	// Depending on the isOrganization flag, set the embedded identityRef to the right struct
-	var identityRef IdentityRef
-	if isOrganization {
-		identityRef = *orgInfoPtr
-	} else {
-		userRef, err := orgInfoPtrToUserRef(orgInfoPtr)
-		if err != nil {
-			return nil, fmt.Errorf("%w: %s", ErrURLInvalid, r)
-		}
-		identityRef = *userRef
-	}
-
-	// Return the new RepositoryRef
-	return &RepositoryRef{
-		// Never include any .git suffix at the end of the repository name
-		RepositoryName: strings.TrimSuffix(repoName, ".git"),
-		IdentityRef:    identityRef,
-	}, nil
+	return
 }
 
 func parseURL(str string) (*url.URL, []string, error) {
@@ -293,25 +380,6 @@ func parseURL(str string) (*url.URL, []string, error) {
 		}
 	}
 	return u, parts, nil
-}
-
-// ParseOrganizationURL parses an URL to an organization into a OrganizationRef object
-func ParseOrganizationURL(o string) (*OrganizationRef, error) {
-	u, parts, err := parseURL(o)
-	if err != nil {
-		return nil, err
-	}
-	// Create the IdentityInfo object
-	info := &OrganizationRef{
-		Domain:           u.Host,
-		Organization:     parts[0],
-		SubOrganizations: []string{},
-	}
-	// If we've got more than one part, assume they are sub-organizations
-	if len(parts) > 1 {
-		info.SubOrganizations = parts[1:]
-	}
-	return info, nil
 }
 
 func orgInfoPtrToUserRef(orgInfoPtr *OrganizationRef) (*UserRef, error) {

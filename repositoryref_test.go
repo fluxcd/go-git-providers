@@ -41,14 +41,14 @@ func newOrgRefPtr(domain, org string, subOrgs []string) *OrganizationRef {
 	return &orgRef
 }
 
-func newOrgRepoRef(domain, org string, subOrgs []string, repoName string) RepositoryRef {
-	return RepositoryRef{
-		IdentityRef:    newOrgRef(domain, org, subOrgs),
-		RepositoryName: repoName,
+func newOrgRepoRef(domain, org string, subOrgs []string, repoName string) OrgRepositoryRef {
+	return OrgRepositoryRef{
+		OrganizationRef: newOrgRef(domain, org, subOrgs),
+		RepositoryName:  repoName,
 	}
 }
 
-func newOrgRepoRefPtr(domain, org string, subOrgs []string, repoName string) *RepositoryRef {
+func newOrgRepoRefPtr(domain, org string, subOrgs []string, repoName string) *OrgRepositoryRef {
 	repoInfo := newOrgRepoRef(domain, org, subOrgs, repoName)
 	return &repoInfo
 }
@@ -65,14 +65,14 @@ func newUserRefPtr(domain, userLogin string) *UserRef {
 	return &userRef
 }
 
-func newUserRepoRef(domain, userLogin, repoName string) RepositoryRef {
-	return RepositoryRef{
-		IdentityRef:    newUserRef(domain, userLogin),
+func newUserRepoRef(domain, userLogin, repoName string) UserRepositoryRef {
+	return UserRepositoryRef{
+		UserRef:        newUserRef(domain, userLogin),
 		RepositoryName: repoName,
 	}
 }
 
-func newUserRepoRefPtr(domain, userLogin, repoName string) *RepositoryRef {
+func newUserRepoRefPtr(domain, userLogin, repoName string) *UserRepositoryRef {
 	repoInfo := newUserRepoRef(domain, userLogin, repoName)
 	return &repoInfo
 }
@@ -287,172 +287,176 @@ func TestParseUserURL(t *testing.T) {
 
 func TestParseRepositoryURL(t *testing.T) {
 	tests := []struct {
-		name  string
-		url   string
-		isOrg []bool
-		want  *RepositoryRef
-		err   error // expected error
+		name     string
+		url      string
+		types    []IdentityType
+		wantOrg  *OrgRepositoryRef
+		wantUser *UserRepositoryRef
+		err      error // expected error
 	}{
 		{
-			name:  "easy user",
-			url:   "https://github.com/luxas/foo-bar",
-			isOrg: []bool{false},
-			want:  newUserRepoRefPtr("github.com", "luxas", "foo-bar"),
+			name:     "easy",
+			url:      "https://github.com/identity/foo-bar",
+			types:    []IdentityType{IdentityTypeOrganization, IdentityTypeUser},
+			wantUser: newUserRepoRefPtr("github.com", "identity", "foo-bar"),
+			wantOrg:  newOrgRepoRefPtr("github.com", "identity", nil, "foo-bar"),
 		},
 		{
-			name:  "easy organization",
-			url:   "https://github.com/my-org/foo-bar",
-			isOrg: []bool{true},
-			want:  newOrgRepoRefPtr("github.com", "my-org", nil, "foo-bar"),
+			name:     "trailing slash",
+			url:      "https://github.com/identity/foo-bar/",
+			types:    []IdentityType{IdentityTypeOrganization, IdentityTypeUser},
+			wantUser: newUserRepoRefPtr("github.com", "identity", "foo-bar"),
+			wantOrg:  newOrgRepoRefPtr("github.com", "identity", nil, "foo-bar"),
 		},
 		{
-			name:  "user, trailing slash",
-			url:   "https://github.com/luxas/foo-bar/",
-			isOrg: []bool{false},
-			want:  newUserRepoRefPtr("github.com", "luxas", "foo-bar"),
+			name:     "including a dot",
+			url:      "https://github.com/identity/foo-bar.withdot",
+			types:    []IdentityType{IdentityTypeOrganization, IdentityTypeUser},
+			wantUser: newUserRepoRefPtr("github.com", "identity", "foo-bar.withdot"),
+			wantOrg:  newOrgRepoRefPtr("github.com", "identity", nil, "foo-bar.withdot"),
 		},
 		{
-			name:  "organization, trailing slash",
-			url:   "https://github.com/my-org/foo-bar/",
-			isOrg: []bool{true},
-			want:  newOrgRepoRefPtr("github.com", "my-org", nil, "foo-bar"),
-		},
-		{
-			name:  "user, including a dot",
-			url:   "https://github.com/luxas/foo-bar.withdot",
-			isOrg: []bool{false},
-			want:  newUserRepoRefPtr("github.com", "luxas", "foo-bar.withdot"),
-		},
-		{
-			name:  "organization, including a dot",
-			url:   "https://github.com/my-org/foo-bar.withdot",
-			isOrg: []bool{true},
-			want:  newOrgRepoRefPtr("github.com", "my-org", nil, "foo-bar.withdot"),
-		},
-		{
-			name:  "user, strip git suffix",
-			url:   "https://github.com/luxas/foo-bar.git",
-			isOrg: []bool{false},
-			want:  newUserRepoRefPtr("github.com", "luxas", "foo-bar"),
-		},
-		{
-			name:  "organization, strip git suffix",
-			url:   "https://github.com/my-org/foo-bar.git",
-			isOrg: []bool{true},
-			want:  newOrgRepoRefPtr("github.com", "my-org", nil, "foo-bar"),
+			name:     "strip git suffix",
+			url:      "https://github.com/identity/foo-bar.git",
+			types:    []IdentityType{IdentityTypeOrganization, IdentityTypeUser},
+			wantUser: newUserRepoRefPtr("github.com", "identity", "foo-bar"),
+			wantOrg:  newOrgRepoRefPtr("github.com", "identity", nil, "foo-bar"),
 		},
 		{
 			name:  "user, one sub-org",
 			url:   "https://gitlab.com/my-org/sub-org/foo-bar",
-			isOrg: []bool{false},
+			types: []IdentityType{IdentityTypeUser},
 			err:   ErrURLInvalid,
 		},
 		{
-			name:  "organization, one sub-org",
-			url:   "https://gitlab.com/my-org/sub-org/foo-bar",
-			isOrg: []bool{true},
-			want:  newOrgRepoRefPtr("gitlab.com", "my-org", []string{"sub-org"}, "foo-bar"),
+			name:    "organization, one sub-org",
+			url:     "https://gitlab.com/my-org/sub-org/foo-bar",
+			types:   []IdentityType{IdentityTypeOrganization},
+			wantOrg: newOrgRepoRefPtr("gitlab.com", "my-org", []string{"sub-org"}, "foo-bar"),
 		},
 		{
 			name:  "user, three sub-orgs and custom domain",
 			url:   "https://my-gitlab.com:6443/my-org/sub-org/2/3/foo-bar",
-			isOrg: []bool{false},
+			types: []IdentityType{IdentityTypeUser},
 			err:   ErrURLInvalid,
 		},
 		{
-			name:  "organization, three sub-orgs and custom domain",
-			url:   "https://my-gitlab.com:6443/my-org/sub-org/2/3/foo-bar",
-			isOrg: []bool{true},
-			want:  newOrgRepoRefPtr("my-gitlab.com:6443", "my-org", []string{"sub-org", "2", "3"}, "foo-bar"),
+			name:    "organization, three sub-orgs and custom domain",
+			url:     "https://my-gitlab.com:6443/my-org/sub-org/2/3/foo-bar",
+			types:   []IdentityType{IdentityTypeOrganization},
+			wantOrg: newOrgRepoRefPtr("my-gitlab.com:6443", "my-org", []string{"sub-org", "2", "3"}, "foo-bar"),
 		},
 		{
 			name:  "no repo specified",
 			url:   "https://github.com/luxas",
-			isOrg: []bool{true, false},
+			types: []IdentityType{IdentityTypeOrganization, IdentityTypeUser},
 			err:   ErrURLMissingRepoName,
 		},
 		{
 			name:  "no repo specified, trailing slash",
 			url:   "https://github.com/luxas/",
-			isOrg: []bool{true, false},
+			types: []IdentityType{IdentityTypeOrganization, IdentityTypeUser},
 			err:   ErrURLMissingRepoName,
 		},
 		{
 			name:  "empty parts 1",
 			url:   "https://github.com/luxas/foobar//",
-			isOrg: []bool{true, false},
+			types: []IdentityType{IdentityTypeOrganization, IdentityTypeUser},
 			err:   ErrURLInvalid,
 		},
 		{
 			name:  "empty parts 2",
 			url:   "https://github.com//luxas/foobar/",
-			isOrg: []bool{true, false},
+			types: []IdentityType{IdentityTypeOrganization, IdentityTypeUser},
 			err:   ErrURLInvalid,
 		},
 		{
 			name:  "empty URL",
 			url:   "",
-			isOrg: []bool{true, false},
+			types: []IdentityType{IdentityTypeOrganization, IdentityTypeUser},
 			err:   ErrURLInvalid,
 		},
 		{
 			name:  "disallow fragments",
 			url:   "https://github.com/luxas/foobar#random",
-			isOrg: []bool{true, false},
+			types: []IdentityType{IdentityTypeOrganization, IdentityTypeUser},
 			err:   ErrURLUnsupportedParts,
 		},
 		{
 			name:  "disallow query values",
 			url:   "https://github.com/luxas/foobar?foo=bar",
-			isOrg: []bool{true, false},
+			types: []IdentityType{IdentityTypeOrganization, IdentityTypeUser},
 			err:   ErrURLUnsupportedParts,
 		},
 		{
 			name:  "disallow user auth",
 			url:   "https://user:pass@github.com/luxas/foobar",
-			isOrg: []bool{true, false},
+			types: []IdentityType{IdentityTypeOrganization, IdentityTypeUser},
 			err:   ErrURLUnsupportedParts,
 		},
 		{
 			name:  "disallow http",
 			url:   "http://github.com/luxas/foobar",
-			isOrg: []bool{true, false},
+			types: []IdentityType{IdentityTypeOrganization, IdentityTypeUser},
 			err:   ErrURLUnsupportedScheme,
 		},
 		{
 			name:  "no scheme",
 			url:   "github.com/luxas/foobar",
-			isOrg: []bool{true, false},
+			types: []IdentityType{IdentityTypeOrganization, IdentityTypeUser},
 			err:   ErrURLUnsupportedScheme,
 		},
 		{
 			name:  "invalid URL",
 			url:   ":foo/bar",
-			isOrg: []bool{true, false},
+			types: []IdentityType{IdentityTypeOrganization, IdentityTypeUser},
 			err:   &url.Error{},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if len(tt.isOrg) == 0 {
-				t.Fatal("must set tt.isOrg to one or more values")
+			if len(tt.types) == 0 {
+				t.Fatal("must set tt.types to one or more values")
 			}
-			for _, orgParam := range tt.isOrg {
-				got, err := ParseRepositoryURL(tt.url, orgParam)
+			for _, identityType := range tt.types {
+				var err error
+				var resultStr string
+				switch identityType {
+				case IdentityTypeUser:
+					var res *UserRepositoryRef
+					res, err = ParseUserRepositoryURL(tt.url)
+					// Check so we have the right value
+					if !reflect.DeepEqual(res, tt.wantUser) {
+						t.Errorf("ParseUserRepositoryURL() = %v, want %v", res, tt.wantUser)
+					}
+					if res != nil {
+						resultStr = res.String()
+					}
+				case IdentityTypeOrganization:
+					var res *OrgRepositoryRef
+					res, err = ParseOrgRepositoryURL(tt.url)
+					// Check so we have the right value
+					if !reflect.DeepEqual(res, tt.wantOrg) {
+						t.Errorf("ParseOrgRepositoryURL() = %v, want %v", res, tt.wantOrg)
+					}
+					if res != nil {
+						resultStr = res.String()
+					}
+				default:
+					t.Fatalf("invalid identityType: %v", identityType)
+				}
+
 				// Validate so that the error is expected
 				validation.TestExpectErrors(t, "ParseRepositoryURL", err, tt.err)
-				// Check so we have the right value
-				if !reflect.DeepEqual(got, tt.want) {
-					t.Errorf("ParseRepositoryURL() = %v, want %v", got, tt.want)
-				}
+
 				// Ensure that roundtrip data is preserved
-				if got != nil {
+				if resultStr != "" {
 					// expect the round-trip to remove any trailing slashes
 					expectedURL := strings.TrimSuffix(tt.url, "/")
 					// expect any .git suffix to be removed
 					expectedURL = strings.TrimSuffix(expectedURL, ".git")
-					if got.String() != expectedURL {
-						t.Errorf("ParseRepositoryURL(): got.String() = %q, want %q", got.String(), expectedURL)
+					if resultStr != expectedURL {
+						t.Errorf("Parse{Org,User}RepositoryURL(): resultStr = %q, want %q", resultStr, expectedURL)
 					}
 				}
 			}
@@ -560,6 +564,75 @@ func TestIdentityRef_GetType(t *testing.T) {
 			if got := tt.ref.GetType(); got != tt.want {
 				t.Errorf("IdentityRef.GetType() = %v, want %v", got, tt.want)
 			}
+		})
+	}
+}
+
+func TestRepositoryRef_ValidateFields(t *testing.T) {
+	tests := []struct {
+		name         string
+		ref          RepositoryRef
+		expectedErrs []error
+	}{
+		{
+			name: "valid user",
+			ref:  newUserRepoRef("github.com", "my-user", "my-repo"),
+		},
+		{
+			name: "valid org",
+			ref:  newOrgRepoRef("github.com", "my-org", nil, "my-repo"),
+		},
+		{
+			name: "valid sub-org",
+			ref:  newOrgRepoRef("github.com", "my-org", []string{"sub-org"}, "my-repo"),
+		},
+		{
+			name:         "missing user reponame",
+			ref:          newUserRepoRef("my-gitlab.com:6443", "my-user", ""),
+			expectedErrs: []error{validation.ErrFieldRequired},
+		},
+		{
+			name:         "missing user login",
+			ref:          newUserRepoRef("my-gitlab.com:6443", "", "my-repo"),
+			expectedErrs: []error{validation.ErrFieldRequired},
+		},
+		{
+			name:         "missing user login",
+			ref:          newUserRepoRef("my-gitlab.com:6443", "", "my-repo"),
+			expectedErrs: []error{validation.ErrFieldRequired},
+		},
+		{
+			name:         "missing user domain",
+			ref:          newUserRepoRef("", "my-user", "my-repo"),
+			expectedErrs: []error{validation.ErrFieldRequired},
+		},
+		{
+			name:         "missing org reponame",
+			ref:          newOrgRepoRef("my-gitlab.com:6443", "my-org", nil, ""),
+			expectedErrs: []error{validation.ErrFieldRequired},
+		},
+		{
+			name:         "missing org name",
+			ref:          newOrgRepoRef("my-gitlab.com:6443", "", []string{"sub-org"}, "my-repo"),
+			expectedErrs: []error{validation.ErrFieldRequired},
+		},
+		{
+			name:         "missing org domain",
+			ref:          newOrgRepoRef("", "my-org", []string{"sub-org"}, "my-repo"),
+			expectedErrs: []error{validation.ErrFieldRequired},
+		},
+		{
+			name:         "multiple errors",
+			ref:          newOrgRepoRef("", "", []string{"sub-org"}, "my-repo"),
+			expectedErrs: []error{validation.ErrFieldRequired, &validation.MultiError{}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			validator := validation.New("test")
+			tt.ref.ValidateFields(validator)
+			err := validator.Error()
+			validation.TestExpectErrors(t, "{User,Org}RepositoryRef.ValidateFields", err, tt.expectedErrs...)
 		})
 	}
 }

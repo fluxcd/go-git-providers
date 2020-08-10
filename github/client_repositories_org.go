@@ -19,7 +19,6 @@ package github
 import (
 	"context"
 	"errors"
-	"fmt"
 	"reflect"
 
 	gitprovider "github.com/fluxcd/go-git-providers"
@@ -74,10 +73,11 @@ func (c *OrgRepositoriesClient) List(ctx context.Context, ref gitprovider.Organi
 	// Traverse the list, and return a list of OrgRepository objects
 	repos := make([]gitprovider.OrgRepository, 0, len(apiObjs))
 	for _, apiObj := range apiObjs {
-		// Make sure name isn't nil
-		if apiObj.Name == nil {
-			return nil, fmt.Errorf("didn't expect name to be nil for repo: %+v: %w", apiObj, gitprovider.ErrInvalidServerData)
+		// Make sure apiObj is valid
+		if err := validateRepositoryAPI(apiObj); err != nil {
+			return nil, err
 		}
+
 		repos = append(repos, newOrgRepository(c.clientContext, apiObj, gitprovider.OrgRepositoryRef{
 			OrganizationRef: ref,
 			RepositoryName:  *apiObj.Name,
@@ -108,6 +108,11 @@ func (c *OrgRepositoriesClient) Create(ctx context.Context, ref gitprovider.OrgR
 // If req doesn't equal the actual state, the resource will be updated (actionTaken == true).
 // If req is already the actual state, this is a no-op (actionTaken == false).
 func (c *OrgRepositoriesClient) Reconcile(ctx context.Context, ref gitprovider.OrgRepositoryRef, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryReconcileOption) (gitprovider.OrgRepository, bool, error) {
+	// First thing, validate the request
+	if err := req.ValidateInfo(); err != nil {
+		return nil, false, err
+	}
+
 	actual, err := c.Get(ctx, ref)
 	if err != nil {
 		// Create if not found
@@ -127,7 +132,7 @@ func (c *OrgRepositoriesClient) Reconcile(ctx context.Context, ref gitprovider.O
 func getRepository(c *github.Client, ctx context.Context, ref gitprovider.RepositoryRef) (*github.Repository, error) {
 	// GET /repos/{owner}/{repo}
 	apiObj, _, err := c.Repositories.Get(ctx, ref.GetIdentity(), ref.GetRepository())
-	return apiObj, handleHTTPError(err)
+	return validateRepositoryAPIResp(apiObj, err)
 }
 
 func createRepository(c *github.Client, ctx context.Context, ref gitprovider.RepositoryRef, orgName string, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryCreateOption) (*github.Repository, error) {
@@ -155,7 +160,7 @@ func createRepositoryData(c *github.Client, ctx context.Context, orgName string,
 	// POST /orgs/{org}/repos
 	// depending on orgName
 	apiObj, _, err := c.Repositories.Create(ctx, orgName, data)
-	return apiObj, handleHTTPError(err)
+	return validateRepositoryAPIResp(apiObj, err)
 }
 
 func genericReconcile(ctx context.Context, actual gitprovider.UserRepository, req gitprovider.RepositoryInfo) (actionTaken bool, err error) {

@@ -19,7 +19,6 @@ package github
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	gitprovider "github.com/fluxcd/go-git-providers"
 	"github.com/google/go-github/v32/github"
@@ -73,10 +72,11 @@ func (c *UserRepositoriesClient) List(ctx context.Context, ref gitprovider.UserR
 	// Traverse the list, and return a list of UserRepository objects
 	repos := make([]gitprovider.UserRepository, 0, len(apiObjs))
 	for _, apiObj := range apiObjs {
-		// Make sure name isn't nil
-		if apiObj.Name == nil {
-			return nil, fmt.Errorf("didn't expect name to be nil for repo: %+v: %w", apiObj, gitprovider.ErrInvalidServerData)
+		// Make sure apiObj is valid
+		if err := validateRepositoryAPI(apiObj); err != nil {
+			return nil, err
 		}
+
 		repos = append(repos, newUserRepository(c.clientContext, apiObj, gitprovider.UserRepositoryRef{
 			UserRef:        ref,
 			RepositoryName: *apiObj.Name,
@@ -107,6 +107,11 @@ func (c *UserRepositoriesClient) Create(ctx context.Context, ref gitprovider.Use
 // If req doesn't equal the actual state, the resource will be updated (actionTaken == true).
 // If req is already the actual state, this is a no-op (actionTaken == false).
 func (c *UserRepositoriesClient) Reconcile(ctx context.Context, ref gitprovider.UserRepositoryRef, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryReconcileOption) (gitprovider.UserRepository, bool, error) {
+	// First thing, validate the request
+	if err := req.ValidateInfo(); err != nil {
+		return nil, false, err
+	}
+
 	actual, err := c.Get(ctx, ref)
 	if err != nil {
 		// Create if not found

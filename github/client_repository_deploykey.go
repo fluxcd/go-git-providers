@@ -96,7 +96,7 @@ func (c *DeployKeyClient) Create(ctx context.Context, req gitprovider.DeployKeyI
 // If req doesn't equal the actual state, the resource will be deleted and recreated (actionTaken == true).
 // If req is already the actual state, this is a no-op (actionTaken == false).
 func (c *DeployKeyClient) Reconcile(ctx context.Context, req gitprovider.DeployKeyInfo) (gitprovider.DeployKey, bool, error) {
-	// Validate the request
+	// First thing, validate the request
 	if err := req.ValidateInfo(); err != nil {
 		return nil, false, err
 	}

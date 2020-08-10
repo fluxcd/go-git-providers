@@ -22,6 +22,7 @@ import (
 	"reflect"
 
 	gitprovider "github.com/fluxcd/go-git-providers"
+	"github.com/fluxcd/go-git-providers/validation"
 	"github.com/google/go-github/v32/github"
 )
 
@@ -46,7 +47,6 @@ type userRepository struct {
 	ref gitprovider.RepositoryRef
 
 	deployKeys *DeployKeyClient
-	teamAccess *TeamAccessClient
 }
 
 func (r *userRepository) Get() gitprovider.RepositoryInfo {
@@ -82,8 +82,10 @@ func (r *userRepository) DeployKeys() gitprovider.DeployKeyClient {
 func (r *userRepository) Update(ctx context.Context) error {
 	// PATCH /repos/{owner}/{repo}
 	apiObj, _, err := r.c.Repositories.Edit(ctx, r.ref.GetIdentity(), r.ref.GetRepository(), &r.r)
+	// Run through validation
+	apiObj, err = validateRepositoryAPIResp(apiObj, err)
 	if err != nil {
-		return handleHTTPError(err)
+		return err
 	}
 	r.r = *apiObj
 	return nil
@@ -155,19 +157,44 @@ func (r *orgRepository) TeamAccess() gitprovider.TeamAccessClient {
 	return r.teamAccess
 }
 
+func validateRepositoryAPI(apiObj *github.Repository) error {
+	validator := validation.New("GitHub.Repository")
+	// Make sure name isn't nil
+	if apiObj.Name == nil {
+		validator.Required("Name")
+	}
+	if apiObj.Visibility != nil {
+		v := gitprovider.RepositoryVisibility(*apiObj.Visibility)
+		validator.Append(gitprovider.ValidateRepositoryVisibility(v), v, "Visibility")
+	}
+	// If there was a validation error, also mark it specifically as invalid server data
+	if err := validator.Error(); err != nil {
+		return validation.NewMultiError(err, gitprovider.ErrInvalidServerData)
+	}
+	return nil
+}
+
 func repositoryFromAPI(apiObj *github.Repository) gitprovider.RepositoryInfo {
-	repo := gitprovider.RepositoryInfo{}
-	if apiObj.Description != nil && len(*apiObj.Description) != 0 {
-		repo.Description = apiObj.Description
+	repo := gitprovider.RepositoryInfo{
+		Description:   apiObj.Description,
+		DefaultBranch: apiObj.DefaultBranch,
 	}
-	if apiObj.DefaultBranch != nil && len(*apiObj.DefaultBranch) != 0 {
-		repo.DefaultBranch = apiObj.DefaultBranch
-	}
-	if apiObj.Visibility != nil && len(*apiObj.Visibility) != 0 {
-		// TODO: What should we do if *apiObj.Visibility wouldn't be any of the already-known values?
+	if apiObj.Visibility != nil {
 		repo.Visibility = gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibility(*apiObj.Visibility))
 	}
 	return repo
+}
+
+func validateRepositoryAPIResp(apiObj *github.Repository, err error) (*github.Repository, error) {
+	// If the response contained an error, return
+	if err != nil {
+		return nil, handleHTTPError(err)
+	}
+	// Make sure apiObj is valid
+	if err := validateRepositoryAPI(apiObj); err != nil {
+		return nil, err
+	}
+	return apiObj, nil
 }
 
 func repositoryToAPI(repo *gitprovider.RepositoryInfo, ref gitprovider.RepositoryRef) github.Repository {

@@ -34,10 +34,20 @@ const (
 // TODO: Guard better against nil pointer dereference panics in this package, also
 // validate data coming from the server
 
-// validateRepositoryRef makes sure the RepositoryRef is valid for Github's usage.
-func validateRepositoryRef(ref gitprovider.RepositoryRef, expectedDomain string) error {
+// validateUserRepositoryRef makes sure the UserRepositoryRef is valid for Github's usage.
+func validateUserRepositoryRef(ref gitprovider.UserRepositoryRef, expectedDomain string) error {
 	// Make sure the RepositoryRef fields are valid
-	if err := validation.ValidateTargets("RepositoryRef", ref); err != nil {
+	if err := validation.ValidateTargets("UserRepositoryRef", ref); err != nil {
+		return err
+	}
+	// Make sure the type is valid, and domain is expected
+	return validateIdentityFields(ref, expectedDomain)
+}
+
+// validateOrgRepositoryRef makes sure the OrgRepositoryRef is valid for Github's usage.
+func validateOrgRepositoryRef(ref gitprovider.OrgRepositoryRef, expectedDomain string) error {
+	// Make sure the RepositoryRef fields are valid
+	if err := validation.ValidateTargets("OrgRepositoryRef", ref); err != nil {
 		return err
 	}
 	// Make sure the type is valid, and domain is expected
@@ -48,6 +58,16 @@ func validateRepositoryRef(ref gitprovider.RepositoryRef, expectedDomain string)
 func validateOrganizationRef(ref gitprovider.OrganizationRef, expectedDomain string) error {
 	// Make sure the OrganizationRef fields are valid
 	if err := validation.ValidateTargets("OrganizationRef", ref); err != nil {
+		return err
+	}
+	// Make sure the type is valid, and domain is expected
+	return validateIdentityFields(ref, expectedDomain)
+}
+
+// validateUserRef makes sure the UserRef is valid for Github's usage.
+func validateUserRef(ref gitprovider.UserRef, expectedDomain string) error {
+	// Make sure the OrganizationRef fields are valid
+	if err := validation.ValidateTargets("UserRef", ref); err != nil {
 		return err
 	}
 	// Make sure the type is valid, and domain is expected
@@ -91,43 +111,6 @@ func resolveOrg(ref gitprovider.IdentityRef) string {
 	return ""
 }
 
-func repositoryFromAPI(apiObj *github.Repository, ref gitprovider.RepositoryRef) *gitprovider.Repository {
-	repo := &gitprovider.Repository{
-		RepositoryInfo: gitprovider.FromRepositoryRef(ref),
-		InternalHolder: gitprovider.WithInternal(apiObj),
-	}
-	if apiObj.Description != nil && len(*apiObj.Description) != 0 {
-		repo.Description = apiObj.Description
-	}
-	if apiObj.DefaultBranch != nil && len(*apiObj.DefaultBranch) != 0 {
-		repo.DefaultBranch = apiObj.DefaultBranch
-	}
-	if apiObj.Visibility != nil && len(*apiObj.Visibility) != 0 {
-		// TODO: What should we do if *apiObj.Visibility wouldn't be any of the already-known values?
-		repo.Visibility = gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibility(*apiObj.Visibility))
-	}
-	return repo
-}
-
-func repositoryToAPI(repo *gitprovider.Repository) *github.Repository {
-	apiObj := &github.Repository{
-		Name:          &repo.RepositoryName,
-		Description:   repo.Description,
-		DefaultBranch: repo.DefaultBranch,
-	}
-	if repo.Visibility != nil {
-		apiObj.Visibility = gitprovider.StringVar(string(*repo.Visibility))
-	}
-	return apiObj
-}
-
-func applyRepoCreateOptions(apiObj *github.Repository, opts gitprovider.RepositoryCreateOptions) {
-	apiObj.AutoInit = opts.AutoInit
-	if opts.LicenseTemplate != nil {
-		apiObj.LicenseTemplate = gitprovider.StringVar(string(*opts.LicenseTemplate))
-	}
-}
-
 func organizationFromAPI(apiObj *github.Organization, domain string) *gitprovider.Organization {
 	return &gitprovider.Organization{
 		OrganizationInfo: gitprovider.OrganizationInfo{
@@ -144,6 +127,10 @@ func organizationFromAPI(apiObj *github.Organization, domain string) *gitprovide
 // However, it _always_ keeps the original error too, and just wraps it in a MultiError
 // The consumer must use errors.Is and errors.As to check for equality and get data out of it
 func handleHTTPError(err error) error {
+	// Short-circuit quickly if possible, allow always piping through this function
+	if err == nil {
+		return nil
+	}
 	ghRateLimitError := &github.RateLimitError{}
 	ghErrorResponse := &github.ErrorResponse{}
 	if errors.As(err, &ghRateLimitError) {

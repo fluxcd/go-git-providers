@@ -42,6 +42,8 @@ var (
 	ErrAlreadyExists = errors.New("resource already exists, cannot create object. Use Reconcile() to create it idempotently")
 	// ErrNotFound is returned by .Get() and .Update() calls if the given resource doesn't exist
 	ErrNotFound = errors.New("the requested resource was not found")
+	// ErrInvalidServerData is returned when the server returned invalid data, e.g. missing required fields in the response.
+	ErrInvalidServerData = errors.New("got invalid data from server, don't know how to handle")
 
 	// ErrURLUnsupportedScheme is returned if an URL without the HTTPS scheme is parsed
 	ErrURLUnsupportedScheme = errors.New("unsupported URL scheme, only HTTPS supported")

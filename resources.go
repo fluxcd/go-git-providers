@@ -16,8 +16,6 @@ limitations under the License.
 
 package gitprovider
 
-import "context"
-
 // Organization represents an organization in a Git provider.
 // For now, the organization is read-only, i.e. there aren't set/update methods.
 type Organization interface {
@@ -54,23 +52,12 @@ type UserRepository interface {
 	Object
 	// The repository can be updated.
 	GenericUpdatable
+	// The repository can be reconciled.
+	GenericReconcilable
 	// The repository can be deleted.
 	GenericDeletable
 	// RepositoryBound returns repository reference details.
 	RepositoryBound
-
-	// Reconcile makes sure the desired state in this object (called "req" here) becomes
-	// the actual state in the backing Git provider.
-	//
-	// If req doesn't exist under the hood, it is created (actionTaken == true).
-	// If req doesn't equal the actual state, the resource will be updated (actionTaken == true).
-	// If req is already the actual state, this is a no-op (actionTaken == false).
-	//
-	// The internal API object will be overridden with the received server data if actionTaken == true.
-	//
-	// As this reconcile also allows custom options, GenericReconcilable isn't used. However, the function
-	// is exactly the same as if GenericReconcilable would be embedded.
-	Reconcile(ctx context.Context, opts ...RepositoryReconcileOption) (actionTaken bool, err error)
 
 	// Get returns high-level information about this repository.
 	Get() RepositoryInfo

@@ -17,8 +17,6 @@ limitations under the License.
 package github
 
 import (
-	"context"
-
 	gitprovider "github.com/fluxcd/go-git-providers"
 	"github.com/google/go-github/v32/github"
 )
@@ -33,7 +31,10 @@ func newClient(c *github.Client, domain string) *Client {
 		orgs: &OrganizationsClient{
 			clientContext: ctx,
 		},
-		repos: &RepositoriesClient{
+		orgRepos: &OrgRepositoriesClient{
+			clientContext: ctx,
+		},
+		userRepos: &UserRepositoriesClient{
 			clientContext: ctx,
 		},
 	}
@@ -50,8 +51,9 @@ var _ gitprovider.Client = &Client{}
 type Client struct {
 	*clientContext
 
-	orgs  *OrganizationsClient
-	repos *RepositoriesClient
+	orgs      *OrganizationsClient
+	orgRepos  *OrgRepositoriesClient
+	userRepos *UserRepositoriesClient
 }
 
 // SupportedDomain returns the domain endpoint for this client, e.g. "github.com", "enterprise.github.com" or
@@ -74,39 +76,17 @@ func (c *Client) Raw() interface{} {
 	return c.c
 }
 
-// Organization gets the OrganizationClient for a specific top-level organization.
-// It is ensured that the organization the reference points to exists, as it's looked up
-// and returned as the second argument.
-//
-// ErrNotTopLevelOrganization will be returned at usage time if the organization is not top-level.
-// ErrNotFound is returned if the organization does not exist.
-func (c *Client) Organization(ctx context.Context, o gitprovider.OrganizationRef) (gitprovider.OrganizationClient, *gitprovider.Organization, error) {
-	org, err := c.orgs.Get(ctx, o)
-	if err != nil {
-		return nil, nil, err
-	}
-	return newOrganizationClient(c.clientContext, org), org, nil
-}
-
 // Organizations returns the OrganizationsClient handling sets of organizations.
 func (c *Client) Organizations() gitprovider.OrganizationsClient {
 	return c.orgs
 }
 
-// Repository gets the RepositoryClient for the specified RepositoryRef.
-// It is ensured that the repository the reference points to exists, as it's looked up
-// and returned as the second argument.
-//
-// ErrNotFound is returned if the repository does not exist.
-func (c *Client) Repository(ctx context.Context, r gitprovider.RepositoryRef) (gitprovider.RepositoryClient, *gitprovider.Repository, error) {
-	repo, err := c.repos.Get(ctx, r)
-	if err != nil {
-		return nil, nil, err
-	}
-	return newRepositoryClient(c.clientContext, repo), repo, nil
+// OrgRepositories returns the OrgRepositoriesClient handling sets of repositories in an organization.
+func (c *Client) OrgRepositories() gitprovider.OrgRepositoriesClient {
+	return c.orgRepos
 }
 
-// Repositories returns the RepositoriesClient handling sets of organizations.
-func (c *Client) Repositories() gitprovider.RepositoriesClient {
-	return c.repos
+// UserRepositories returns the UserRepositoriesClient handling sets of repositories for a user.
+func (c *Client) UserRepositories() gitprovider.UserRepositoriesClient {
+	return c.userRepos
 }

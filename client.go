@@ -18,26 +18,26 @@ package gitprovider
 
 import "context"
 
-// Client is an interface that allows talking to a Git provider
+// Client is an interface that allows talking to a Git provider.
 type Client interface {
-	// The Client allows accessing all known resources
+	// The Client allows accessing all known resources.
 	ResourceClient
 
 	// SupportedDomain returns the domain endpoint for this client, e.g. "github.com", "gitlab.com" or
 	// "my-custom-git-server.com:6443". This allows a higher-level user to know what Client to use for
 	// what endpoints.
-	// This field is set at client creation time, and can't be changed
+	// This field is set at client creation time, and can't be changed.
 	SupportedDomain() string
 
-	// ProviderID returns the provider ID (e.g. "github", "gitlab") for this client
-	// This field is set at client creation time, and can't be changed
+	// ProviderID returns the provider ID (e.g. "github", "gitlab") for this client.
+	// This field is set at client creation time, and can't be changed.
 	ProviderID() ProviderID
 
-	// Raw returns the Go client used under the hood for accessing the Git provider
+	// Raw returns the Go client used under the hood to access the Git provider.
 	Raw() interface{}
 }
 
-// ResourceClient allows access to resource-specific clients
+// ResourceClient allows access to resource-specific sub-clients.
 type ResourceClient interface {
 	// Organizations returns the OrganizationsClient handling sets of organizations.
 	Organizations() OrganizationsClient
@@ -45,9 +45,13 @@ type ResourceClient interface {
 	// OrgRepositories returns the OrgRepositoriesClient handling sets of repositories in an organization.
 	OrgRepositories() OrgRepositoriesClient
 
-	// UserRepositories returns the UserRepositoriesClient handling sets of repositories for a user..
+	// UserRepositories returns the UserRepositoriesClient handling sets of repositories for a user.
 	UserRepositories() UserRepositoriesClient
 }
+
+//
+//	Clients accessed through the top-level client, returning resource objects.
+//
 
 // OrganizationsClient operates on organizations the user has access to.
 type OrganizationsClient interface {
@@ -69,24 +73,6 @@ type OrganizationsClient interface {
 	//
 	// Children returns all available organizations, using multiple paginated requests if needed.
 	Children(ctx context.Context, o OrganizationRef) ([]Organization, error)
-
-	// Possibly add Create/Update/Delete methods later
-}
-
-// TeamsClient handles teams organization-wide
-type TeamsClient interface {
-	// Get a team within the specific organization.
-	//
-	// teamName may include slashes, but might not be an empty string.
-	// Teams are sub-groups in GitLab.
-	//
-	// ErrNotFound is returned if the resource does not exist.
-	Get(ctx context.Context, teamName string) (Team, error)
-
-	// List all teams (recursively, in terms of subgroups) within the specific organization
-	//
-	// List returns all available organizations, using multiple paginated requests if needed.
-	List(ctx context.Context) ([]Team, error)
 
 	// Possibly add Create/Update/Delete methods later
 }
@@ -141,12 +127,36 @@ type UserRepositoriesClient interface {
 	Reconcile(ctx context.Context, r UserRepositoryRef, req RepositoryInfo, opts ...RepositoryReconcileOption) (resp UserRepository, actionTaken bool, err error)
 }
 
-// TeamAccessClient operates on the teams list for a specific repository
+//
+//	Clients accessed through resource objects.
+//
+
+// TeamsClient allows reading teams for a specific organization.
+// This client can be accessed through Organization.Teams().
+type TeamsClient interface {
+	// Get a team within the specific organization.
+	//
+	// name may include slashes, but must not be an empty string.
+	// Teams are sub-groups in GitLab.
+	//
+	// ErrNotFound is returned if the resource does not exist.
+	Get(ctx context.Context, name string) (Team, error)
+
+	// List all teams (recursively, in terms of subgroups) within the specific organization.
+	//
+	// List returns all available organizations, using multiple paginated requests if needed.
+	List(ctx context.Context) ([]Team, error)
+
+	// Possibly add Create/Update/Delete methods later
+}
+
+// TeamAccessClient operates on the teams list for a specific repository.
+// This client can be accessed through Repository.TeamAccess().
 type TeamAccessClient interface {
 	// Get gets a TeamAccess by its name.
 	//
 	// ErrNotFound is returned if the resource does not exist.
-	Get(ctx context.Context, teamName string) (TeamAccess, error)
+	Get(ctx context.Context, name string) (TeamAccess, error)
 
 	// List lists the team access control list for this repository.
 	//
@@ -166,7 +176,8 @@ type TeamAccessClient interface {
 	Reconcile(ctx context.Context, req TeamAccessInfo) (resp TeamAccess, actionTaken bool, err error)
 }
 
-// DeployKeyClient operates on the access credential list for a specific repository
+// DeployKeyClient operates on the access credential list for a specific repository.
+// This client can be accessed through Repository.DeployKeys().
 type DeployKeyClient interface {
 	// Get gets a DeployKey by its name.
 	//

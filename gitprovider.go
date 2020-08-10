@@ -38,6 +38,9 @@ type CreatableInfo interface {
 type GenericUpdatable interface {
 	// Update will apply the desired state in this object to the server.
 	// Only set fields will be respected (i.e. PATCH behaviour).
+	// In order to apply changes to this object, use the .Set({Resource}Info) error
+	// function, or cast .APIObject() to a pointer to the provider-specific type
+	// and set custom fields there.
 	//
 	// ErrNotFound is returned if the resource does not exist.
 	//
@@ -57,7 +60,8 @@ type GenericDeletable interface {
 // GenericReconcilable is an interface which all objects that can be reconciled
 // using the Client implement.
 type GenericReconcilable interface {
-	// Reconcile makes sure req is the actual state (of this object) in the backing Git provider.
+	// Reconcile makes sure the desired state in this object (called "req" here) becomes
+	// the actual state in the backing Git provider.
 	//
 	// If req doesn't exist under the hood, it is created (actionTaken == true).
 	// If req doesn't equal the actual state, the resource will be updated (actionTaken == true).

@@ -52,65 +52,83 @@ type UserRepository interface {
 	// UserRepository and OrgRepository implement the Object interface,
 	// allowing access to the underlying object returned from the API.
 	Object
+	// The repository can be updated.
 	GenericUpdatable
+	// The repository can be deleted.
 	GenericDeletable
 	// RepositoryBound returns repository reference details.
 	RepositoryBound
 
-	// Reconcile makes sure req (== this object) is the actual state in the backing Git provider.
+	// Reconcile makes sure the desired state in this object (called "req" here) becomes
+	// the actual state in the backing Git provider.
 	//
 	// If req doesn't exist under the hood, it is created (actionTaken == true).
 	// If req doesn't equal the actual state, the resource will be updated (actionTaken == true).
 	// If req is already the actual state, this is a no-op (actionTaken == false).
 	//
 	// The internal API object will be overridden with the received server data if actionTaken == true.
+	//
+	// As this reconcile also allows custom options, GenericReconcilable isn't used. However, the function
+	// is exactly the same as if GenericReconcilable would be embedded.
 	Reconcile(ctx context.Context, opts ...RepositoryReconcileOption) (actionTaken bool, err error)
 
 	// Get returns high-level information about this repository.
 	Get() RepositoryInfo
 	// Set sets high-level desired state for this repository. In order to apply these changes in
-	// the Git provider, use
-	Set(i RepositoryInfo, applyToServer bool) error
+	// the Git provider, run .Update() or .Reconcile().
+	Set(RepositoryInfo) error
 
-	// DeployKeys gives access to manipulating deploy keys for accessing this specific repository
+	// DeployKeys gives access to manipulating deploy keys to access this specific repository.
 	DeployKeys() DeployKeyClient
 }
 
 // OrgRepository describes a respository owned by an organization.
 type OrgRepository interface {
+	// OrgRepository is a superset of UserRepository.
 	UserRepository
 
-	// TeamAccess returns a client for operating on the teams that have access to this specific repository
+	// TeamAccess returns a client for operating on the teams that have access to this specific repository.
 	TeamAccess() TeamAccessClient
 }
 
-// DeployKey represents a short-lived credential (e.g. an SSH public key) used for accessing a repository
+// DeployKey represents a short-lived credential (e.g. an SSH public key) used to access a repository.
 type DeployKey interface {
 	// DeployKey implements the Object interface,
 	// allowing access to the underlying object returned from the API.
 	Object
+	// The deploy key can be updated.
+	GenericUpdatable
+	// The deploy key can be reconciled.
 	GenericReconcilable
+	// The deploy key can be deleted.
 	GenericDeletable
 	// RepositoryBound returns repository reference details.
 	RepositoryBound
 
 	// Get returns high-level information about this deploy key.
 	Get() DeployKeyInfo
+	// Set sets high-level desired state for this deploy key. In order to apply these changes in
+	// the Git provider, run .Update() or .Reconcile().
 	Set(DeployKeyInfo) error
 }
 
-// TeamAccess describes a binding between a repository and a team
+// TeamAccess describes a binding between a repository and a team.
 type TeamAccess interface {
 	// TeamAccess implements the Object interface,
 	// allowing access to the underlying object returned from the API.
 	Object
+	// The deploy key can be updated.
 	GenericUpdatable
+	// The deploy key can be reconciled.
 	GenericReconcilable
+	// The deploy key can be deleted.
 	GenericDeletable
 	// RepositoryBound returns repository reference details.
 	RepositoryBound
 
 	// Get returns high-level information about this team access for the repository.
 	Get() TeamAccessInfo
+	// Set sets high-level desired state for this team access object. In order to apply these changes in
+	// the Git provider, run .Update() or .Reconcile().
 	Set(TeamAccessInfo) error
 }

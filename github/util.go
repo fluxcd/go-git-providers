@@ -95,7 +95,7 @@ func validateIdentityFields(ref gitprovider.IdentityRef, expectedDomain string) 
 	case gitprovider.IdentityTypeOrganization, gitprovider.IdentityTypeUser:
 		return nil
 	case gitprovider.IdentityTypeSuborganization:
-		return gitprovider.ErrProviderNoSupport
+		return gitprovider.ErrNoProviderSupport
 	}
 	return gitprovider.ErrInvalidArgument
 }

@@ -31,7 +31,7 @@ var _ gitprovider.DeployKeyClient = &DeployKeyClient{}
 // DeployKeyClient operates on the access deploy key list for a specific repository
 type DeployKeyClient struct {
 	*clientContext
-	info gitprovider.RepositoryInfo
+	ref gitprovider.RepositoryRef
 }
 
 // Get returns the repository at the given path.
@@ -62,7 +62,7 @@ func (c *DeployKeyClient) List(ctx context.Context) ([]gitprovider.DeployKey, er
 	opts := &github.ListOptions{}
 	err := allPages(opts, func() (*github.Response, error) {
 		// GET /repos/{owner}/{repo}/keys
-		pageObjs, resp, listErr := c.c.Repositories.ListKeys(ctx, c.info.GetIdentity(), c.info.GetRepository(), opts)
+		pageObjs, resp, listErr := c.c.Repositories.ListKeys(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), opts)
 		apiObjs = append(apiObjs, pageObjs...)
 		return resp, listErr
 	})
@@ -99,13 +99,13 @@ func (c *DeployKeyClient) wrap(key *github.Key) *deployKey {
 
 func (c *DeployKeyClient) create(ctx context.Context, req gitprovider.DeployKeyInfo) (*github.Key, error) {
 	// Validate the create request and default
-	if err := req.ValidateCreate(); err != nil {
+	if err := req.ValidateInfo(); err != nil {
 		return nil, err
 	}
 	req.Default()
 
 	// POST /repos/{owner}/{repo}/keys
-	apiObj, _, err := c.c.Repositories.CreateKey(ctx, c.info.GetIdentity(), c.info.GetRepository(), &github.Key{
+	apiObj, _, err := c.c.Repositories.CreateKey(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), &github.Key{
 		Title:    gitprovider.StringVar(req.Name),
 		Key:      gitprovider.StringVar(string(req.Key)),
 		ReadOnly: req.ReadOnly,
@@ -137,7 +137,7 @@ func (dk *deployKey) APIObject() interface{} {
 }
 
 func (dk *deployKey) Repository() gitprovider.RepositoryRef {
-	return dk.c.info
+	return dk.c.ref
 }
 
 // Delete deletes a deploy key from the repository.
@@ -147,7 +147,7 @@ func (dk *deployKey) Delete(ctx context.Context) error {
 	// We can use the same DeployKey ID that we got from the GET calls
 
 	// DELETE /repos/{owner}/{repo}/keys/{key_id}
-	_, err := dk.c.c.Repositories.DeleteKey(ctx, dk.c.info.GetIdentity(), dk.c.info.GetRepository(), *dk.k.ID)
+	_, err := dk.c.c.Repositories.DeleteKey(ctx, dk.c.ref.GetIdentity(), dk.c.ref.GetRepository(), *dk.k.ID)
 	if err != nil {
 		return handleHTTPError(err)
 	}

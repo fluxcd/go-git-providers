@@ -26,23 +26,23 @@ import (
 	"github.com/google/go-github/v32/github"
 )
 
-// RepositoryTeamAccessClient implements the gitprovider.RepositoryTeamAccessClient interface
-var _ gitprovider.RepositoryTeamAccessClient = &RepositoryTeamAccessClient{}
+// TeamAccessClient implements the gitprovider.TeamAccessClient interface
+var _ gitprovider.TeamAccessClient = &TeamAccessClient{}
 
-// RepositoryTeamAccessClient operates on the teams list for a specific repository
-type RepositoryTeamAccessClient struct {
+// TeamAccessClient operates on the teams list for a specific repository
+type TeamAccessClient struct {
 	*clientContext
-	info gitprovider.RepositoryInfo
+	ref gitprovider.RepositoryRef
 }
 
-func (c *RepositoryTeamAccessClient) Get(ctx context.Context, teamName string) (gitprovider.TeamAccess, error) {
+func (c *TeamAccessClient) Get(ctx context.Context, teamName string) (gitprovider.TeamAccess, error) {
 	// Disallow operating teams on an user account
 	if err := c.disallowUserAccount(); err != nil {
 		return nil, err
 	}
 
 	// GET /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}
-	teamInfo, _, err := c.c.Teams.IsTeamRepoBySlug(ctx, c.info.GetIdentity(), teamName, c.info.GetIdentity(), c.info.GetRepository())
+	teamInfo, _, err := c.c.Teams.IsTeamRepoBySlug(ctx, c.ref.GetIdentity(), teamName, c.ref.GetIdentity(), c.ref.GetRepository())
 	if err != nil {
 		return nil, handleHTTPError(err)
 	}
@@ -61,7 +61,7 @@ func (c *RepositoryTeamAccessClient) Get(ctx context.Context, teamName string) (
 // List lists the team access control list for this repository.
 //
 // List returns all available team access lists, using multiple paginated requests if needed.
-func (c *RepositoryTeamAccessClient) List(ctx context.Context) ([]gitprovider.TeamAccess, error) {
+func (c *TeamAccessClient) List(ctx context.Context) ([]gitprovider.TeamAccess, error) {
 	// Disallow operating teams on an user account
 	if err := c.disallowUserAccount(); err != nil {
 		return nil, err
@@ -72,7 +72,7 @@ func (c *RepositoryTeamAccessClient) List(ctx context.Context) ([]gitprovider.Te
 	opts := &github.ListOptions{}
 	err := allPages(opts, func() (*github.Response, error) {
 		// GET /repos/{owner}/{repo}/teams
-		pageObjs, resp, listErr := c.c.Repositories.ListTeams(ctx, c.info.GetIdentity(), c.info.GetRepository(), opts)
+		pageObjs, resp, listErr := c.c.Repositories.ListTeams(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), opts)
 		apiObjs = append(apiObjs, pageObjs...)
 		return resp, listErr
 	})
@@ -101,13 +101,13 @@ func (c *RepositoryTeamAccessClient) List(ctx context.Context) ([]gitprovider.Te
 // Create adds a given team to the repo's team access control list.
 //
 // ErrAlreadyExists will be returned if the resource already exists.
-func (c *RepositoryTeamAccessClient) Create(ctx context.Context, req gitprovider.TeamAccessInfo) (gitprovider.TeamAccess, error) {
+func (c *TeamAccessClient) Create(ctx context.Context, req gitprovider.TeamAccessInfo) (gitprovider.TeamAccess, error) {
 	// Disallow operating teams on an user account
 	if err := c.disallowUserAccount(); err != nil {
 		return nil, err
 	}
 	// Validate the request and default
-	if err := req.ValidateCreate(); err != nil {
+	if err := req.ValidateInfo(); err != nil {
 		return nil, err
 	}
 	req.Default()
@@ -116,7 +116,7 @@ func (c *RepositoryTeamAccessClient) Create(ctx context.Context, req gitprovider
 		Permission: string(*req.Permission),
 	}
 	// PUT /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}
-	_, err := c.c.Teams.AddTeamRepoBySlug(ctx, c.info.GetIdentity(), req.Name, c.info.GetIdentity(), c.info.GetRepository(), opts)
+	_, err := c.c.Teams.AddTeamRepoBySlug(ctx, c.ref.GetIdentity(), req.Name, c.ref.GetIdentity(), c.ref.GetRepository(), opts)
 	if err != nil {
 		return nil, handleHTTPError(err)
 	}
@@ -124,7 +124,7 @@ func (c *RepositoryTeamAccessClient) Create(ctx context.Context, req gitprovider
 	return c.wrap(req), nil
 }
 
-func (c *RepositoryTeamAccessClient) wrap(ta gitprovider.TeamAccessInfo) *teamAccess {
+func (c *TeamAccessClient) wrap(ta gitprovider.TeamAccessInfo) *teamAccess {
 	return &teamAccess{
 		ta: ta,
 		c:  c,
@@ -135,7 +135,7 @@ var _ gitprovider.TeamAccess = &teamAccess{}
 
 type teamAccess struct {
 	ta gitprovider.TeamAccessInfo
-	c  *RepositoryTeamAccessClient
+	c  *TeamAccessClient
 }
 
 func (ta *teamAccess) Get() gitprovider.TeamAccessInfo {
@@ -152,7 +152,7 @@ func (ta *teamAccess) APIObject() interface{} {
 }
 
 func (ta *teamAccess) Repository() gitprovider.RepositoryRef {
-	return ta.c.info
+	return ta.c.ref
 }
 
 // Delete removes the given team from the repo's team access control list.
@@ -165,7 +165,7 @@ func (ta *teamAccess) Delete(ctx context.Context) error {
 	}*/
 
 	// DELETE /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}
-	_, err := ta.c.c.Teams.RemoveTeamRepoBySlug(ctx, ta.c.info.GetIdentity(), ta.ta.Name, ta.c.info.GetIdentity(), ta.c.info.GetRepository())
+	_, err := ta.c.c.Teams.RemoveTeamRepoBySlug(ctx, ta.c.ref.GetIdentity(), ta.ta.Name, ta.c.ref.GetIdentity(), ta.c.ref.GetRepository())
 	if err != nil {
 		return handleHTTPError(err)
 	}
@@ -213,16 +213,16 @@ func (ta *teamAccess) Reconcile(ctx context.Context) (bool, error) {
 func (ta *teamAccess) ValidateDelete() error { return nil } // TODO consider removing this from the interface
 func (ta *teamAccess) ValidateUpdate() error { return nil } // TODO what to do here, should we call in .Update()?
 
-func (c *RepositoryTeamAccessClient) disallowUserAccount() error {
-	switch c.info.GetType() {
+func (c *TeamAccessClient) disallowUserAccount() error {
+	switch c.ref.GetType() {
 	case gitprovider.IdentityTypeOrganization:
 		return nil
 	case gitprovider.IdentityTypeSuborganization:
-		return fmt.Errorf("suborganizations aren't supported by GitHub: %w", gitprovider.ErrProviderNoSupport)
+		return fmt.Errorf("suborganizations aren't supported by GitHub: %w", gitprovider.ErrNoProviderSupport)
 	case gitprovider.IdentityTypeUser:
 		return fmt.Errorf("cannot manage teams for a personal repository: %w", gitprovider.ErrInvalidArgument)
 	default:
-		return fmt.Errorf("unrecognized reporef type %q: %w", c.info.GetType(), gitprovider.ErrInvalidArgument)
+		return fmt.Errorf("unrecognized reporef type %q: %w", c.ref.GetType(), gitprovider.ErrInvalidArgument)
 	}
 }
 

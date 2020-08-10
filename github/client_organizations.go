@@ -18,6 +18,7 @@ package github
 
 import (
 	"context"
+	"fmt"
 
 	gitprovider "github.com/fluxcd/go-git-providers"
 	"github.com/google/go-github/v32/github"
@@ -34,19 +35,19 @@ type OrganizationsClient struct {
 // This can't refer to a sub-organization in Github, as those aren't supported.
 //
 // ErrNotFound is returned if the resource does not exist.
-func (c *OrganizationsClient) Get(ctx context.Context, o gitprovider.OrganizationRef) (*gitprovider.Organization, error) {
+func (c *OrganizationsClient) Get(ctx context.Context, ref gitprovider.OrganizationRef) (gitprovider.Organization, error) {
 	// Make sure the OrganizationRef is valid
-	if err := validateOrganizationRef(o, c.domain); err != nil {
+	if err := validateOrganizationRef(ref, c.domain); err != nil {
 		return nil, err
 	}
 
 	// GET /orgs/{org}
-	apiObj, _, err := c.c.Organizations.Get(ctx, o.GetOrganization())
+	apiObj, _, err := c.c.Organizations.Get(ctx, ref.Organization)
 	if err != nil {
 		return nil, handleHTTPError(err)
 	}
 
-	return organizationFromAPI(apiObj, o.GetDomain()), nil
+	return newOrganization(c.clientContext, apiObj, ref), nil
 }
 
 // List all top-level organizations the specific user has access to.
@@ -67,7 +68,14 @@ func (c *OrganizationsClient) List(ctx context.Context) ([]gitprovider.Organizat
 
 	orgs := make([]gitprovider.Organization, 0, len(apiObjs))
 	for _, apiObj := range apiObjs {
-		orgs = append(orgs, *organizationFromAPI(apiObj, c.domain))
+		// Make sure name isn't nil
+		if apiObj.Name == nil {
+			return nil, fmt.Errorf("didn't expect name to be nil for org: %+v: %w", apiObj, gitprovider.ErrInvalidServerData)
+		}
+		orgs = append(orgs, newOrganization(c.clientContext, apiObj, gitprovider.OrganizationRef{
+			Domain:       c.domain,
+			Organization: *apiObj.Name,
+		}))
 	}
 
 	return orgs, nil
@@ -80,5 +88,5 @@ func (c *OrganizationsClient) List(ctx context.Context) ([]gitprovider.Organizat
 //
 // Children returns all available organizations, using multiple paginated requests if needed.
 func (c *OrganizationsClient) Children(_ context.Context, _ gitprovider.OrganizationRef) ([]gitprovider.Organization, error) {
-	return nil, gitprovider.ErrProviderNoSupport
+	return nil, gitprovider.ErrNoProviderSupport
 }

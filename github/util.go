@@ -111,18 +111,6 @@ func resolveOrg(ref gitprovider.IdentityRef) string {
 	return ""
 }
 
-func organizationFromAPI(apiObj *github.Organization, domain string) *gitprovider.Organization {
-	return &gitprovider.Organization{
-		OrganizationInfo: gitprovider.OrganizationInfo{
-			Domain:       domain,
-			Organization: *apiObj.Login,
-		},
-		InternalHolder: gitprovider.WithInternal(apiObj),
-		Name:           apiObj.Name,
-		Description:    apiObj.Description,
-	}
-}
-
 // handleHTTPError checks the type of err, and returns typed variants of it
 // However, it _always_ keeps the original error too, and just wraps it in a MultiError
 // The consumer must use errors.Is and errors.As to check for equality and get data out of it

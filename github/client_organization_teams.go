@@ -18,18 +18,19 @@ package github
 
 import (
 	"context"
+	"fmt"
 
 	gitprovider "github.com/fluxcd/go-git-providers"
 	"github.com/google/go-github/v32/github"
 )
 
-// OrganizationTeamsClient implements the gitprovider.OrganizationTeamsClient interface
-var _ gitprovider.OrganizationTeamsClient = &OrganizationTeamsClient{}
+// TeamsClient implements the gitprovider.TeamsClient interface
+var _ gitprovider.TeamsClient = &TeamsClient{}
 
-// OrganizationTeamsClient handles teams organization-wide
-type OrganizationTeamsClient struct {
+// TeamsClient handles teams organization-wide
+type TeamsClient struct {
 	*clientContext
-	org *gitprovider.Organization
+	ref gitprovider.OrganizationRef
 }
 
 // Get a team within the specific organization.
@@ -38,17 +39,12 @@ type OrganizationTeamsClient struct {
 // teamName must not be an empty string.
 //
 // ErrNotFound is returned if the resource does not exist.
-func (c *OrganizationTeamsClient) Get(ctx context.Context, teamName string) (gitprovider.Team, error) {
-	// Do a shallow copy of the OrganizationInfo referenced in this client
-	// This will allow us to return a pointer to this shallow copy and not the internal
-	// one we're using.
-	orgInfo := c.org.OrganizationInfo
-
+func (c *TeamsClient) Get(ctx context.Context, teamName string) (gitprovider.Team, error) {
 	apiObjs := []*github.User{}
 	opts := &github.TeamListTeamMembersOptions{}
 	err := allPages(&opts.ListOptions, func() (*github.Response, error) {
 		// GET /orgs/{org}/teams/{team_slug}/members
-		pageObjs, resp, listErr := c.c.Teams.ListTeamMembersBySlug(ctx, orgInfo.GetOrganization(), teamName, opts)
+		pageObjs, resp, listErr := c.c.Teams.ListTeamMembersBySlug(ctx, c.ref.Organization, teamName, opts)
 		apiObjs = append(apiObjs, pageObjs...)
 		return resp, listErr
 	})
@@ -63,25 +59,25 @@ func (c *OrganizationTeamsClient) Get(ctx context.Context, teamName string) (git
 	}
 
 	return &team{
-		c: c,
+		users: apiObjs,
 		info: gitprovider.TeamInfo{
 			Name:    teamName,
 			Members: logins,
 		},
-		users: apiObjs,
+		ref: c.ref,
 	}, nil
 }
 
 // List all teams (recursively, in terms of subgroups) within the specific organization
 //
 // List returns all available organizations, using multiple paginated requests if needed.
-func (c *OrganizationTeamsClient) List(ctx context.Context) ([]gitprovider.Team, error) {
+func (c *TeamsClient) List(ctx context.Context) ([]gitprovider.Team, error) {
 	// List all teams, using pagination. This does not contain information about the members
 	apiObjs := []*github.Team{}
 	opts := &github.ListOptions{}
 	err := allPages(opts, func() (*github.Response, error) {
 		// GET /orgs/{org}/teams
-		pageObjs, resp, listErr := c.c.Teams.ListTeams(ctx, c.org.GetOrganization(), opts)
+		pageObjs, resp, listErr := c.c.Teams.ListTeams(ctx, c.ref.Organization, opts)
 		apiObjs = append(apiObjs, pageObjs...)
 		return resp, listErr
 	})
@@ -92,9 +88,11 @@ func (c *OrganizationTeamsClient) List(ctx context.Context) ([]gitprovider.Team,
 	// Use .Get() to get detailed information about each member
 	teams := make([]gitprovider.Team, 0, len(apiObjs))
 	for _, apiObj := range apiObjs {
+		// Make sure name isn't nil
 		if apiObj.Slug == nil {
-			continue
+			return nil, fmt.Errorf("didn't expect slug to be nil for team: %+v: %w", apiObj, gitprovider.ErrInvalidServerData)
 		}
+
 		// Get information about individual teams
 		team, err := c.Get(ctx, *apiObj.Slug)
 		if err != nil {
@@ -111,7 +109,7 @@ var _ gitprovider.Team = &team{}
 type team struct {
 	users []*github.User
 	info  gitprovider.TeamInfo
-	c     *OrganizationTeamsClient
+	ref   gitprovider.OrganizationRef
 }
 
 func (t *team) Get() gitprovider.TeamInfo {
@@ -123,5 +121,5 @@ func (t *team) APIObject() interface{} {
 }
 
 func (t *team) Organization() gitprovider.OrganizationRef {
-	return t.c.org
+	return t.ref
 }

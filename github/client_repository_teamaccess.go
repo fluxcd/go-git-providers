@@ -36,37 +36,24 @@ type TeamAccessClient struct {
 }
 
 func (c *TeamAccessClient) Get(ctx context.Context, teamName string) (gitprovider.TeamAccess, error) {
-	// Disallow operating teams on an user account
-	if err := c.disallowUserAccount(); err != nil {
-		return nil, err
-	}
-
 	// GET /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}
-	teamInfo, _, err := c.c.Teams.IsTeamRepoBySlug(ctx, c.ref.GetIdentity(), teamName, c.ref.GetIdentity(), c.ref.GetRepository())
+	apiObj, _, err := c.c.Teams.IsTeamRepoBySlug(ctx, c.ref.GetIdentity(), teamName, c.ref.GetIdentity(), c.ref.GetRepository())
 	if err != nil {
 		return nil, handleHTTPError(err)
 	}
 
-	ta := gitprovider.TeamAccessInfo{
-		Name: teamName,
+	// Make sure name isn't nil
+	if apiObj.Permissions == nil {
+		return nil, fmt.Errorf("didn't expect permissions to be nil for team access object: %+v: %w", apiObj, gitprovider.ErrInvalidServerData)
 	}
 
-	if teamInfo.Permissions != nil {
-		ta.Permission = getPermissionFromMap(*teamInfo.Permissions)
-	} // TODO: Handle teamInfo.Permissions == nil?
-
-	return c.wrap(ta), nil
+	return newTeamAccess(c, teamAccessFromAPI(apiObj, teamName)), nil
 }
 
 // List lists the team access control list for this repository.
 //
 // List returns all available team access lists, using multiple paginated requests if needed.
 func (c *TeamAccessClient) List(ctx context.Context) ([]gitprovider.TeamAccess, error) {
-	// Disallow operating teams on an user account
-	if err := c.disallowUserAccount(); err != nil {
-		return nil, err
-	}
-
 	// List all teams, using pagination. This does not contain information about the members
 	apiObjs := []*github.Team{}
 	opts := &github.ListOptions{}
@@ -82,9 +69,9 @@ func (c *TeamAccessClient) List(ctx context.Context) ([]gitprovider.TeamAccess, 
 
 	teamAccess := make([]gitprovider.TeamAccess, 0, len(apiObjs))
 	for _, apiObj := range apiObjs {
-		// TODO: Handle this better
+		// Make sure name isn't nil
 		if apiObj.Slug == nil {
-			continue
+			return nil, fmt.Errorf("didn't expect slug to be nil for team access: %+v: %w", apiObj, gitprovider.ErrInvalidServerData)
 		}
 
 		// Get more detailed info about the team
@@ -102,10 +89,6 @@ func (c *TeamAccessClient) List(ctx context.Context) ([]gitprovider.TeamAccess, 
 //
 // ErrAlreadyExists will be returned if the resource already exists.
 func (c *TeamAccessClient) Create(ctx context.Context, req gitprovider.TeamAccessInfo) (gitprovider.TeamAccess, error) {
-	// Disallow operating teams on an user account
-	if err := c.disallowUserAccount(); err != nil {
-		return nil, err
-	}
 	// Validate the request and default
 	if err := req.ValidateInfo(); err != nil {
 		return nil, err
@@ -121,65 +104,7 @@ func (c *TeamAccessClient) Create(ctx context.Context, req gitprovider.TeamAcces
 		return nil, handleHTTPError(err)
 	}
 
-	return c.wrap(req), nil
-}
-
-func (c *TeamAccessClient) wrap(ta gitprovider.TeamAccessInfo) *teamAccess {
-	return &teamAccess{
-		ta: ta,
-		c:  c,
-	}
-}
-
-var _ gitprovider.TeamAccess = &teamAccess{}
-
-type teamAccess struct {
-	ta gitprovider.TeamAccessInfo
-	c  *TeamAccessClient
-}
-
-func (ta *teamAccess) Get() gitprovider.TeamAccessInfo {
-	return ta.ta
-}
-
-func (ta *teamAccess) Set(info gitprovider.TeamAccessInfo) error {
-	ta.ta = info
-	return nil
-}
-
-func (ta *teamAccess) APIObject() interface{} {
-	return nil
-}
-
-func (ta *teamAccess) Repository() gitprovider.RepositoryRef {
-	return ta.c.ref
-}
-
-// Delete removes the given team from the repo's team access control list.
-//
-// ErrNotFound is returned if the resource does not exist.
-func (ta *teamAccess) Delete(ctx context.Context) error {
-	/*// Validate the request
-	if err := req.ValidateDelete(); err != nil {
-		return err
-	}*/
-
-	// DELETE /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}
-	_, err := ta.c.c.Teams.RemoveTeamRepoBySlug(ctx, ta.c.ref.GetIdentity(), ta.ta.Name, ta.c.ref.GetIdentity(), ta.c.ref.GetRepository())
-	if err != nil {
-		return handleHTTPError(err)
-	}
-
-	return nil
-}
-
-func (ta *teamAccess) Update(ctx context.Context) error {
-	req := ta.Get()
-	// Update the actual state to be the desired state
-	// by issuing a Create, which uses a PUT underneath.
-	resp, err := ta.c.Create(ctx, req)
-	ta.Set(resp.Get())
-	return err
+	return newTeamAccess(c, req), nil
 }
 
 // Reconcile makes sure req is the actual state in the backing Git provider.
@@ -187,64 +112,32 @@ func (ta *teamAccess) Update(ctx context.Context) error {
 // If req doesn't exist under the hood, it is created (actionTaken == true).
 // If req doesn't equal the actual state, the resource will be deleted and recreated (actionTaken == true).
 // If req is already the actual state, this is a no-op (actionTaken == false).
-func (ta *teamAccess) Reconcile(ctx context.Context) (bool, error) {
-	req := ta.Get()
-	actual, err := ta.c.Get(ctx, req.Name)
+func (c *TeamAccessClient) Reconcile(ctx context.Context, req gitprovider.TeamAccessInfo) (gitprovider.TeamAccess, bool, error) {
+	// First thing, validate the request
+	if err := req.ValidateInfo(); err != nil {
+		return nil, false, err
+	}
+
+	actual, err := c.Get(ctx, req.Name)
 	if err != nil {
 		// Create if not found
 		if errors.Is(err, gitprovider.ErrNotFound) {
-			resp, err := ta.c.Create(ctx, req)
-			ta.Set(resp.Get())
-			return true, err
+			resp, err := c.Create(ctx, req)
+			return resp, true, err
 		}
 
 		// Unexpected path, Get should succeed or return NotFound
-		return false, err
+		return nil, false, err
 	}
 
 	// If the desired matches the actual state, just return the actual state
 	if reflect.DeepEqual(req, actual.Get()) {
-		return false, nil
+		return actual, false, nil
 	}
 
-	return true, ta.Update(ctx)
-}
-
-func (ta *teamAccess) ValidateDelete() error { return nil } // TODO consider removing this from the interface
-func (ta *teamAccess) ValidateUpdate() error { return nil } // TODO what to do here, should we call in .Update()?
-
-func (c *TeamAccessClient) disallowUserAccount() error {
-	switch c.ref.GetType() {
-	case gitprovider.IdentityTypeOrganization:
-		return nil
-	case gitprovider.IdentityTypeSuborganization:
-		return fmt.Errorf("suborganizations aren't supported by GitHub: %w", gitprovider.ErrNoProviderSupport)
-	case gitprovider.IdentityTypeUser:
-		return fmt.Errorf("cannot manage teams for a personal repository: %w", gitprovider.ErrInvalidArgument)
-	default:
-		return fmt.Errorf("unrecognized reporef type %q: %w", c.ref.GetType(), gitprovider.ErrInvalidArgument)
+	// Populate the desired state to the current-actual object
+	if err := actual.Set(req); err != nil {
+		return actual, false, err
 	}
-}
-
-var permissionPriority = map[gitprovider.RepositoryPermission]int{
-	gitprovider.RepositoryPermissionPull:     1,
-	gitprovider.RepositoryPermissionTriage:   2,
-	gitprovider.RepositoryPermissionPush:     3,
-	gitprovider.RepositoryPermissionMaintain: 4,
-	gitprovider.RepositoryPermissionAdmin:    5,
-}
-
-func getPermissionFromMap(permissionMap map[string]bool) (permission *gitprovider.RepositoryPermission) {
-	lastPriority := 0
-	for key, ok := range permissionMap {
-		if ok {
-			p := gitprovider.RepositoryPermission(key)
-			priority, ok := permissionPriority[p]
-			if ok && priority > lastPriority {
-				permission = &p
-				lastPriority = priority
-			}
-		}
-	}
-	return
+	return actual, true, actual.Update(ctx)
 }

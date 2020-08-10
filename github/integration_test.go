@@ -91,45 +91,45 @@ var _ = Describe("Github Provider", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		// Make sure we find the expected one given as testOrgName
-		var listedOrg *gitprovider.Organization
+		var listedOrg gitprovider.Organization
 		for _, org := range orgs {
-			if org.GetOrganization() == testOrgName {
-				listedOrg = &org
+			if org.Organization().Organization == testOrgName {
+				listedOrg = org
 				break
 			}
 		}
 		Expect(listedOrg).ToNot(BeNil())
 
 		// Do a GET call for that organization
-		_, getOrg, err := c.Organization(ctx, listedOrg)
+		getOrg, err := c.Organizations().Get(ctx, listedOrg.Organization())
 		Expect(err).ToNot(HaveOccurred())
 		// Expect that the organization's info is the same regardless of method
-		Expect(gitprovider.Equals(getOrg.OrganizationInfo, listedOrg.OrganizationInfo)).To(BeTrue())
+		Expect(getOrg.Organization()).To(Equal(listedOrg.Organization()))
 		// We don't expect the name from LIST calls, but we do expect
 		// the description, see: https://docs.github.com/en/rest/reference/orgs#list-organizations
-		Expect(listedOrg.Name).To(BeNil())
-		Expect(listedOrg.Description).ToNot(BeNil())
+		Expect(listedOrg.Get().Name).To(BeNil())
+		Expect(listedOrg.Get().Description).ToNot(BeNil())
 		// We expect the name and description to be populated
 		// in the GET call. Note: This requires the user to set up
 		// the given organization with a name and description in the UI :)
 		// https://docs.github.com/en/rest/reference/orgs#get-an-organization
-		Expect(getOrg.Name).ToNot(BeNil())
-		Expect(getOrg.Description).ToNot(BeNil())
+		Expect(getOrg.Get().Name).ToNot(BeNil())
+		Expect(getOrg.Get().Description).ToNot(BeNil())
 		// Expect Name and Description to match their underlying data
-		internal := getOrg.Internal.(*githubapi.Organization)
-		Expect(getOrg.Name).To(Equal(internal.Name))
-		Expect(getOrg.Description).To(Equal(internal.Description))
+		internal := getOrg.APIObject().(*githubapi.Organization)
+		Expect(getOrg.Get().Name).To(Equal(internal.Name))
+		Expect(getOrg.Get().Description).To(Equal(internal.Description))
 	})
 
 	It("should fail when .Children is called", func() {
 		// Expect .Children to return gitprovider.ErrProviderNoSupport
-		_, err := c.Organizations().Children(ctx, nil)
-		Expect(errors.Is(err, gitprovider.ErrProviderNoSupport)).To(BeTrue())
+		_, err := c.Organizations().Children(ctx, gitprovider.OrganizationRef{})
+		Expect(errors.Is(err, gitprovider.ErrNoProviderSupport)).To(BeTrue())
 	})
 
 	It("should be possible to create a repository", func() {
 		// First, check what repositories are available
-		repos, err := c.Repositories().List(ctx, newOrgInfo(testOrgName))
+		repos, err := c.OrgRepositories().List(ctx, newOrgRef(testOrgName))
 		Expect(err).ToNot(HaveOccurred())
 
 		// Generate a repository name which doesn't exist already
@@ -140,14 +140,13 @@ var _ = Describe("Github Provider", func() {
 
 		// We know that a repo with this name doesn't exist in the organization, let's verify we get an
 		// ErrNotFound
-		repoInfo := newRepoInfo(testOrgName, testRepoName)
-		_, err = c.Repositories().Get(ctx, repoInfo)
+		repoRef := newOrgRepoRef(testOrgName, testRepoName)
+		_, err = c.OrgRepositories().Get(ctx, repoRef)
 		Expect(errors.Is(err, gitprovider.ErrNotFound)).To(BeTrue())
 
 		// Create a new repo
-		repo, err := c.Repositories().Create(ctx, &gitprovider.Repository{
-			RepositoryInfo: repoInfo,
-			Description:    gitprovider.StringVar(defaultDescription),
+		repo, err := c.OrgRepositories().Create(ctx, repoRef, gitprovider.RepositoryInfo{
+			Description: gitprovider.StringVar(defaultDescription),
 			// Default visibility is private, no need to set this at least now
 			//Visibility:     gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
 		}, &gitprovider.RepositoryCreateOptions{
@@ -155,50 +154,47 @@ var _ = Describe("Github Provider", func() {
 			LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateApache2),
 		})
 		Expect(err).ToNot(HaveOccurred())
-		validateRepo(repo, repoInfo)
+		validateRepo(repo, repoRef)
 
-		getRepo, err := c.Repositories().Get(ctx, repoInfo)
+		getRepo, err := c.OrgRepositories().Get(ctx, repoRef)
 		Expect(err).ToNot(HaveOccurred())
 		// Expect the two responses (one from POST and one from GET to be equal)
-		Expect(gitprovider.Equals(getRepo, repo))
+		Expect(getRepo).To(Equal(repo))
 	})
 
 	It("should error at creation time if the repo already does exist", func() {
-		_, err := c.Repositories().Create(ctx, &gitprovider.Repository{
-			RepositoryInfo: newRepoInfo(testOrgName, testRepoName),
-		})
+		repoRef := newOrgRepoRef(testOrgName, testRepoName)
+		_, err := c.OrgRepositories().Create(ctx, repoRef, gitprovider.RepositoryInfo{})
 		Expect(errors.Is(err, gitprovider.ErrAlreadyExists)).To(BeTrue())
 	})
 
 	It("should update if the repository already exists when reconciling", func() {
+		repoRef := newOrgRepoRef(testOrgName, testRepoName)
 		// No-op reconcile
-		_, actionTaken, err := c.Repositories().Reconcile(ctx, &gitprovider.Repository{
-			RepositoryInfo: newRepoInfo(testOrgName, testRepoName),
-			Description:    gitprovider.StringVar(defaultDescription),
-			DefaultBranch:  gitprovider.StringVar(defaultBranch),
-			Visibility:     gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
+		_, actionTaken, err := c.OrgRepositories().Reconcile(ctx, repoRef, gitprovider.RepositoryInfo{
+			Description:   gitprovider.StringVar(defaultDescription),
+			DefaultBranch: gitprovider.StringVar(defaultBranch),
+			Visibility:    gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
 		})
 		Expect(err).ToNot(HaveOccurred())
 		Expect(actionTaken).To(BeFalse())
 
 		// Update reconcile
 		newDesc := "New description"
-		repo, actionTaken, err := c.Repositories().Reconcile(ctx, &gitprovider.Repository{
-			RepositoryInfo: newRepoInfo(testOrgName, testRepoName),
-			Description:    gitprovider.StringVar(newDesc),
+		repo, actionTaken, err := c.OrgRepositories().Reconcile(ctx, repoRef, gitprovider.RepositoryInfo{
+			Description: gitprovider.StringVar(newDesc),
 		})
 		// Expect the update to succeed, and modify the state
 		Expect(err).ToNot(HaveOccurred())
 		Expect(actionTaken).To(BeTrue())
-		Expect(*repo.Description).To(Equal(newDesc))
+		Expect(*repo.Get().Description).To(Equal(newDesc))
 
 		// Delete the repository and later re-create
-		Expect(deleteRepo(c, repo.RepositoryInfo)).ToNot(HaveOccurred())
+		Expect(repo.Delete(ctx)).ToNot(HaveOccurred())
 
 		// Reconcile and create
-		newRepo, actionTaken, err := c.Repositories().Reconcile(ctx, &gitprovider.Repository{
-			RepositoryInfo: repo.RepositoryInfo,
-			Description:    gitprovider.StringVar(defaultDescription),
+		newRepo, actionTaken, err := c.OrgRepositories().Reconcile(ctx, repoRef, gitprovider.RepositoryInfo{
+			Description: gitprovider.StringVar(defaultDescription),
 		}, &gitprovider.RepositoryCreateOptions{
 			AutoInit:        gitprovider.BoolVar(true),
 			LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateMIT),
@@ -206,7 +202,7 @@ var _ = Describe("Github Provider", func() {
 		// Expect the create to succeed, and have modified the state. Also validate the newRepo data
 		Expect(err).ToNot(HaveOccurred())
 		Expect(actionTaken).To(BeTrue())
-		validateRepo(newRepo, repo.RepositoryInfo)
+		validateRepo(newRepo, repoRef)
 	})
 
 	AfterSuite(func() {
@@ -214,51 +210,52 @@ var _ = Describe("Github Provider", func() {
 		if c == nil {
 			return
 		}
-		Expect(deleteRepo(c, newRepoInfo(testOrgName, testRepoName))).ToNot(HaveOccurred())
+		// Delete the test repo used
+		repoRef := newOrgRepoRef(testOrgName, testRepoName)
+		repo, err := c.OrgRepositories().Get(ctx, repoRef)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(repo.Delete(ctx)).ToNot(HaveOccurred())
 	})
 })
 
-func newOrgInfo(organizationName string) gitprovider.OrganizationInfo {
-	return gitprovider.OrganizationInfo{
+func newOrgRef(organizationName string) gitprovider.OrganizationRef {
+	return gitprovider.OrganizationRef{
 		Domain:       githubDomain,
 		Organization: organizationName,
 	}
 }
 
-func newRepoInfo(organizationName, repoName string) gitprovider.RepositoryInfo {
-	return gitprovider.RepositoryInfo{
-		IdentityRef:    newOrgInfo(organizationName),
-		RepositoryName: repoName,
+func newOrgRepoRef(organizationName, repoName string) gitprovider.OrgRepositoryRef {
+	return gitprovider.OrgRepositoryRef{
+		OrganizationRef: newOrgRef(organizationName),
+		RepositoryName:  repoName,
 	}
 }
 
-func findRepo(repos []gitprovider.Repository, name string) *gitprovider.Repository {
+func findRepo(repos []gitprovider.OrgRepository, name string) gitprovider.OrgRepository {
 	if name == "" {
 		return nil
 	}
 	for _, repo := range repos {
-		if repo.RepositoryName == name {
-			return &repo
+		if repo.Repository().GetRepository() == name {
+			return repo
 		}
 	}
 	return nil
 }
 
-func validateRepo(repo *gitprovider.Repository, repoInfo gitprovider.RepositoryInfo) {
+func validateRepo(repo gitprovider.OrgRepository, expectedRepoRef gitprovider.RepositoryRef) {
+	info := repo.Get()
 	// Expect certain fields to be set
-	Expect(repo.RepositoryInfo).To(Equal(repoInfo))
-	Expect(*repo.Description).To(Equal(defaultDescription))
-	Expect(*repo.Visibility).To(Equal(gitprovider.RepositoryVisibilityPrivate))
-	Expect(*repo.DefaultBranch).To(Equal(defaultBranch))
+	Expect(repo.Repository()).To(Equal(expectedRepoRef))
+	Expect(*info.Description).To(Equal(defaultDescription))
+	Expect(*info.Visibility).To(Equal(gitprovider.RepositoryVisibilityPrivate))
+	Expect(*info.DefaultBranch).To(Equal(defaultBranch))
 	// Expect high-level fields to match their underlying data
-	internal := repo.Internal.(*githubapi.Repository)
-	Expect(repo.GetRepository()).To(Equal(*internal.Name))
-	Expect(repo.GetIdentity()).To(Equal(internal.Owner.GetLogin()))
-	Expect(*repo.Description).To(Equal(*internal.Description))
-	Expect(string(*repo.Visibility)).To(Equal(*internal.Visibility))
-	Expect(*repo.DefaultBranch).To(Equal(*internal.DefaultBranch))
-}
-
-func deleteRepo(c gitprovider.Client, ref gitprovider.RepositoryRef) error {
-	return (c.Repositories().(*RepositoriesClient)).Delete(context.Background(), ref)
+	internal := repo.APIObject().(*githubapi.Repository)
+	Expect(repo.Repository().GetRepository()).To(Equal(*internal.Name))
+	Expect(repo.Repository().GetIdentity()).To(Equal(internal.Owner.GetLogin()))
+	Expect(*info.Description).To(Equal(*internal.Description))
+	Expect(string(*info.Visibility)).To(Equal(*internal.Visibility))
+	Expect(*info.DefaultBranch).To(Equal(*internal.DefaultBranch))
 }

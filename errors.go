@@ -23,8 +23,8 @@ import (
 )
 
 var (
-	// ErrProviderNoSupport describes that the provider doesn't support the requested feature
-	ErrProviderNoSupport = errors.New("no provider support for this feature")
+	// ErrNoProviderSupport describes that the provider doesn't support the requested feature
+	ErrNoProviderSupport = errors.New("no provider support for this feature")
 	// ErrDomainUnsupported describes the case where e.g. a Github provider used for trying to get
 	// information from e.g. gitlab.com
 	ErrDomainUnsupported = errors.New("the given client doesn't support handling requests for this domain")

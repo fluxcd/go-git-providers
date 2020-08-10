@@ -118,7 +118,7 @@ type TeamAccess struct {
 	// When creating, this field is optional. However, if specified, it must match the RepositoryRef
 	// given to the client.
 	// +optional
-	Repository *RepositoryRef `json:"repository"`
+	Repository RepositoryRef `json:"repository"`
 }
 
 // Default defaults the TeamAccess, implementing the Creatable interface

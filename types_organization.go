@@ -16,15 +16,14 @@ limitations under the License.
 
 package gitprovider
 
-// Organization implements the Object and OrganizationRef interfaces
+// Organization implements the Object interface
 var _ Object = &Organization{}
-var _ OrganizationRef = &Organization{}
 
 // Organization represents an (top-level- or sub-) organization
 type Organization struct {
-	// OrganizationInfo provides the required fields
-	// (Domain, Organization and SubOrganizations) required for being an OrganizationRef
-	OrganizationInfo `json:",inline"`
+	// OrganizationRef provides the information about the organization
+	// (Domain, Organization and SubOrganizations)
+	OrganizationRef `json:",inline"`
 	// InternalHolder implements the InternalGetter interface
 	// +optional
 	InternalHolder `json:",inline"`
@@ -61,5 +60,5 @@ type Team struct {
 	// When creating, this field is optional. However, if specified, it must match the OrganizationRef
 	// given to the client.
 	// +optional
-	Organization *OrganizationInfo `json:"organization"`
+	Organization *OrganizationRef `json:"organization"`
 }

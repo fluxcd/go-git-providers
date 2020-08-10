@@ -33,48 +33,39 @@ const (
 	TransportTypeSSH = TransportType("ssh")
 )
 
-// RepositoryCredentialType is an enum specifying the type of a certain repository credential
-type RepositoryCredentialType string
+// RepositoryVisibility is an enum specifying the visibility of a repository
+type RepositoryVisibility string
 
 const (
-	// RepositoryCredentialTypeDeployKey is the Deploy Key credential type
-	// The struct used is DeployKey in this package
-	RepositoryCredentialTypeDeployKey = RepositoryCredentialType("deploykey")
-)
-
-// RepoVisibility is an enum specifying the visibility of a repository
-type RepoVisibility string
-
-const (
-	// RepoVisibilityPublic specifies that the repository should be publicly accessible
-	RepoVisibilityPublic = RepoVisibility("public")
-	// RepoVisibilityInternal specifies that the repository should accessible within the
+	// RepositoryVisibilityPublic specifies that the repository should be publicly accessible
+	RepositoryVisibilityPublic = RepositoryVisibility("public")
+	// RepositoryVisibilityInternal specifies that the repository should accessible within the
 	// own organization
-	RepoVisibilityInternal = RepoVisibility("internal")
-	// RepoVisibilityPrivate specifies that the repository should only be accessible by
+	RepositoryVisibilityInternal = RepositoryVisibility("internal")
+	// RepositoryVisibilityPrivate specifies that the repository should only be accessible by
 	// specifically added team members
-	RepoVisibilityPrivate = RepoVisibility("private")
+	RepositoryVisibilityPrivate = RepositoryVisibility("private")
 )
 
-// knownRepoVisibilityValues is a map of known RepoVisibility values, used for validation
-var knownRepoVisibilityValues = map[RepoVisibility]struct{}{
-	RepoVisibilityPublic:   {},
-	RepoVisibilityInternal: {},
-	RepoVisibilityPrivate:  {},
+// knownRepositoryVisibilityValues is a map of known RepositoryVisibility values, used for validation
+var knownRepositoryVisibilityValues = map[RepositoryVisibility]struct{}{
+	RepositoryVisibilityPublic:   {},
+	RepositoryVisibilityInternal: {},
+	RepositoryVisibilityPrivate:  {},
 }
 
-// validateRepoVisibility validates a given RepoVisibility.
-// Use as errs.Append(validateRepoVisibility(visibility), visibility, "FieldName")
-func validateRepoVisibility(r RepoVisibility) error {
-	_, ok := knownRepoVisibilityValues[r]
+// ValidateRepositoryVisibility validates a given RepositoryVisibility.
+// Use as errs.Append(ValidateRepositoryVisibility(visibility), visibility, "FieldName")
+func ValidateRepositoryVisibility(r RepositoryVisibility) error {
+	_, ok := knownRepositoryVisibilityValues[r]
 	if !ok {
 		return validation.ErrFieldEnumInvalid
 	}
 	return nil
 }
 
-// repoVisibilityVar returns a pointer to a RepoVisibility
-func repoVisibilityVar(r RepoVisibility) *RepoVisibility {
+// RepositoryVisibilityVar returns a pointer to a RepositoryVisibility
+func RepositoryVisibilityVar(r RepositoryVisibility) *RepositoryVisibility {
 	return &r
 }
 
@@ -104,7 +95,7 @@ const (
 	RepositoryPermissionAdmin = RepositoryPermission("admin")
 )
 
-// knownRepoVisibilityValues is a map of known RepositoryPermission values, used for validation
+// knownRepositoryVisibilityValues is a map of known RepositoryPermission values, used for validation
 var knownRepositoryPermissionValues = map[RepositoryPermission]struct{}{
 	RepositoryPermissionPull:     {},
 	RepositoryPermissionTriage:   {},
@@ -113,9 +104,9 @@ var knownRepositoryPermissionValues = map[RepositoryPermission]struct{}{
 	RepositoryPermissionAdmin:    {},
 }
 
-// validateRepositoryPermission validates a given RepositoryPermission.
-// Use as errs.Append(validateRepositoryPermission(permission), permission, "FieldName")
-func validateRepositoryPermission(p RepositoryPermission) error {
+// ValidateRepositoryPermission validates a given RepositoryPermission.
+// Use as errs.Append(ValidateRepositoryPermission(permission), permission, "FieldName")
+func ValidateRepositoryPermission(p RepositoryPermission) error {
 	_, ok := knownRepositoryPermissionValues[p]
 	if !ok {
 		return validation.ErrFieldEnumInvalid
@@ -123,8 +114,8 @@ func validateRepositoryPermission(p RepositoryPermission) error {
 	return nil
 }
 
-// repositoryPermissionVar returns a pointer to a RepositoryPermission
-func repositoryPermissionVar(p RepositoryPermission) *RepositoryPermission {
+// RepositoryPermissionVar returns a pointer to a RepositoryPermission
+func RepositoryPermissionVar(p RepositoryPermission) *RepositoryPermission {
 	return &p
 }
 
@@ -152,9 +143,9 @@ var knownLicenseTemplateValues = map[LicenseTemplate]struct{}{
 	LicenseTemplateGPL3:    {},
 }
 
-// validateLicenseTemplate validates a given LicenseTemplate.
-// Use as errs.Append(validateLicenseTemplate(template), template, "FieldName")
-func validateLicenseTemplate(t LicenseTemplate) error {
+// ValidateLicenseTemplate validates a given LicenseTemplate.
+// Use as errs.Append(ValidateLicenseTemplate(template), template, "FieldName")
+func ValidateLicenseTemplate(t LicenseTemplate) error {
 	_, ok := knownLicenseTemplateValues[t]
 	if !ok {
 		return validation.ErrFieldEnumInvalid
@@ -162,7 +153,7 @@ func validateLicenseTemplate(t LicenseTemplate) error {
 	return nil
 }
 
-// licenseTemplateVar returns a pointer to a LicenseTemplate
-func licenseTemplateVar(t LicenseTemplate) *LicenseTemplate {
+// LicenseTemplateVar returns a pointer to a LicenseTemplate
+func LicenseTemplateVar(t LicenseTemplate) *LicenseTemplate {
 	return &t
 }

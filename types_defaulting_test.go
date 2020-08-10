@@ -33,27 +33,27 @@ func TestDefaulting(t *testing.T) {
 			structName: "DeployKey",
 			object:     &DeployKey{},
 			expected: &DeployKey{
-				ReadOnly: boolVar(true),
+				ReadOnly: BoolVar(true),
 			},
 		},
 		{
 			name:       "DeployKey: don't set if non-nil (default)",
 			structName: "DeployKey",
 			object: &DeployKey{
-				ReadOnly: boolVar(true),
+				ReadOnly: BoolVar(true),
 			},
 			expected: &DeployKey{
-				ReadOnly: boolVar(true),
+				ReadOnly: BoolVar(true),
 			},
 		},
 		{
 			name:       "DeployKey: don't set if non-nil (non-default)",
 			structName: "DeployKey",
 			object: &DeployKey{
-				ReadOnly: boolVar(false),
+				ReadOnly: BoolVar(false),
 			},
 			expected: &DeployKey{
-				ReadOnly: boolVar(false),
+				ReadOnly: BoolVar(false),
 			},
 		},
 		{
@@ -61,32 +61,32 @@ func TestDefaulting(t *testing.T) {
 			structName: "Repository",
 			object:     &Repository{},
 			expected: &Repository{
-				Visibility:    repoVisibilityVar(RepoVisibilityPrivate),
-				DefaultBranch: stringVar("master"),
+				Visibility:    RepositoryVisibilityVar(RepositoryVisibilityPrivate),
+				DefaultBranch: StringVar("master"),
 			},
 		},
 		{
 			name:       "Repository: don't set if non-nil (default)",
 			structName: "Repository",
 			object: &Repository{
-				Visibility:    repoVisibilityVar(RepoVisibilityPrivate),
-				DefaultBranch: stringVar("master"),
+				Visibility:    RepositoryVisibilityVar(RepositoryVisibilityPrivate),
+				DefaultBranch: StringVar("master"),
 			},
 			expected: &Repository{
-				Visibility:    repoVisibilityVar(RepoVisibilityPrivate),
-				DefaultBranch: stringVar("master"),
+				Visibility:    RepositoryVisibilityVar(RepositoryVisibilityPrivate),
+				DefaultBranch: StringVar("master"),
 			},
 		},
 		{
 			name:       "Repository: don't set if non-nil (non-default)",
 			structName: "Repository",
 			object: &Repository{
-				Visibility:    repoVisibilityVar(RepoVisibilityInternal),
-				DefaultBranch: stringVar("main"),
+				Visibility:    RepositoryVisibilityVar(RepositoryVisibilityInternal),
+				DefaultBranch: StringVar("main"),
 			},
 			expected: &Repository{
-				Visibility:    repoVisibilityVar(RepoVisibilityInternal),
-				DefaultBranch: stringVar("main"),
+				Visibility:    RepositoryVisibilityVar(RepositoryVisibilityInternal),
+				DefaultBranch: StringVar("main"),
 			},
 		},
 		{
@@ -94,27 +94,27 @@ func TestDefaulting(t *testing.T) {
 			structName: "TeamAccess",
 			object:     &TeamAccess{},
 			expected: &TeamAccess{
-				Permission: repositoryPermissionVar(RepositoryPermissionPull),
+				Permission: RepositoryPermissionVar(RepositoryPermissionPull),
 			},
 		},
 		{
 			name:       "TeamAccess: don't set if non-nil (default)",
 			structName: "Repository",
 			object: &TeamAccess{
-				Permission: repositoryPermissionVar(RepositoryPermissionPull),
+				Permission: RepositoryPermissionVar(RepositoryPermissionPull),
 			},
 			expected: &TeamAccess{
-				Permission: repositoryPermissionVar(RepositoryPermissionPull),
+				Permission: RepositoryPermissionVar(RepositoryPermissionPull),
 			},
 		},
 		{
 			name:       "TeamAccess: don't set if non-nil (non-default)",
 			structName: "TeamAccess",
 			object: &TeamAccess{
-				Permission: repositoryPermissionVar(RepositoryPermissionPush),
+				Permission: RepositoryPermissionVar(RepositoryPermissionPush),
 			},
 			expected: &TeamAccess{
-				Permission: repositoryPermissionVar(RepositoryPermissionPush),
+				Permission: RepositoryPermissionVar(RepositoryPermissionPush),
 			},
 		},
 	}

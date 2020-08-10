@@ -25,45 +25,55 @@ import (
 	"github.com/fluxcd/go-git-providers/validation"
 )
 
-func newOrgInfo(domain, org string, subOrgs []string) OrganizationInfo {
+func newOrgRef(domain, org string, subOrgs []string) OrganizationRef {
 	if subOrgs == nil {
 		subOrgs = []string{}
 	}
-	return OrganizationInfo{
+	return OrganizationRef{
 		Domain:           domain,
 		Organization:     org,
 		SubOrganizations: subOrgs,
 	}
 }
 
-func newOrgRepoInfo(domain, org string, subOrgs []string, repoName string) RepositoryInfo {
-	return RepositoryInfo{
-		IdentityRef:    newOrgInfo(domain, org, subOrgs),
-		RepositoryName: repoName,
+func newOrgRefPtr(domain, org string, subOrgs []string) *OrganizationRef {
+	orgRef := newOrgRef(domain, org, subOrgs)
+	return &orgRef
+}
+
+func newOrgRepoRef(domain, org string, subOrgs []string, repoName string) OrgRepositoryRef {
+	return OrgRepositoryRef{
+		OrganizationRef: newOrgRef(domain, org, subOrgs),
+		RepositoryName:  repoName,
 	}
 }
 
-func newOrgRepoInfoPtr(domain, org string, subOrgs []string, repoName string) *RepositoryInfo {
-	repoInfo := newOrgRepoInfo(domain, org, subOrgs, repoName)
+func newOrgRepoRefPtr(domain, org string, subOrgs []string, repoName string) *OrgRepositoryRef {
+	repoInfo := newOrgRepoRef(domain, org, subOrgs, repoName)
 	return &repoInfo
 }
 
-func newUserInfo(domain, userLogin string) UserInfo {
-	return UserInfo{
+func newUserRef(domain, userLogin string) UserRef {
+	return UserRef{
 		Domain:    domain,
 		UserLogin: userLogin,
 	}
 }
 
-func newUserRepoInfo(domain, userLogin, repoName string) RepositoryInfo {
-	return RepositoryInfo{
-		IdentityRef:    newUserInfo(domain, userLogin),
+func newUserRefPtr(domain, userLogin string) *UserRef {
+	userRef := newUserRef(domain, userLogin)
+	return &userRef
+}
+
+func newUserRepoRef(domain, userLogin, repoName string) UserRepositoryRef {
+	return UserRepositoryRef{
+		UserRef:        newUserRef(domain, userLogin),
 		RepositoryName: repoName,
 	}
 }
 
-func newUserRepoInfoPtr(domain, userLogin, repoName string) *RepositoryInfo {
-	repoInfo := newUserRepoInfo(domain, userLogin, repoName)
+func newUserRepoRefPtr(domain, userLogin, repoName string) *UserRepositoryRef {
+	repoInfo := newUserRepoRef(domain, userLogin, repoName)
 	return &repoInfo
 }
 
@@ -71,28 +81,28 @@ func TestParseOrganizationURL(t *testing.T) {
 	tests := []struct {
 		name string
 		url  string
-		want OrganizationRef
+		want *OrganizationRef
 		err  error
 	}{
 		{
 			name: "easy",
 			url:  "https://github.com/my-org",
-			want: newOrgInfo("github.com", "my-org", nil),
+			want: newOrgRefPtr("github.com", "my-org", nil),
 		},
 		{
 			name: "trailing slash",
 			url:  "https://github.com/my-org/",
-			want: newOrgInfo("github.com", "my-org", nil),
+			want: newOrgRefPtr("github.com", "my-org", nil),
 		},
 		{
 			name: "one sub-org",
 			url:  "https://gitlab.com/my-org/sub-org",
-			want: newOrgInfo("gitlab.com", "my-org", []string{"sub-org"}),
+			want: newOrgRefPtr("gitlab.com", "my-org", []string{"sub-org"}),
 		},
 		{
 			name: "three sub-orgs and custom domain",
 			url:  "https://my-gitlab.com:6443/my-org/sub-org/2/3",
-			want: newOrgInfo("my-gitlab.com:6443", "my-org", []string{"sub-org", "2", "3"}),
+			want: newOrgRefPtr("my-gitlab.com:6443", "my-org", []string{"sub-org", "2", "3"}),
 		},
 		{
 			name: "no org specified",
@@ -159,11 +169,8 @@ func TestParseOrganizationURL(t *testing.T) {
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ParseOrganizationURL() = %v, want %v", got, tt.want)
 			}
-			// Ensure a non-pointer return and that roundtrip data is preserved
+			// Ensure that roundtrip data is preserved
 			if got != nil {
-				if _, ok := got.(OrganizationInfo); !ok {
-					t.Error("ParseOrganizationURL(): Expected OrganizationInfo struct to be returned")
-				}
 				// expect the round-trip to remove any trailing slashes
 				expectedURL := strings.TrimSuffix(tt.url, "/")
 				if got.String() != expectedURL {
@@ -178,23 +185,23 @@ func TestParseUserURL(t *testing.T) {
 	tests := []struct {
 		name string
 		url  string
-		want UserRef
+		want *UserRef
 		err  error
 	}{
 		{
 			name: "easy",
 			url:  "https://github.com/my-user",
-			want: newUserInfo("github.com", "my-user"),
+			want: newUserRefPtr("github.com", "my-user"),
 		},
 		{
 			name: "trailing slash",
 			url:  "https://github.com/my-user/",
-			want: newUserInfo("github.com", "my-user"),
+			want: newUserRefPtr("github.com", "my-user"),
 		},
 		{
 			name: "custom domain",
 			url:  "https://my-gitlab.com:6443/my-user/",
-			want: newUserInfo("my-gitlab.com:6443", "my-user"),
+			want: newUserRefPtr("my-gitlab.com:6443", "my-user"),
 		},
 		{
 			name: "can't have sub-orgs",
@@ -266,11 +273,8 @@ func TestParseUserURL(t *testing.T) {
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ParseUserURL() = %v, want %v", got, tt.want)
 			}
-			// Ensure a non-pointer return and that roundtrip data is preserved
+			// Ensure that roundtrip data is preserved
 			if got != nil {
-				if _, ok := got.(UserInfo); !ok {
-					t.Error("ParseUserURL(): Expected UserInfo struct to be returned")
-				}
 				// expect the round-trip to remove any trailing slashes
 				expectedURL := strings.TrimSuffix(tt.url, "/")
 				if got.String() != expectedURL {
@@ -283,175 +287,176 @@ func TestParseUserURL(t *testing.T) {
 
 func TestParseRepositoryURL(t *testing.T) {
 	tests := []struct {
-		name  string
-		url   string
-		isOrg []bool
-		want  RepositoryRef
-		err   error // expected error
+		name     string
+		url      string
+		types    []IdentityType
+		wantOrg  *OrgRepositoryRef
+		wantUser *UserRepositoryRef
+		err      error // expected error
 	}{
 		{
-			name:  "easy user",
-			url:   "https://github.com/luxas/foo-bar",
-			isOrg: []bool{false},
-			want:  newUserRepoInfo("github.com", "luxas", "foo-bar"),
+			name:     "easy",
+			url:      "https://github.com/identity/foo-bar",
+			types:    []IdentityType{IdentityTypeOrganization, IdentityTypeUser},
+			wantUser: newUserRepoRefPtr("github.com", "identity", "foo-bar"),
+			wantOrg:  newOrgRepoRefPtr("github.com", "identity", nil, "foo-bar"),
 		},
 		{
-			name:  "easy organization",
-			url:   "https://github.com/my-org/foo-bar",
-			isOrg: []bool{true},
-			want:  newOrgRepoInfo("github.com", "my-org", nil, "foo-bar"),
+			name:     "trailing slash",
+			url:      "https://github.com/identity/foo-bar/",
+			types:    []IdentityType{IdentityTypeOrganization, IdentityTypeUser},
+			wantUser: newUserRepoRefPtr("github.com", "identity", "foo-bar"),
+			wantOrg:  newOrgRepoRefPtr("github.com", "identity", nil, "foo-bar"),
 		},
 		{
-			name:  "user, trailing slash",
-			url:   "https://github.com/luxas/foo-bar/",
-			isOrg: []bool{false},
-			want:  newUserRepoInfo("github.com", "luxas", "foo-bar"),
+			name:     "including a dot",
+			url:      "https://github.com/identity/foo-bar.withdot",
+			types:    []IdentityType{IdentityTypeOrganization, IdentityTypeUser},
+			wantUser: newUserRepoRefPtr("github.com", "identity", "foo-bar.withdot"),
+			wantOrg:  newOrgRepoRefPtr("github.com", "identity", nil, "foo-bar.withdot"),
 		},
 		{
-			name:  "organization, trailing slash",
-			url:   "https://github.com/my-org/foo-bar/",
-			isOrg: []bool{true},
-			want:  newOrgRepoInfo("github.com", "my-org", nil, "foo-bar"),
-		},
-		{
-			name:  "user, including a dot",
-			url:   "https://github.com/luxas/foo-bar.withdot",
-			isOrg: []bool{false},
-			want:  newUserRepoInfo("github.com", "luxas", "foo-bar.withdot"),
-		},
-		{
-			name:  "organization, including a dot",
-			url:   "https://github.com/my-org/foo-bar.withdot",
-			isOrg: []bool{true},
-			want:  newOrgRepoInfo("github.com", "my-org", nil, "foo-bar.withdot"),
-		},
-		{
-			name:  "user, strip git suffix",
-			url:   "https://github.com/luxas/foo-bar.git",
-			isOrg: []bool{false},
-			want:  newUserRepoInfo("github.com", "luxas", "foo-bar"),
-		},
-		{
-			name:  "organization, strip git suffix",
-			url:   "https://github.com/my-org/foo-bar.git",
-			isOrg: []bool{true},
-			want:  newOrgRepoInfo("github.com", "my-org", nil, "foo-bar"),
+			name:     "strip git suffix",
+			url:      "https://github.com/identity/foo-bar.git",
+			types:    []IdentityType{IdentityTypeOrganization, IdentityTypeUser},
+			wantUser: newUserRepoRefPtr("github.com", "identity", "foo-bar"),
+			wantOrg:  newOrgRepoRefPtr("github.com", "identity", nil, "foo-bar"),
 		},
 		{
 			name:  "user, one sub-org",
 			url:   "https://gitlab.com/my-org/sub-org/foo-bar",
-			isOrg: []bool{false},
+			types: []IdentityType{IdentityTypeUser},
 			err:   ErrURLInvalid,
 		},
 		{
-			name:  "organization, one sub-org",
-			url:   "https://gitlab.com/my-org/sub-org/foo-bar",
-			isOrg: []bool{true},
-			want:  newOrgRepoInfo("gitlab.com", "my-org", []string{"sub-org"}, "foo-bar"),
+			name:    "organization, one sub-org",
+			url:     "https://gitlab.com/my-org/sub-org/foo-bar",
+			types:   []IdentityType{IdentityTypeOrganization},
+			wantOrg: newOrgRepoRefPtr("gitlab.com", "my-org", []string{"sub-org"}, "foo-bar"),
 		},
 		{
 			name:  "user, three sub-orgs and custom domain",
 			url:   "https://my-gitlab.com:6443/my-org/sub-org/2/3/foo-bar",
-			isOrg: []bool{false},
+			types: []IdentityType{IdentityTypeUser},
 			err:   ErrURLInvalid,
 		},
 		{
-			name:  "organization, three sub-orgs and custom domain",
-			url:   "https://my-gitlab.com:6443/my-org/sub-org/2/3/foo-bar",
-			isOrg: []bool{true},
-			want:  newOrgRepoInfo("my-gitlab.com:6443", "my-org", []string{"sub-org", "2", "3"}, "foo-bar"),
+			name:    "organization, three sub-orgs and custom domain",
+			url:     "https://my-gitlab.com:6443/my-org/sub-org/2/3/foo-bar",
+			types:   []IdentityType{IdentityTypeOrganization},
+			wantOrg: newOrgRepoRefPtr("my-gitlab.com:6443", "my-org", []string{"sub-org", "2", "3"}, "foo-bar"),
 		},
 		{
 			name:  "no repo specified",
 			url:   "https://github.com/luxas",
-			isOrg: []bool{true, false},
+			types: []IdentityType{IdentityTypeOrganization, IdentityTypeUser},
 			err:   ErrURLMissingRepoName,
 		},
 		{
 			name:  "no repo specified, trailing slash",
 			url:   "https://github.com/luxas/",
-			isOrg: []bool{true, false},
+			types: []IdentityType{IdentityTypeOrganization, IdentityTypeUser},
 			err:   ErrURLMissingRepoName,
 		},
 		{
 			name:  "empty parts 1",
 			url:   "https://github.com/luxas/foobar//",
-			isOrg: []bool{true, false},
+			types: []IdentityType{IdentityTypeOrganization, IdentityTypeUser},
 			err:   ErrURLInvalid,
 		},
 		{
 			name:  "empty parts 2",
 			url:   "https://github.com//luxas/foobar/",
-			isOrg: []bool{true, false},
+			types: []IdentityType{IdentityTypeOrganization, IdentityTypeUser},
 			err:   ErrURLInvalid,
 		},
 		{
 			name:  "empty URL",
 			url:   "",
-			isOrg: []bool{true, false},
+			types: []IdentityType{IdentityTypeOrganization, IdentityTypeUser},
 			err:   ErrURLInvalid,
 		},
 		{
 			name:  "disallow fragments",
 			url:   "https://github.com/luxas/foobar#random",
-			isOrg: []bool{true, false},
+			types: []IdentityType{IdentityTypeOrganization, IdentityTypeUser},
 			err:   ErrURLUnsupportedParts,
 		},
 		{
 			name:  "disallow query values",
 			url:   "https://github.com/luxas/foobar?foo=bar",
-			isOrg: []bool{true, false},
+			types: []IdentityType{IdentityTypeOrganization, IdentityTypeUser},
 			err:   ErrURLUnsupportedParts,
 		},
 		{
 			name:  "disallow user auth",
 			url:   "https://user:pass@github.com/luxas/foobar",
-			isOrg: []bool{true, false},
+			types: []IdentityType{IdentityTypeOrganization, IdentityTypeUser},
 			err:   ErrURLUnsupportedParts,
 		},
 		{
 			name:  "disallow http",
 			url:   "http://github.com/luxas/foobar",
-			isOrg: []bool{true, false},
+			types: []IdentityType{IdentityTypeOrganization, IdentityTypeUser},
 			err:   ErrURLUnsupportedScheme,
 		},
 		{
 			name:  "no scheme",
 			url:   "github.com/luxas/foobar",
-			isOrg: []bool{true, false},
+			types: []IdentityType{IdentityTypeOrganization, IdentityTypeUser},
 			err:   ErrURLUnsupportedScheme,
 		},
 		{
 			name:  "invalid URL",
 			url:   ":foo/bar",
-			isOrg: []bool{true, false},
+			types: []IdentityType{IdentityTypeOrganization, IdentityTypeUser},
 			err:   &url.Error{},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if len(tt.isOrg) == 0 {
-				t.Fatal("must set tt.isOrg to one or more values")
+			if len(tt.types) == 0 {
+				t.Fatal("must set tt.types to one or more values")
 			}
-			for _, orgParam := range tt.isOrg {
-				got, err := ParseRepositoryURL(tt.url, orgParam)
+			for _, identityType := range tt.types {
+				var err error
+				var resultStr string
+				switch identityType {
+				case IdentityTypeUser:
+					var res *UserRepositoryRef
+					res, err = ParseUserRepositoryURL(tt.url)
+					// Check so we have the right value
+					if !reflect.DeepEqual(res, tt.wantUser) {
+						t.Errorf("ParseUserRepositoryURL() = %v, want %v", res, tt.wantUser)
+					}
+					if res != nil {
+						resultStr = res.String()
+					}
+				case IdentityTypeOrganization:
+					var res *OrgRepositoryRef
+					res, err = ParseOrgRepositoryURL(tt.url)
+					// Check so we have the right value
+					if !reflect.DeepEqual(res, tt.wantOrg) {
+						t.Errorf("ParseOrgRepositoryURL() = %v, want %v", res, tt.wantOrg)
+					}
+					if res != nil {
+						resultStr = res.String()
+					}
+				default:
+					t.Fatalf("invalid identityType: %v", identityType)
+				}
+
 				// Validate so that the error is expected
 				validation.TestExpectErrors(t, "ParseRepositoryURL", err, tt.err)
-				// Check so we have the right value
-				if !reflect.DeepEqual(got, tt.want) {
-					t.Errorf("ParseRepositoryURL() = %v, want %v", got, tt.want)
-				}
-				// Ensure a non-pointer return and that roundtrip data is preserved
-				if got != nil {
-					if _, ok := got.(RepositoryInfo); !ok {
-						t.Error("ParseRepositoryURL(): Expected RepositoryInfo struct to be returned")
-					}
+
+				// Ensure that roundtrip data is preserved
+				if resultStr != "" {
 					// expect the round-trip to remove any trailing slashes
 					expectedURL := strings.TrimSuffix(tt.url, "/")
 					// expect any .git suffix to be removed
 					expectedURL = strings.TrimSuffix(expectedURL, ".git")
-					if got.String() != expectedURL {
-						t.Errorf("ParseRepositoryURL(): got.String() = %q, want %q", got.String(), expectedURL)
+					if resultStr != expectedURL {
+						t.Errorf("Parse{Org,User}RepositoryURL(): resultStr = %q, want %q", resultStr, expectedURL)
 					}
 				}
 			}
@@ -462,55 +467,55 @@ func TestParseRepositoryURL(t *testing.T) {
 func TestGetCloneURL(t *testing.T) {
 	tests := []struct {
 		name      string
-		repoinfo  RepositoryInfo
+		repoinfo  RepositoryRef
 		transport TransportType
 		want      string
 	}{
 		{
 			name:      "org: https",
-			repoinfo:  newOrgRepoInfo("github.com", "luxas", []string{"test-org", "other"}, "foo-bar"),
+			repoinfo:  newOrgRepoRef("github.com", "luxas", []string{"test-org", "other"}, "foo-bar"),
 			transport: TransportTypeHTTPS,
 			want:      "https://github.com/luxas/test-org/other/foo-bar.git",
 		},
 		{
 			name:      "org: git",
-			repoinfo:  newOrgRepoInfo("gitlab.com", "luxas", []string{"test-org", "other"}, "foo-bar"),
+			repoinfo:  newOrgRepoRef("gitlab.com", "luxas", []string{"test-org", "other"}, "foo-bar"),
 			transport: TransportTypeGit,
 			want:      "git@gitlab.com:luxas/test-org/other/foo-bar.git",
 		},
 		{
 			name:      "org: ssh",
-			repoinfo:  newOrgRepoInfo("my-gitlab.com:6443", "luxas", []string{"test-org", "other"}, "foo-bar"),
+			repoinfo:  newOrgRepoRef("my-gitlab.com:6443", "luxas", []string{"test-org", "other"}, "foo-bar"),
 			transport: TransportTypeSSH,
 			want:      "ssh://git@my-gitlab.com:6443/luxas/test-org/other/foo-bar",
 		},
 		{
 			name:      "org: none",
-			repoinfo:  newOrgRepoInfo("my-gitlab.com:6443", "luxas", []string{"test-org", "other"}, "foo-bar"),
+			repoinfo:  newOrgRepoRef("my-gitlab.com:6443", "luxas", []string{"test-org", "other"}, "foo-bar"),
 			transport: TransportType("random"),
 			want:      "",
 		},
 		{
 			name:      "user: https",
-			repoinfo:  newUserRepoInfo("github.com", "luxas", "foo-bar"),
+			repoinfo:  newUserRepoRef("github.com", "luxas", "foo-bar"),
 			transport: TransportTypeHTTPS,
 			want:      "https://github.com/luxas/foo-bar.git",
 		},
 		{
 			name:      "user: git",
-			repoinfo:  newUserRepoInfo("gitlab.com", "luxas", "foo-bar"),
+			repoinfo:  newUserRepoRef("gitlab.com", "luxas", "foo-bar"),
 			transport: TransportTypeGit,
 			want:      "git@gitlab.com:luxas/foo-bar.git",
 		},
 		{
 			name:      "user: ssh",
-			repoinfo:  newUserRepoInfo("my-gitlab.com:6443", "luxas", "foo-bar"),
+			repoinfo:  newUserRepoRef("my-gitlab.com:6443", "luxas", "foo-bar"),
 			transport: TransportTypeSSH,
 			want:      "ssh://git@my-gitlab.com:6443/luxas/foo-bar",
 		},
 		{
 			name:      "user: none",
-			repoinfo:  newUserRepoInfo("my-gitlab.com:6443", "luxas", "foo-bar"),
+			repoinfo:  newUserRepoRef("my-gitlab.com:6443", "luxas", "foo-bar"),
 			transport: TransportType("random"),
 			want:      "",
 		},
@@ -523,157 +528,10 @@ func TestGetCloneURL(t *testing.T) {
 			}
 			got2 := tt.repoinfo.GetCloneURL(tt.transport)
 			if got2 != tt.want {
-				t.Errorf("RepositoryInfo.GetCloneURL() = %v, want %v", got1, tt.want)
+				t.Errorf("RepositoryRef.GetCloneURL() = %v, want %v", got1, tt.want)
 			}
 			if got1 != got2 {
-				t.Errorf("GetCloneURL() = %q and RepositoryInfo.GetCloneURL() = %q should match", got1, got2)
-			}
-		})
-	}
-}
-
-func TestOrganizationInfo_RefIsEmpty(t *testing.T) {
-	tests := []struct {
-		name string
-		org  OrganizationInfo
-		want bool
-	}{
-		{
-			name: "no fields set",
-			want: true,
-		},
-		{
-			name: "domain set",
-			org: OrganizationInfo{
-				Domain: "foo",
-			},
-			want: false,
-		},
-		{
-			name: "org set",
-			org: OrganizationInfo{
-				Organization: "bar",
-			},
-			want: false,
-		},
-		{
-			name: "sub-org set",
-			org: OrganizationInfo{
-				SubOrganizations: []string{"baz"},
-			},
-			want: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.org.RefIsEmpty(); got != tt.want {
-				t.Errorf("OrganizationInfo.RefIsEmpty() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestUserInfo_RefIsEmpty(t *testing.T) {
-	tests := []struct {
-		name string
-		user UserInfo
-		want bool
-	}{
-		{
-			name: "no fields set",
-			want: true,
-		},
-		{
-			name: "domain set",
-			user: UserInfo{
-				Domain: "foo",
-			},
-			want: false,
-		},
-		{
-			name: "org set",
-			user: UserInfo{
-				UserLogin: "bar",
-			},
-			want: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.user.RefIsEmpty(); got != tt.want {
-				t.Errorf("UserInfo.RefIsEmpty() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestRepositoryInfo_RefIsEmpty(t *testing.T) {
-	tests := []struct {
-		name string
-		repo RepositoryInfo
-		want bool
-	}{
-		{
-			name: "no fields set",
-			want: true,
-		},
-		{
-			name: "user domain set",
-			repo: RepositoryInfo{
-				IdentityRef: UserInfo{
-					Domain: "foo",
-				},
-			},
-			want: false,
-		},
-		{
-			name: "user login set",
-			repo: RepositoryInfo{
-				IdentityRef: UserInfo{
-					UserLogin: "foo",
-				},
-			},
-			want: false,
-		},
-		{
-			name: "org domain set",
-			repo: RepositoryInfo{
-				IdentityRef: OrganizationInfo{
-					Domain: "bar",
-				},
-			},
-			want: false,
-		},
-		{
-			name: "org set",
-			repo: RepositoryInfo{
-				IdentityRef: OrganizationInfo{
-					Organization: "bar",
-				},
-			},
-			want: false,
-		},
-		{
-			name: "sub-org set",
-			repo: RepositoryInfo{
-				IdentityRef: OrganizationInfo{
-					SubOrganizations: []string{"baz"},
-				},
-			},
-			want: false,
-		},
-		{
-			name: "repo set",
-			repo: RepositoryInfo{
-				RepositoryName: "bar",
-			},
-			want: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.repo.RefIsEmpty(); got != tt.want {
-				t.Errorf("RepositoryInfo.RefIsEmpty() = %v, want %v", got, tt.want)
+				t.Errorf("GetCloneURL() = %q and RepositoryRef.GetCloneURL() = %q should match", got1, got2)
 			}
 		})
 	}
@@ -687,17 +545,17 @@ func TestIdentityRef_GetType(t *testing.T) {
 	}{
 		{
 			name: "sample user",
-			ref:  newUserInfo("github.com", "bar"),
+			ref:  newUserRef("github.com", "bar"),
 			want: IdentityTypeUser,
 		},
 		{
 			name: "sample top-level org",
-			ref:  newOrgInfo("github.com", "bar", nil),
+			ref:  newOrgRef("github.com", "bar", nil),
 			want: IdentityTypeOrganization,
 		},
 		{
 			name: "sample sub-org",
-			ref:  newOrgInfo("github.com", "bar", []string{"baz"}),
+			ref:  newOrgRef("github.com", "bar", []string{"baz"}),
 			want: IdentityTypeSuborganization,
 		},
 	}
@@ -706,6 +564,75 @@ func TestIdentityRef_GetType(t *testing.T) {
 			if got := tt.ref.GetType(); got != tt.want {
 				t.Errorf("IdentityRef.GetType() = %v, want %v", got, tt.want)
 			}
+		})
+	}
+}
+
+func TestRepositoryRef_ValidateFields(t *testing.T) {
+	tests := []struct {
+		name         string
+		ref          RepositoryRef
+		expectedErrs []error
+	}{
+		{
+			name: "valid user",
+			ref:  newUserRepoRef("github.com", "my-user", "my-repo"),
+		},
+		{
+			name: "valid org",
+			ref:  newOrgRepoRef("github.com", "my-org", nil, "my-repo"),
+		},
+		{
+			name: "valid sub-org",
+			ref:  newOrgRepoRef("github.com", "my-org", []string{"sub-org"}, "my-repo"),
+		},
+		{
+			name:         "missing user reponame",
+			ref:          newUserRepoRef("my-gitlab.com:6443", "my-user", ""),
+			expectedErrs: []error{validation.ErrFieldRequired},
+		},
+		{
+			name:         "missing user login",
+			ref:          newUserRepoRef("my-gitlab.com:6443", "", "my-repo"),
+			expectedErrs: []error{validation.ErrFieldRequired},
+		},
+		{
+			name:         "missing user login",
+			ref:          newUserRepoRef("my-gitlab.com:6443", "", "my-repo"),
+			expectedErrs: []error{validation.ErrFieldRequired},
+		},
+		{
+			name:         "missing user domain",
+			ref:          newUserRepoRef("", "my-user", "my-repo"),
+			expectedErrs: []error{validation.ErrFieldRequired},
+		},
+		{
+			name:         "missing org reponame",
+			ref:          newOrgRepoRef("my-gitlab.com:6443", "my-org", nil, ""),
+			expectedErrs: []error{validation.ErrFieldRequired},
+		},
+		{
+			name:         "missing org name",
+			ref:          newOrgRepoRef("my-gitlab.com:6443", "", []string{"sub-org"}, "my-repo"),
+			expectedErrs: []error{validation.ErrFieldRequired},
+		},
+		{
+			name:         "missing org domain",
+			ref:          newOrgRepoRef("", "my-org", []string{"sub-org"}, "my-repo"),
+			expectedErrs: []error{validation.ErrFieldRequired},
+		},
+		{
+			name:         "multiple errors",
+			ref:          newOrgRepoRef("", "", []string{"sub-org"}, "my-repo"),
+			expectedErrs: []error{validation.ErrFieldRequired, &validation.MultiError{}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			validator := validation.New("test")
+			tt.ref.ValidateFields(validator)
+			err := validator.Error()
+			validation.TestExpectErrors(t, "{User,Org}RepositoryRef.ValidateFields", err, tt.expectedErrs...)
 		})
 	}
 }

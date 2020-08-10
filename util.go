@@ -16,10 +16,12 @@ limitations under the License.
 
 package gitprovider
 
-func boolVar(b bool) *bool {
+// BoolVar returns a pointer to the given bool
+func BoolVar(b bool) *bool {
 	return &b
 }
 
-func stringVar(s string) *string {
+// StringVar returns a pointer to the given string
+func StringVar(s string) *string {
 	return &s
 }

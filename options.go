@@ -79,7 +79,7 @@ func (opts *RepositoryCreateOptions) Default() {}
 func (opts *RepositoryCreateOptions) ValidateCreate() error {
 	errs := validation.New("RepositoryCreateOptions")
 	if opts.LicenseTemplate != nil {
-		errs.Append(validateLicenseTemplate(*opts.LicenseTemplate), *opts.LicenseTemplate, "LicenseTemplate")
+		errs.Append(ValidateLicenseTemplate(*opts.LicenseTemplate), *opts.LicenseTemplate, "LicenseTemplate")
 	}
 	return errs.Error()
 }

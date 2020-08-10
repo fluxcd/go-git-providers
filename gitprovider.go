@@ -16,42 +16,6 @@ limitations under the License.
 
 package gitprovider
 
-import (
-	"errors"
-)
-
-var (
-	// ErrProviderNoSupport describes that the provider doesn't support the requested feature
-	ErrProviderNoSupport = errors.New("no provider support for this feature")
-	// ErrDomainUnsupported describes the case where e.g. a Github provider used for trying to get
-	// information from e.g. gitlab.com
-	ErrDomainUnsupported = errors.New("the given client doesn't support handling requests for this domain")
-
-	// ErrUnauthorized describes that that the request was unauthorized by the Git provider server
-	ErrUnauthorized = errors.New("unauthorized request for this resource")
-	// ErrRateLimited is returned if a request hit the rate limit of the Git provider server
-	ErrRateLimited = errors.New("hit rate limit")
-
-	// ErrNotTopLevelOrganization describes the case where it's mandatory to specify a top-level organization
-	// (e.g. for accessing teams), but a sub-organization was passed as the OrganizationRef
-	ErrNotTopLevelOrganization = errors.New("expected top-level organization, received sub-organization instead")
-
-	// ErrAlreadyExists is returned by .Create() requests if the given resource already exists.
-	// Use .Reconcile() instead if you want to idempotently create the resource
-	ErrAlreadyExists = errors.New("resource already exists, cannot create object. Use Reconcile() to create it idempotently")
-	// ErrNotFound is returned by .Get() and .Update() calls if the given resource doesn't exist
-	ErrNotFound = errors.New("the requested resource was not found")
-
-	// ErrURLUnsupportedScheme is returned if an URL without the HTTPS scheme is parsed
-	ErrURLUnsupportedScheme = errors.New("unsupported URL scheme, only HTTPS supported")
-	// ErrURLUnsupportedParts is returned if an URL with fragment, query values and/or user information is parsed
-	ErrURLUnsupportedParts = errors.New("URL cannot have fragments, query values nor user information")
-	// ErrURLInvalid is returned if an URL is invalid when parsing
-	ErrURLInvalid = errors.New("invalid organization, user or repository URL")
-	// ErrURLMissingRepoName is returned if there is no repository name in the URL
-	ErrURLMissingRepoName = errors.New("missing repository name")
-)
-
 // ProviderID is a typed string for a given Git provider
 // The provider constants are defined in their respective packages
 type ProviderID string

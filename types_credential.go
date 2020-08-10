@@ -23,29 +23,9 @@ const (
 	defaultDeployKeyReadOnly = true
 )
 
-// RepositoryCredential is a credential that allows access (either read-only or read-write) to the repo
-type RepositoryCredential interface {
-	Object
-
-	// GetRepositoryRef gets the repository that this credential is associated with
-	GetRepositoryRef() RepositoryRef
-
-	// GetType returns the type of the credential
-	GetType() RepositoryCredentialType
-
-	// GetName returns a name (or title/description) of the credential
-	GetName() string
-
-	// GetData returns the key that will be authorized to access the repo, this can e.g. be a SSH public key
-	GetData() []byte
-
-	// IsReadOnly returns whether this credential is authorized to write to the repository or not
-	IsReadOnly() bool
-}
-
-// DeployKey implements the RepositoryCredential interface.
+// DeployKey implements the Object interface.
 // DeployKey can be created and deleted
-var _ RepositoryCredential = &DeployKey{}
+var _ Object = &DeployKey{}
 var _ Creatable = &DeployKey{}
 var _ Deletable = &DeployKey{}
 
@@ -73,42 +53,13 @@ type DeployKey struct {
 	// When creating, this field is optional. However, if specified, it must match the RepositoryRef
 	// given to the client
 	// +optional
-	Repository *RepositoryInfo `json:"repository"`
-}
-
-// GetRepositoryRef returns the RepositoryRef for this DeployKey
-// Make sure to nil-check this before using, as it's an optional field set at GET time
-func (dk *DeployKey) GetRepositoryRef() RepositoryRef {
-	return dk.Repository
-}
-
-// GetType returns the RepositoryCredentialType for this DeployKey
-func (dk *DeployKey) GetType() RepositoryCredentialType {
-	return RepositoryCredentialTypeDeployKey
-}
-
-// GetName returns the name (or title/description) for this DeployKey
-func (dk *DeployKey) GetName() string {
-	return dk.Name
-}
-
-// GetData returns the SSH public key that can access the repository for this DeployKey
-func (dk *DeployKey) GetData() []byte {
-	return dk.Key
-}
-
-// IsReadOnly returns whether this deploy key has read-only or read-write access to the repo
-func (dk *DeployKey) IsReadOnly() bool {
-	if dk.ReadOnly == nil {
-		return defaultDeployKeyReadOnly
-	}
-	return *dk.ReadOnly
+	Repository RepositoryRef `json:"repository"`
 }
 
 // Default defaults the DeployKey, implementing the Creatable interface
 func (dk *DeployKey) Default() {
 	if dk.ReadOnly == nil {
-		dk.ReadOnly = boolVar(defaultDeployKeyReadOnly)
+		dk.ReadOnly = BoolVar(defaultDeployKeyReadOnly)
 	}
 }
 
@@ -121,7 +72,7 @@ func (dk *DeployKey) ValidateCreate() error {
 	if len(dk.Key) == 0 {
 		validator.Required("Key")
 	}
-	// Don't care about the RepositoryInfo, as that information is coming from
+	// Don't care about the RepositoryRef, as that information is coming from
 	// the RepositoryClient. In the client, we make sure that they equal.
 	return validator.Error()
 }

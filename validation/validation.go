@@ -67,6 +67,16 @@ func New(name string) Validator {
 	return &validator{name, nil}
 }
 
+// ValidateTargets runs the ValidateFields() method for each of the targets, and returns
+// the aggregate error.
+func ValidateTargets(name string, targets ...ValidateTarget) error {
+	validator := New(name)
+	for _, target := range targets {
+		target.ValidateFields(validator)
+	}
+	return validator.Error()
+}
+
 // validator is a wrapper struct that helps with writing validation functions where many
 // distinct errors might occur at the same time (e.g. for the same object). One alternative could be
 // to return an error directly when found in validation, but that leaves the user with a fraction of
@@ -138,5 +148,5 @@ func (v *validator) Error() error {
 		return filteredErrs[0]
 	}
 	// Otherwise, return all of the errors wrapped in a *MultiError
-	return &MultiError{Errors: filteredErrs}
+	return NewMultiError(filteredErrs...)
 }

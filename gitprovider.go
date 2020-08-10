@@ -16,53 +16,75 @@ limitations under the License.
 
 package gitprovider
 
+import "context"
+
 // ProviderID is a typed string for a given Git provider
 // The provider constants are defined in their respective packages
 type ProviderID string
 
-// Creatable is an interface which all objects that can be created
-// (using the Client) should implement
-type Creatable interface {
-	// ValidateCreate will be run in every .Create() client call, before defaulting
-	// Set (non-nil) and required fields should be validated
-	ValidateCreate() error
+// CreatableInfo is an interface which all *Info objects that can be created
+// (using the Client) should implement.
+type CreatableInfo interface {
+	// ValidateInfo validates the object at {Object}.Set() and POST-time, before defaulting.
+	// Set (non-nil) and required fields should be validated.
+	ValidateInfo() error
 	// Default will be run after validation, setting optional pointer fields to their
 	// default values before doing the POST request
 	Default()
 }
 
-// Updatable is an interface which all objects that can be updated
-// (using the Client) should implement
-type Updatable interface {
-	// ValidateUpdate will be run in every .Update() client call
-	// Set (non-nil) and required fields should be validated, if needed
-	// No defaulting happens for update calls
-	ValidateUpdate() error
+// GenericUpdatable is an interface which all objects that can be updated
+// using the Client implement.
+type GenericUpdatable interface {
+	// Update will apply the desired state in this object to the server.
+	// Only set fields will be respected (i.e. PATCH behaviour).
+	// In order to apply changes to this object, use the .Set({Resource}Info) error
+	// function, or cast .APIObject() to a pointer to the provider-specific type
+	// and set custom fields there.
+	//
+	// ErrNotFound is returned if the resource does not exist.
+	//
+	// The internal API object will be overridden with the received server data.
+	Update(ctx context.Context) error
 }
 
-// Deletable is an interface which all objects that can be deleted
-// (using the Client) should implement
-type Deletable interface {
-	// ValidateDelete will be run in every .Delete() client call
-	// Set (non-nil) and required fields should be validated, if needed
-	// No defaulting happens for delete calls
-	ValidateDelete() error
+// GenericDeletable is an interface which all objects that can be deleted
+// using the Client implement.
+type GenericDeletable interface {
+	// Delete deletes the current resource irreversebly.
+	//
+	// ErrNotFound is returned if the resource doesn't exist anymore.
+	Delete(ctx context.Context) error
+}
+
+// GenericReconcilable is an interface which all objects that can be reconciled
+// using the Client implement.
+type GenericReconcilable interface {
+	// Reconcile makes sure the desired state in this object (called "req" here) becomes
+	// the actual state in the backing Git provider.
+	//
+	// If req doesn't exist under the hood, it is created (actionTaken == true).
+	// If req doesn't equal the actual state, the resource will be updated (actionTaken == true).
+	// If req is already the actual state, this is a no-op (actionTaken == false).
+	//
+	// The internal API object will be overridden with the received server data if actionTaken == true.
+	Reconcile(ctx context.Context) (actionTaken bool, err error)
 }
 
 // Object is the interface all types should implement
 type Object interface {
-	// GetInternal returns the underlying struct that's used
-	GetInternal() interface{}
+	// APIObject returns the underlying value that was returned from the server
+	APIObject() interface{}
 }
 
-// InternalHolder can be embedded into other structs to implement the Object interface
-type InternalHolder struct {
-	// Internal contains the underlying object.
-	// +optional
-	Internal interface{} `json:"-"`
+// OrganizationBound describes an object that is bound to a given organization, e.g. a team.
+type OrganizationBound interface {
+	// Organization returns the OrganizationRef associated with this object.
+	Organization() OrganizationRef
 }
 
-// GetInternal implements the Object interface
-func (ih InternalHolder) GetInternal() interface{} {
-	return ih.Internal
+// RepositoryBound describes an object that is bound to a given repository, e.g. a deploy key.
+type RepositoryBound interface {
+	// Repository returns the RepositoryRef associated with this object.
+	Repository() RepositoryRef
 }

@@ -54,9 +54,9 @@ type Validator interface {
 	Error() error
 }
 
-// ValidateTarget is an interface for structs that aren't top-level Objects, i.e. implementing the
-// higher-level Creatable, Updatable, Deletable interfaces. Nested structs might instead want to implement
-// this interface, to be able to tell a Validator if this instance is ok or contains errors
+// ValidateTarget is an interface for structs that aren't top-level Objects, i.e. implementing
+// higher-level interfaces. Nested structs might instead want to implement this interface,
+// to be able to tell a Validator if this instance is ok or contains errors.
 type ValidateTarget interface {
 	// ValidateFields registers any validation errors into the validator
 	ValidateFields(v Validator)

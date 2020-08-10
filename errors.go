@@ -30,7 +30,7 @@ var (
 	ErrDomainUnsupported = errors.New("the given client doesn't support handling requests for this domain")
 
 	// ErrNotTopLevelOrganization describes the case where it's mandatory to specify a top-level organization
-	// (e.g. for accessing teams), but a sub-organization was passed as the OrganizationRef
+	// (e.g. to access teams), but a sub-organization was passed as the OrganizationRef
 	ErrNotTopLevelOrganization = errors.New("expected top-level organization, received sub-organization instead")
 	// ErrInvalidArgument describes a generic error where an invalid argument have been specified to a function
 	ErrInvalidArgument = errors.New("invalid argument specified")

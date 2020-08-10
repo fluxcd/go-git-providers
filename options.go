@@ -28,11 +28,11 @@ func MakeRepositoryCreateOptions(opts ...RepositoryCreateOption) (RepositoryCrea
 		opt.ApplyToRepositoryCreateOptions(o)
 	}
 	o.Default()
-	return *o, o.ValidateCreate()
+	return *o, o.ValidateInfo()
 }
 
-// RepositoryCreateOptions implements Creatable
-var _ Creatable = &RepositoryCreateOptions{}
+// RepositoryCreateOptions implements CreatableInfo
+var _ CreatableInfo = &RepositoryCreateOptions{}
 
 // RepositoryReconcileOption is an interface for applying options to when reconciling repositories
 type RepositoryReconcileOption interface {
@@ -71,12 +71,12 @@ func (opts *RepositoryCreateOptions) ApplyToRepositoryCreateOptions(target *Repo
 	}
 }
 
-// Default implements Creatable, setting default values for the options if needed
+// Default implements CreatableInfo, setting default values for the options if needed
 // For this specific case, it's ok to leave things as nil
 func (opts *RepositoryCreateOptions) Default() {}
 
-// ValidateCreate validates that the options are valid
-func (opts *RepositoryCreateOptions) ValidateCreate() error {
+// ValidateInfo validates that the options are valid
+func (opts *RepositoryCreateOptions) ValidateInfo() error {
 	errs := validation.New("RepositoryCreateOptions")
 	if opts.LicenseTemplate != nil {
 		errs.Append(ValidateLicenseTemplate(*opts.LicenseTemplate), *opts.LicenseTemplate, "LicenseTemplate")

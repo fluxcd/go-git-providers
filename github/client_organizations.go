@@ -69,12 +69,12 @@ func (c *OrganizationsClient) List(ctx context.Context) ([]gitprovider.Organizat
 	orgs := make([]gitprovider.Organization, 0, len(apiObjs))
 	for _, apiObj := range apiObjs {
 		// Make sure name isn't nil
-		if apiObj.Name == nil {
-			return nil, fmt.Errorf("didn't expect name to be nil for org: %+v: %w", apiObj, gitprovider.ErrInvalidServerData)
+		if apiObj.Login == nil {
+			return nil, fmt.Errorf("didn't expect login to be nil for org: %+v: %w", apiObj, gitprovider.ErrInvalidServerData)
 		}
 		orgs = append(orgs, newOrganization(c.clientContext, apiObj, gitprovider.OrganizationRef{
 			Domain:       c.domain,
-			Organization: *apiObj.Name,
+			Organization: *apiObj.Login,
 		}))
 	}
 

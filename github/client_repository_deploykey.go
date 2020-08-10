@@ -73,7 +73,7 @@ func (c *DeployKeyClient) List(ctx context.Context) ([]gitprovider.DeployKey, er
 	// Map the api object to our DeployKey type
 	keys := make([]gitprovider.DeployKey, 0, len(apiObjs))
 	for _, apiObj := range apiObjs {
-		keys = append(keys, c.wrap(apiObj))
+		keys = append(keys, newDeployKey(c, apiObj))
 	}
 
 	return keys, nil
@@ -82,77 +82,12 @@ func (c *DeployKeyClient) List(ctx context.Context) ([]gitprovider.DeployKey, er
 // Create creates a deploy key with the given specifications.
 //
 // ErrAlreadyExists will be returned if the resource already exists.
-func (c *DeployKeyClient) Create(ctx context.Context, req gitprovider.DeployKeyInfo) (resp gitprovider.DeployKey, err error) {
-	apiObj, err := c.create(ctx, req)
+func (c *DeployKeyClient) Create(ctx context.Context, req gitprovider.DeployKeyInfo) (gitprovider.DeployKey, error) {
+	apiObj, err := createDeployKey(c.c, ctx, c.ref, req)
 	if err != nil {
 		return nil, err
 	}
-	return c.wrap(apiObj), nil
-}
-
-func (c *DeployKeyClient) wrap(key *github.Key) *deployKey {
-	return &deployKey{
-		k: *key,
-		c: c,
-	}
-}
-
-func (c *DeployKeyClient) create(ctx context.Context, req gitprovider.DeployKeyInfo) (*github.Key, error) {
-	// Validate the create request and default
-	if err := req.ValidateInfo(); err != nil {
-		return nil, err
-	}
-	req.Default()
-
-	// POST /repos/{owner}/{repo}/keys
-	apiObj, _, err := c.c.Repositories.CreateKey(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), &github.Key{
-		Title:    gitprovider.StringVar(req.Name),
-		Key:      gitprovider.StringVar(string(req.Key)),
-		ReadOnly: req.ReadOnly,
-	})
-	if err != nil {
-		return nil, handleHTTPError(err)
-	}
-	return apiObj, nil
-}
-
-var _ gitprovider.DeployKey = &deployKey{}
-
-type deployKey struct {
-	k github.Key
-	c *DeployKeyClient
-}
-
-func (dk *deployKey) Get() gitprovider.DeployKeyInfo {
-	return deployKeyFromAPI(&dk.k)
-}
-
-func (dk *deployKey) Set(info gitprovider.DeployKeyInfo) error {
-	dk.k.Title = &info.Name
-	return nil
-}
-
-func (dk *deployKey) APIObject() interface{} {
-	return &dk.k
-}
-
-func (dk *deployKey) Repository() gitprovider.RepositoryRef {
-	return dk.c.ref
-}
-
-// Delete deletes a deploy key from the repository.
-//
-// ErrNotFound is returned if the resource does not exist.
-func (dk *deployKey) Delete(ctx context.Context) error {
-	// We can use the same DeployKey ID that we got from the GET calls
-
-	// DELETE /repos/{owner}/{repo}/keys/{key_id}
-	_, err := dk.c.c.Repositories.DeleteKey(ctx, dk.c.ref.GetIdentity(), dk.c.ref.GetRepository(), *dk.k.ID)
-	if err != nil {
-		return handleHTTPError(err)
-	}
-
-	return nil
+	return newDeployKey(c, apiObj), nil
 }
 
 // Reconcile makes sure req is the actual state in the backing Git provider.
@@ -160,49 +95,50 @@ func (dk *deployKey) Delete(ctx context.Context) error {
 // If req doesn't exist under the hood, it is created (actionTaken == true).
 // If req doesn't equal the actual state, the resource will be deleted and recreated (actionTaken == true).
 // If req is already the actual state, this is a no-op (actionTaken == false).
-//
-// resp will contain any updated information given by the server; hence it is encouraged
-// to stop using req after this call, and use resp instead.
-func (dk *deployKey) Reconcile(ctx context.Context) (bool, error) {
-	req := dk.Get()
-	actual, err := dk.c.Get(ctx, *dk.k.Key)
+func (c *DeployKeyClient) Reconcile(ctx context.Context, req gitprovider.DeployKeyInfo) (gitprovider.DeployKey, bool, error) {
+	// Validate the request
+	if err := req.ValidateInfo(); err != nil {
+		return nil, false, err
+	}
+
+	// Get the key with the desired name
+	actual, err := c.Get(ctx, req.Name)
 	if err != nil {
 		// Create if not found
 		if errors.Is(err, gitprovider.ErrNotFound) {
-			return true, dk.createIntoSelf(ctx, req)
+			resp, err := c.Create(ctx, req)
+			return resp, true, err
 		}
 
 		// Unexpected path, Get should succeed or return NotFound
-		return false, err
+		return nil, false, err
 	}
 
 	// If the desired matches the actual state, just return the actual state
 	if reflect.DeepEqual(req, actual.Get()) {
-		return false, nil
+		return actual, false, nil
 	}
 
-	// Delete the old key and recreate
-	if err := dk.Delete(ctx); err != nil {
-		return true, err
+	// Populate the desired state to the current-actual object
+	if err := actual.Set(req); err != nil {
+		return actual, false, err
 	}
-	return true, dk.createIntoSelf(ctx, req)
+	// Apply the desired state by running Update
+	return actual, true, actual.Update(ctx)
 }
 
-func (dk *deployKey) createIntoSelf(ctx context.Context, req gitprovider.DeployKeyInfo) error {
-	apiObj, err := dk.c.create(ctx, req)
-	if err != nil {
-		return err
+func createDeployKey(c *github.Client, ctx context.Context, ref gitprovider.RepositoryRef, req gitprovider.DeployKeyInfo) (*github.Key, error) {
+	// Validate the create request and default
+	if err := req.ValidateInfo(); err != nil {
+		return nil, err
 	}
-	dk.k = *apiObj // VALIDATE HERE?
-	return nil
+	req.Default()
+
+	return createDeployKeyData(c, ctx, ref, deployKeyToAPI(&req))
 }
 
-func (dk *deployKey) ValidateDelete() error { return nil } // TODO consider removing this from the interface
-
-func deployKeyFromAPI(apiObj *github.Key) gitprovider.DeployKeyInfo {
-	return gitprovider.DeployKeyInfo{
-		Name:     *apiObj.Title,
-		Key:      []byte(*apiObj.Key),
-		ReadOnly: apiObj.ReadOnly,
-	}
+func createDeployKeyData(c *github.Client, ctx context.Context, ref gitprovider.RepositoryRef, data *github.Key) (*github.Key, error) {
+	// POST /repos/{owner}/{repo}/keys
+	apiObj, _, err := c.Repositories.CreateKey(ctx, ref.GetIdentity(), ref.GetRepository(), data)
+	return apiObj, handleHTTPError(err)
 }

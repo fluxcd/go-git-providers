@@ -67,7 +67,7 @@ func (o *organization) Teams() gitprovider.TeamsClient {
 
 func organizationFromAPI(apiObj *github.Organization) gitprovider.OrganizationInfo {
 	return gitprovider.OrganizationInfo{
-		Name:        *apiObj.Name,
+		Name:        apiObj.Name,
 		Description: apiObj.Description,
 	}
 }

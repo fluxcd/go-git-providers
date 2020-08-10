@@ -19,7 +19,7 @@ package gitprovider
 // OrganizationInfo represents an (top-level- or sub-) organization
 type OrganizationInfo struct {
 	// Name is the human-friendly name of this organization, e.g. "Flux" or "Kubernetes SIGs"
-	Name string `json:"name"`
+	Name *string `json:"name"`
 
 	// Description returns a description for the organization
 	Description *string `json:"description"`

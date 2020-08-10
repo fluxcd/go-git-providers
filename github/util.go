@@ -74,41 +74,20 @@ func validateUserRef(ref gitprovider.UserRef, expectedDomain string) error {
 	return validateIdentityFields(ref, expectedDomain)
 }
 
-// validateIdentityRef makes sure the IdentityRef is valid for Github's usage.
-func validateIdentityRef(ref gitprovider.IdentityRef, expectedDomain string) error {
-	// Make sure the ref is valid
-	if err := validation.ValidateTargets("IdentityRef", ref); err != nil {
-		return err
-	}
-	// Make sure the type is valid, and domain is expected
-	return validateIdentityFields(ref, expectedDomain)
-}
-
 // validateIdentityFields makes sure the type of the IdentityRef is supported, and the domain is as expected
 func validateIdentityFields(ref gitprovider.IdentityRef, expectedDomain string) error {
 	// Make sure the expected domain is used
 	if ref.GetDomain() != expectedDomain {
-		return gitprovider.ErrDomainUnsupported
+		return fmt.Errorf("domain %q not supported by this client: %w", ref.GetDomain(), gitprovider.ErrDomainUnsupported)
 	}
 	// Make sure the right type of identityref is used
 	switch ref.GetType() {
 	case gitprovider.IdentityTypeOrganization, gitprovider.IdentityTypeUser:
 		return nil
 	case gitprovider.IdentityTypeSuborganization:
-		return gitprovider.ErrNoProviderSupport
+		return fmt.Errorf("github doesn't support sub-organizations: %w", gitprovider.ErrNoProviderSupport)
 	}
-	return gitprovider.ErrInvalidArgument
-}
-
-// resolveOrg returns the organization name if ref is an organization, or
-// an empty string if it is an user account.
-func resolveOrg(ref gitprovider.IdentityRef) string {
-	// If the ref is an organization, return its name
-	if ref.GetType() == gitprovider.IdentityTypeOrganization {
-		return ref.GetIdentity()
-	}
-	// If the ref is an user account, return an empty string
-	return ""
+	return fmt.Errorf("invalid identity type: %v: %w", ref.GetType(), gitprovider.ErrInvalidArgument)
 }
 
 // handleHTTPError checks the type of err, and returns typed variants of it
@@ -179,16 +158,4 @@ func allPages(opts *github.ListOptions, fn func() (*github.Response, error)) err
 		}
 		opts.Page = resp.NextPage
 	}
-}
-
-func validateRepoInfo(desired gitprovider.RepositoryInfo, givenRef *gitprovider.RepositoryInfo) error {
-	// Make sure the given reference matches c.info, if set. If givenRef isn't set, just return
-	if givenRef == nil {
-		return nil
-	}
-	// Make sure the request matches the given validated info
-	if ok, _ := gitprovider.Equals(desired, givenRef); ok {
-		return nil
-	}
-	return fmt.Errorf("repository information in req doesn't match the client: %w", gitprovider.ErrInvalidArgument)
 }

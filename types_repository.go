@@ -16,7 +16,9 @@ limitations under the License.
 
 package gitprovider
 
-import "github.com/fluxcd/go-git-providers/validation"
+import (
+	"github.com/fluxcd/go-git-providers/validation"
+)
 
 const (
 	// the default repository visibility is private
@@ -27,24 +29,14 @@ const (
 	// TODO: When enough Git providers support setting this at both POST and PATCH-time
 	// (including when auto-initing), change this to "main"
 	defaultBranchName = "master"
+	// by default, deploy keys are read-only
+	defaultDeployKeyReadOnly = true
 )
 
-// Repository implements Object and RepositoryRef interfaces
-// Repository can be created and updated
-var _ Object = &Repository{}
-var _ Creatable = &Repository{}
-var _ Updatable = &Repository{}
+var _ CreatableInfo = &RepositoryInfo{}
 
-// Repository represents a Git repository provided by a Git provider
-type Repository struct {
-	// RepositoryRef provides the required fields
-	// (Domain, Organization, SubOrganizations and RepositoryName)
-	// required for being an RepositoryRef
-	RepositoryRef `json:",inline"`
-	// InternalHolder implements the InternalGetter interface
-	// +optional
-	InternalHolder `json:",inline"`
-
+// RepositoryInfo represents a Git repository provided by a Git provider
+type RepositoryInfo struct {
 	// Description returns a description for the repository
 	// No default value at POST-time
 	// +optional
@@ -60,11 +52,11 @@ type Repository struct {
 	// Visibility returns the desired visibility for the repository
 	// Default value at POST-time: RepositoryVisibilityPrivate
 	// +optional
-	Visibility *RepositoryVisibility
+	Visibility *RepositoryVisibility `json:"visibility"`
 }
 
-// Default defaults the Repository, implementing the Creatable interface
-func (r *Repository) Default() {
+// Default defaults the Repository, implementing the CreatableInfo interface
+func (r *RepositoryInfo) Default() {
 	if r.Visibility == nil {
 		r.Visibility = RepositoryVisibilityVar(defaultRepositoryVisibility)
 	}
@@ -73,11 +65,9 @@ func (r *Repository) Default() {
 	}
 }
 
-// ValidateCreate validates the object at POST-time and implements the Creatable interface
-func (r *Repository) ValidateCreate() error {
+// ValidateInfo validates the object at {Object}.Set() and POST-time
+func (r *RepositoryInfo) ValidateInfo() error {
 	validator := validation.New("Repository")
-	// Validate the embedded RepositoryRef (and its IdentityInfo)
-	r.RepositoryRef.ValidateFields(validator)
 	// Validate the Visibility enum
 	if r.Visibility != nil {
 		validator.Append(ValidateRepositoryVisibility(*r.Visibility), *r.Visibility, "Visibility")
@@ -85,24 +75,11 @@ func (r *Repository) ValidateCreate() error {
 	return validator.Error()
 }
 
-// ValidateUpdate validates the object at PUT/PATCH-time and implements the Updatable interface
-func (r *Repository) ValidateUpdate() error {
-	// No specific update logic, just make sure required fields are set
-	return r.ValidateCreate()
-}
-
 // TeamAccess implements Object and RepositoryRef interfaces
 // TeamAccess can be created and deleted
-var _ Object = &TeamAccess{}
-var _ Creatable = &TeamAccess{}
-var _ Deletable = &TeamAccess{}
+var _ CreatableInfo = &TeamAccessInfo{}
 
-// TeamAccess describes a binding between a repository and a team
-type TeamAccess struct {
-	// TeamAccess embeds InternalHolder for accessing the underlying object
-	// +optional
-	InternalHolder `json:",inline"`
-
+type TeamAccessInfo struct {
 	// Name describes the name of the team. The team name may contain slashes
 	// +required
 	Name string `json:"name"`
@@ -111,28 +88,23 @@ type TeamAccess struct {
 	// Default: pull
 	// Available options: See the RepositoryPermission enum
 	// +optional
-	Permission *RepositoryPermission `json:"permission"`
-
-	// Repository specifies the information about what repository this TeamAccess is associated with.
-	// It is populated in .Get() and .List() calls.
-	// When creating, this field is optional. However, if specified, it must match the RepositoryRef
-	// given to the client.
-	// +optional
-	Repository RepositoryRef `json:"repository"`
+	Permission *RepositoryPermission `json:"permission,omitempty"`
 }
 
-// Default defaults the TeamAccess, implementing the Creatable interface
-func (ta *TeamAccess) Default() {
+// Default defaults the TeamAccess, implementing the CreatableInfo interface
+func (ta *TeamAccessInfo) Default() {
 	if ta.Permission == nil {
 		ta.Permission = RepositoryPermissionVar(defaultRepoPermission)
 	}
 }
 
-// ValidateCreate validates the object at POST-time and implements the Creatable interface
-func (ta *TeamAccess) ValidateCreate() error {
+// ValidateInfo validates the object at {Object}.Set() and POST-time
+func (ta *TeamAccessInfo) ValidateInfo() error {
 	validator := validation.New("TeamAccess")
-	// Common validation code
-	ta.validateNameAndRepository(validator)
+	// Make sure we've set the name of the team
+	if len(ta.Name) == 0 {
+		validator.Required("Name")
+	}
 	// Validate the Permission enum
 	if ta.Permission != nil {
 		validator.Append(ValidateRepositoryPermission(*ta.Permission), *ta.Permission, "Permission")
@@ -140,23 +112,42 @@ func (ta *TeamAccess) ValidateCreate() error {
 	return validator.Error()
 }
 
-// ValidateDelete validates the object at DELETE-time and implements the Deletable interface
-func (ta *TeamAccess) ValidateDelete() error {
-	validator := validation.New("TeamAccess")
-	// Common validation code
-	ta.validateNameAndRepository(validator)
-	return validator.Error()
+var _ CreatableInfo = &DeployKeyInfo{}
+
+type DeployKeyInfo struct {
+	// Name is the human-friendly interpretation of what the key is for (and does)
+	// +required
+	Name string `json:"name"`
+
+	// Key specifies the public part of the deploy (e.g. SSH) key
+	// +required
+	Key []byte `json:"key"`
+
+	// ReadOnly specifies whether this DeployKey can write to the repository or not
+	// Default value at POST-time: true
+	// +optional
+	ReadOnly *bool `json:"readOnly,omitempty"`
 }
 
-func (ta *TeamAccess) validateNameAndRepository(validator validation.Validator) {
-	// Make sure we've set the name of the team
-	if len(ta.Name) == 0 {
+// Default defaults the DeployKey, implementing the CreatableInfo interface
+func (dk *DeployKeyInfo) Default() {
+	if dk.ReadOnly == nil {
+		dk.ReadOnly = BoolVar(defaultDeployKeyReadOnly)
+	}
+}
+
+// ValidateInfo validates the object at {Object}.Set() and POST-time
+func (dk *DeployKeyInfo) ValidateInfo() error {
+	validator := validation.New("DeployKey")
+	// Make sure we've set the name of the deploy key
+	if len(dk.Name) == 0 {
 		validator.Required("Name")
 	}
-	// Validate the Repository if it is set. It most likely _shouldn't be_ (there's no need to,
-	// as it's only set at GET-time), but if it is, make sure fields are ok. The RepositoryClient
-	// should make sure that if set, it also needs to match the client's RepositoryRef.
-	if ta.Repository != nil {
-		ta.Repository.ValidateFields(validator)
+	// Key is a required field
+	if len(dk.Key) == 0 {
+		validator.Required("Key")
 	}
+	// Don't care about the RepositoryRef, as that information is coming from
+	// the RepositoryClient. In the client, we make sure that they equal.
+	return validator.Error()
 }

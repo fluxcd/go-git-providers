@@ -16,49 +16,20 @@ limitations under the License.
 
 package gitprovider
 
-// Organization implements the Object interface
-var _ Object = &Organization{}
-
-// Organization represents an (top-level- or sub-) organization
-type Organization struct {
-	// OrganizationRef provides the information about the organization
-	// (Domain, Organization and SubOrganizations)
-	OrganizationRef `json:",inline"`
-	// InternalHolder implements the InternalGetter interface
-	// +optional
-	InternalHolder `json:",inline"`
-
+// OrganizationInfo represents an (top-level- or sub-) organization
+type OrganizationInfo struct {
 	// Name is the human-friendly name of this organization, e.g. "Flux" or "Kubernetes SIGs"
-	// +required
 	Name string `json:"name"`
 
 	// Description returns a description for the organization
-	// No default value at POST-time
-	// +optional
 	Description *string `json:"description"`
 }
 
-// Team implements the Object interface
-var _ Object = &Team{}
-
 // Team is a representation for a team of users inside of an organization
-type Team struct {
-	// Team embeds InternalHolder for accessing the underlying object
-	// +optional
-	InternalHolder `json:",inline"`
-
-	// Name describes the name of the team. The team name may contain slashes
-	// +required
+type TeamInfo struct {
+	// Name describes the name of the team. The team name may contain slashes.
 	Name string `json:"name"`
 
-	// Members points to a set of user names (logins) of the members of this team
-	// +required
+	// Members points to a set of user names (logins) of the members of this team.
 	Members []string `json:"members"`
-
-	// Organization specifies the information about what organization this Team is associated with.
-	// It is populated in .Get() and .List() calls.
-	// When creating, this field is optional. However, if specified, it must match the OrganizationRef
-	// given to the client.
-	// +optional
-	Organization *OrganizationRef `json:"organization"`
 }

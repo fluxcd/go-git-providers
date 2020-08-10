@@ -39,26 +39,14 @@ type Client interface {
 
 // ResourceClient allows access to resource-specific clients
 type ResourceClient interface {
-	// Organization gets the OrganizationClient for a specific top-level organization.
-	// It is ensured that the organization the reference points to exists, as it's looked up
-	// and returned as the second argument.
-	//
-	// ErrNotTopLevelOrganization will be returned at usage time if the organization is not top-level.
-	// ErrNotFound is returned if the organization does not exist.
-	Organization(ctx context.Context, o OrganizationRef) (OrganizationClient, *Organization, error)
-
 	// Organizations returns the OrganizationsClient handling sets of organizations.
 	Organizations() OrganizationsClient
 
-	// Repository gets the RepositoryClient for the specified RepositoryRef.
-	// It is ensured that the repository the reference points to exists, as it's looked up
-	// and returned as the second argument.
-	//
-	// ErrNotFound is returned if the repository does not exist.
-	Repository(ctx context.Context, r RepositoryRef) (RepositoryClient, *Repository, error)
+	// OrgRepositories returns the OrgRepositoriesClient handling sets of repositories in an organization.
+	OrgRepositories() OrgRepositoriesClient
 
-	// Repositories returns the RepositoriesClient handling sets of organizations.
-	Repositories() RepositoriesClient
+	// UserRepositories returns the UserRepositoriesClient handling sets of repositories for a user..
+	UserRepositories() UserRepositoriesClient
 }
 
 // OrganizationsClient operates on organizations the user has access to.
@@ -67,7 +55,7 @@ type OrganizationsClient interface {
 	// This might also refer to a sub-organization.
 	//
 	// ErrNotFound is returned if the resource does not exist.
-	Get(ctx context.Context, o OrganizationRef) (*Organization, error)
+	Get(ctx context.Context, o OrganizationRef) (Organization, error)
 
 	// List all top-level organizations the specific user has access to.
 	//
@@ -85,21 +73,15 @@ type OrganizationsClient interface {
 	// Possibly add Create/Update/Delete methods later
 }
 
-// OrganizationClient operates on a given/specific organization
-type OrganizationClient interface {
-	// Teams gives access to the TeamsClient for this specific organization
-	Teams() OrganizationTeamsClient
-}
-
-// OrganizationTeamsClient handles teams organization-wide
-type OrganizationTeamsClient interface {
+// TeamsClient handles teams organization-wide
+type TeamsClient interface {
 	// Get a team within the specific organization.
 	//
-	// teamName may include slashes, to point to e.g. subgroups in GitLab.
-	// teamName must not be an empty string.
+	// teamName may include slashes, but might not be an empty string.
+	// Teams are sub-groups in GitLab.
 	//
 	// ErrNotFound is returned if the resource does not exist.
-	Get(ctx context.Context, teamName string) (*Team, error)
+	Get(ctx context.Context, teamName string) (Team, error)
 
 	// List all teams (recursively, in terms of subgroups) within the specific organization
 	//
@@ -109,56 +91,63 @@ type OrganizationTeamsClient interface {
 	// Possibly add Create/Update/Delete methods later
 }
 
-// RepositoriesClient operates on repositories the user has access to
-type RepositoriesClient interface {
+// OrgRepositoriesClient operates on repositories for organizations.
+type OrgRepositoriesClient interface {
 	// Get returns the repository at the given path.
 	//
 	// ErrNotFound is returned if the resource does not exist.
-	Get(ctx context.Context, r RepositoryRef) (*Repository, error)
+	Get(ctx context.Context, r OrgRepositoryRef) (OrgRepository, error)
 
-	// List all repositories in the given organization or user account.
+	// List all repositories in the given organization.
 	//
 	// List returns all available repositories, using multiple paginated requests if needed.
-	List(ctx context.Context, o IdentityRef) ([]Repository, error)
+	List(ctx context.Context, o OrganizationRef) ([]OrgRepository, error)
 
-	// Create creates a repository at the given organization path, with the given URL-encoded name and options
+	// Create creates a repository for the given organization, with the data and options
 	//
 	// ErrAlreadyExists will be returned if the resource already exists.
-	//
-	// resp will contain any updated information given by the server; hence it is encouraged
-	// to stop using req after this call, and use resp instead.
-	Create(ctx context.Context, req *Repository, opts ...RepositoryCreateOption) (resp *Repository, err error)
-
-	// Update will update the desired state of the repository. Only set fields will be respected.
-	//
-	// ErrNotFound is returned if the resource does not exist.
-	//
-	// resp will contain any updated information given by the server; hence it is encouraged
-	// to stop using req after this call, and use resp instead.
-	Update(ctx context.Context, req *Repository) (resp *Repository, err error)
+	Create(ctx context.Context, r OrgRepositoryRef, req RepositoryInfo, opts ...RepositoryCreateOption) (OrgRepository, error)
 
 	// Reconcile makes sure req is the actual state in the backing Git provider.
 	//
 	// If req doesn't exist under the hood, it is created (actionTaken == true).
 	// If req doesn't equal the actual state, the resource will be updated (actionTaken == true).
 	// If req is already the actual state, this is a no-op (actionTaken == false).
+	Reconcile(ctx context.Context, r OrgRepositoryRef, req RepositoryInfo, opts ...RepositoryReconcileOption) (resp OrgRepository, actionTaken bool, err error)
+}
+
+// OrgRepositoriesClient operates on repositories for users..
+type UserRepositoriesClient interface {
+	// Get returns the repository at the given path.
 	//
-	// resp will contain any updated information given by the server; hence it is encouraged
-	// to stop using req after this call, and use resp instead.
-	Reconcile(ctx context.Context, req *Repository, opts ...RepositoryReconcileOption) (resp *Repository, actionTaken bool, err error)
+	// ErrNotFound is returned if the resource does not exist.
+	Get(ctx context.Context, r UserRepositoryRef) (UserRepository, error)
+
+	// List all repositories for the given user.
+	//
+	// List returns all available repositories, using multiple paginated requests if needed.
+	List(ctx context.Context, o UserRef) ([]UserRepository, error)
+
+	// Create creates a repository for the given user, with the data and options
+	//
+	// ErrAlreadyExists will be returned if the resource already exists.
+	Create(ctx context.Context, r UserRepositoryRef, req RepositoryInfo, opts ...RepositoryCreateOption) (UserRepository, error)
+
+	// Reconcile makes sure req is the actual state in the backing Git provider.
+	//
+	// If req doesn't exist under the hood, it is created (actionTaken == true).
+	// If req doesn't equal the actual state, the resource will be updated (actionTaken == true).
+	// If req is already the actual state, this is a no-op (actionTaken == false).
+	Reconcile(ctx context.Context, r UserRepositoryRef, req RepositoryInfo, opts ...RepositoryReconcileOption) (resp UserRepository, actionTaken bool, err error)
 }
 
-// RepositoryClient operates on a given/specific repository
-type RepositoryClient interface {
-	// TeamAccess returns a client for operating on the teams that have access to this specific repository
-	TeamAccess() RepositoryTeamAccessClient
+// TeamAccessClient operates on the teams list for a specific repository
+type TeamAccessClient interface {
+	// Get gets a TeamAccess by its name.
+	//
+	// ErrNotFound is returned if the resource does not exist.
+	Get(ctx context.Context, teamName string) (TeamAccess, error)
 
-	// DeployKeys gives access to manipulating deploy keys for accessing this specific repository
-	DeployKeys() DeployKeyClient
-}
-
-// RepositoryTeamAccessClient operates on the teams list for a specific repository
-type RepositoryTeamAccessClient interface {
 	// List lists the team access control list for this repository.
 	//
 	// List returns all available team access lists, using multiple paginated requests if needed.
@@ -167,38 +156,23 @@ type RepositoryTeamAccessClient interface {
 	// Create adds a given team to the repo's team access control list.
 	//
 	// ErrAlreadyExists will be returned if the resource already exists.
-	//
-	// resp will contain any updated information given by the server; hence it is encouraged
-	// to stop using req after this call, and use resp instead.
-	//
-	// req.Repository does not need to be populated, but if it is,
-	// it must equal to the RepositoryRef given to the RepositoryClient.
-	Create(ctx context.Context, req *TeamAccess) (resp *TeamAccess, err error)
-
-	// Delete removes the given team from the repo's team access control list.
-	//
-	// ErrNotFound is returned if the resource does not exist.
-	//
-	// req.Repository does not need to be populated, but if it is,
-	// it must equal to the RepositoryRef given to the RepositoryClient.
-	Delete(ctx context.Context, req *TeamAccess) error
+	Create(ctx context.Context, req TeamAccessInfo) (TeamAccess, error)
 
 	// Reconcile makes sure req is the actual state in the backing Git provider.
 	//
 	// If req doesn't exist under the hood, it is created (actionTaken == true).
-	// If req doesn't equal the actual state, the resource will be deleted and recreated (actionTaken == true).
+	// If req doesn't equal the actual state, the resource will be updated (actionTaken == true).
 	// If req is already the actual state, this is a no-op (actionTaken == false).
-	//
-	// resp will contain any updated information given by the server; hence it is encouraged
-	// to stop using req after this call, and use resp instead.
-	//
-	// req.Repository does not need to be populated, but if it is,
-	// it must equal to the RepositoryRef given to the RepositoryClient.
-	Reconcile(ctx context.Context, req *TeamAccess) (resp *TeamAccess, actionTaken bool, err error)
+	Reconcile(ctx context.Context, req TeamAccessInfo) (resp TeamAccess, actionTaken bool, err error)
 }
 
 // DeployKeyClient operates on the access credential list for a specific repository
 type DeployKeyClient interface {
+	// Get gets a DeployKey by its name.
+	//
+	// ErrNotFound is returned if the resource does not exist.
+	Get(ctx context.Context, name string) (DeployKey, error)
+
 	// List lists all deploy keys of the given credential type.
 	//
 	// List returns all available deploy keys for the given type,
@@ -208,32 +182,12 @@ type DeployKeyClient interface {
 	// Create creates a deploy key with the given specifications.
 	//
 	// ErrAlreadyExists will be returned if the resource already exists.
-	//
-	// resp will contain any updated information given by the server; hence it is encouraged
-	// to stop using req after this call, and use resp instead.
-	//
-	// req.Repository does not need to be populated, but if it is,
-	// it must equal to the RepositoryRef given to the RepositoryClient.
-	Create(ctx context.Context, req *DeployKey) (resp *DeployKey, err error)
-
-	// Delete deletes a credential from the repository.
-	//
-	// ErrNotFound is returned if the resource does not exist.
-	//
-	// req.Repository does not need to be populated, but if it is,
-	// it must equal to the RepositoryRef given to the RepositoryClient.
-	Delete(ctx context.Context, req *DeployKey) error
+	Create(ctx context.Context, req DeployKeyInfo) (DeployKey, error)
 
 	// Reconcile makes sure req is the actual state in the backing Git provider.
 	//
 	// If req doesn't exist under the hood, it is created (actionTaken == true).
-	// If req doesn't equal the actual state, the resource will be deleted and recreated (actionTaken == true).
+	// If req doesn't equal the actual state, the resource will be updated (actionTaken == true).
 	// If req is already the actual state, this is a no-op (actionTaken == false).
-	//
-	// resp will contain any updated information given by the server; hence it is encouraged
-	// to stop using req after this call, and use resp instead.
-	//
-	// req.Repository does not need to be populated, but if it is,
-	// it must equal to the RepositoryRef given to the RepositoryClient.
-	Reconcile(ctx context.Context, req *DeployKey) (resp *DeployKey, actionTaken bool, err error)
+	Reconcile(ctx context.Context, req DeployKeyInfo) (resp DeployKey, actionTaken bool, err error)
 }

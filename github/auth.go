@@ -89,7 +89,7 @@ func WithPersonalAccessToken(patToken string) ClientOption {
 		if opts.ClientFactory != nil {
 			return fmt.Errorf("http.Client already configured: %w", ErrInvalidClientOption)
 		}
-		opts.ClientFactory = &oauth2Auth{patToken}
+		opts.ClientFactory = &patAuth{patToken}
 		return nil
 	}
 }

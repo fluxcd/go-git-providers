@@ -61,7 +61,7 @@ type IdentityRef interface {
 	String() string
 }
 
-// RepositoryRef describes a reference to a repository owned by either an user account or organization.
+// RepositoryRef describes a reference to a repository owned by either a user account or organization.
 type RepositoryRef interface {
 	// RepositoryRef is a superset of IdentityRef.
 	IdentityRef
@@ -73,7 +73,7 @@ type RepositoryRef interface {
 	GetCloneURL(transport TransportType) string
 }
 
-// UserRef represents an user account in a Git provider.
+// UserRef represents a user account in a Git provider.
 type UserRef struct {
 	// Domain returns e.g. "github.com", "gitlab.com" or a custom domain like "self-hosted-gitlab.com" (GitLab)
 	// The domain _might_ contain port information, in the form of "host:port", if applicable

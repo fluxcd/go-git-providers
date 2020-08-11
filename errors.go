@@ -25,9 +25,9 @@ import (
 var (
 	// ErrNoProviderSupport describes that the provider doesn't support the requested feature
 	ErrNoProviderSupport = errors.New("no provider support for this feature")
-	// ErrDomainUnsupported describes the case where e.g. a Github provider used for trying to get
+	// ErrDomainUnsupported describes the case where e.g. a GitHub provider used for trying to get
 	// information from e.g. gitlab.com
-	ErrDomainUnsupported = errors.New("the given client doesn't support handling requests for this domain")
+	ErrDomainUnsupported = errors.New("the client doesn't support handling requests for this domain")
 
 	// ErrNotTopLevelOrganization describes the case where it's mandatory to specify a top-level organization
 	// (e.g. to access teams), but a sub-organization was passed as the OrganizationRef
@@ -35,13 +35,15 @@ var (
 	// ErrInvalidArgument describes a generic error where an invalid argument have been specified to a function
 	ErrInvalidArgument = errors.New("invalid argument specified")
 	// ErrUnexpectedEvent describes a case where something really unexpected happened in the program
-	ErrUnexpectedEvent = errors.New("something unexpected happened")
+	ErrUnexpectedEvent = errors.New("an unexpected error occurred")
 
 	// ErrAlreadyExists is returned by .Create() requests if the given resource already exists.
 	// Use .Reconcile() instead if you want to idempotently create the resource
 	ErrAlreadyExists = errors.New("resource already exists, cannot create object. Use Reconcile() to create it idempotently")
 	// ErrNotFound is returned by .Get() and .Update() calls if the given resource doesn't exist
 	ErrNotFound = errors.New("the requested resource was not found")
+	// ErrInvalidServerData is returned when the server returned invalid data, e.g. missing required fields in the response.
+	ErrInvalidServerData = errors.New("got invalid data from server, don't know how to handle")
 
 	// ErrURLUnsupportedScheme is returned if an URL without the HTTPS scheme is parsed
 	ErrURLUnsupportedScheme = errors.New("unsupported URL scheme, only HTTPS supported")
@@ -79,7 +81,7 @@ type RateLimitError struct {
 	Limit int `json:"limit"`
 	// The number of remaining requests the client can make this hour.
 	Remaining int `json:"remaining"`
-	// The time at which the current rate limit will reset.
+	// The timestamp at which point the current rate limit will reset.
 	Reset time.Time `json:"reset"`
 }
 
@@ -88,7 +90,7 @@ type ValidationError struct {
 	// RateLimitError extends HTTPError
 	HTTPError `json:",inline"`
 
-	// Errors contain context about what validation failed
+	// Errors contain context about what validation(s) failed
 	Errors []ValidationErrorItem `json:"errors"`
 }
 

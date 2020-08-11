@@ -70,12 +70,13 @@ func (ta *teamAccess) Delete(ctx context.Context) error {
 }
 
 func (ta *teamAccess) Update(ctx context.Context) error {
-	req := ta.Get()
 	// Update the actual state to be the desired state
 	// by issuing a Create, which uses a PUT underneath.
-	resp, err := ta.c.Create(ctx, req)
-	ta.Set(resp.Get())
-	return err
+	resp, err := ta.c.Create(ctx, ta.Get())
+	if err != nil {
+		return err
+	}
+	return ta.Set(resp.Get())
 }
 
 // Reconcile makes sure req is the actual state in the backing Git provider.
@@ -90,8 +91,10 @@ func (ta *teamAccess) Reconcile(ctx context.Context) (bool, error) {
 		// Create if not found
 		if errors.Is(err, gitprovider.ErrNotFound) {
 			resp, err := ta.c.Create(ctx, req)
-			ta.Set(resp.Get())
-			return true, err
+			if err != nil {
+				return true, err
+			}
+			return true, ta.Set(resp.Get())
 		}
 
 		// Unexpected path, Get should succeed or return NotFound

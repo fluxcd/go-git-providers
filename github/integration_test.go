@@ -64,9 +64,6 @@ var _ = Describe("GitHub Provider", func() {
 	BeforeSuite(func() {
 		githubToken := os.Getenv("GITHUB_TOKEN")
 		if len(githubToken) == 0 {
-			githubToken = os.Getenv("GITPROVIDER_BOT_TOKEN")
-		}
-		if len(githubToken) == 0 {
 			b, err := ioutil.ReadFile(ghTokenFile)
 			if token := string(b); err == nil && len(token) != 0 {
 				githubToken = token

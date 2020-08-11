@@ -38,9 +38,9 @@ const (
 )
 
 var (
-	// ErrInvalidClientOption is the error returned when calling NewClient() with
+	// ErrInvalidClientOptions is the error returned when calling NewClient() with
 	// invalid options (e.g. specifying mutually exclusive options)
-	ErrInvalidClientOption = errors.New("invalid options given to NewClient()")
+	ErrInvalidClientOptions = errors.New("invalid options given to NewClient()")
 	// ErrDestructiveCallDisallowed happens when the client isn't set up with WithDestructiveAPICalls()
 	// but a destructive action is called.
 	ErrDestructiveCallDisallowed = errors.New("a destructive call was blocked because it wasn't allowed by the client")
@@ -50,7 +50,7 @@ var (
 // It is private so that the user must use the With... functions
 type clientOptions struct {
 	// Domain specifies the backing domain, which can be arbitrary if the user uses
-	// Github Enterprise. If unset, defaultDomain will be used.
+	// GitHub Enterprise. If unset, defaultDomain will be used.
 	Domain *string
 
 	// ClientFactory is a way to aquire a *http.Client, possibly with auth credentials
@@ -65,36 +65,36 @@ type clientOptions struct {
 // which holds information of how the Client should be initialized.
 type ClientOption func(*clientOptions) error
 
-// WithOAuth2Token initializes a Client which authenticates with Github through an OAuth2 token.
+// WithOAuth2Token initializes a Client which authenticates with GitHub through an OAuth2 token.
 // oauth2Token must not be an empty string.
 // WithOAuth2Token is mutually exclusive with WithPersonalAccessToken and WithClientFactory.
 func WithOAuth2Token(oauth2Token string) ClientOption {
 	return func(opts *clientOptions) error {
 		// Don't allow an empty value
 		if len(oauth2Token) == 0 {
-			return fmt.Errorf("oauth2Token cannot be empty: %w", ErrInvalidClientOption)
+			return fmt.Errorf("oauth2Token cannot be empty: %w", ErrInvalidClientOptions)
 		}
 		// Make sure the user didn't specify auth twice
 		if opts.ClientFactory != nil {
-			return fmt.Errorf("http.Client already configured: %w", ErrInvalidClientOption)
+			return fmt.Errorf("authentication http.Client already configured: %w", ErrInvalidClientOptions)
 		}
 		opts.ClientFactory = &oauth2Auth{oauth2Token}
 		return nil
 	}
 }
 
-// WithPersonalAccessToken initializes a Client which authenticates with Github through a personal access token.
+// WithPersonalAccessToken initializes a Client which authenticates with GitHub through a personal access token.
 // patToken must not be an empty string.
 // WithPersonalAccessToken is mutually exclusive with WithOAuth2Token and WithClientFactory.
 func WithPersonalAccessToken(patToken string) ClientOption {
 	return func(opts *clientOptions) error {
 		// Don't allow an empty value
 		if len(patToken) == 0 {
-			return fmt.Errorf("patToken cannot be empty: %w", ErrInvalidClientOption)
+			return fmt.Errorf("patToken cannot be empty: %w", ErrInvalidClientOptions)
 		}
 		// Make sure the user didn't specify auth twice
 		if opts.ClientFactory != nil {
-			return fmt.Errorf("http.Client already configured: %w", ErrInvalidClientOption)
+			return fmt.Errorf("authentication http.Client already configured: %w", ErrInvalidClientOptions)
 		}
 		opts.ClientFactory = &patAuth{patToken}
 		return nil
@@ -108,11 +108,11 @@ func WithClientFactory(clientFactory ClientFactory) ClientOption {
 	return func(opts *clientOptions) error {
 		// Don't allow an empty value
 		if clientFactory == nil {
-			return fmt.Errorf("clientFactory cannot be nil: %w", ErrInvalidClientOption)
+			return fmt.Errorf("clientFactory cannot be nil: %w", ErrInvalidClientOptions)
 		}
 		// Make sure the user didn't specify auth twice
 		if opts.ClientFactory != nil {
-			return fmt.Errorf("http.Client already configured: %w", ErrInvalidClientOption)
+			return fmt.Errorf("authentication http.Client already configured: %w", ErrInvalidClientOptions)
 		}
 		opts.ClientFactory = clientFactory
 		return nil
@@ -125,11 +125,11 @@ func WithDomain(domain string) ClientOption {
 	return func(opts *clientOptions) error {
 		// Don't set an empty value
 		if len(domain) == 0 {
-			return fmt.Errorf("domain cannot be empty: %w", ErrInvalidClientOption)
+			return fmt.Errorf("domain cannot be empty: %w", ErrInvalidClientOptions)
 		}
 		// Make sure the user didn't specify the domain twice
 		if opts.Domain != nil {
-			return fmt.Errorf("domain already configured: %w", ErrInvalidClientOption)
+			return fmt.Errorf("domain already configured: %w", ErrInvalidClientOptions)
 		}
 		opts.Domain = gitprovider.StringVar(domain)
 		return nil
@@ -142,7 +142,7 @@ func WithDestructiveAPICalls(destructiveActions bool) ClientOption {
 	return func(opts *clientOptions) error {
 		// Make sure the user didn't specify the domain twice
 		if opts.EnableDestructiveAPICalls != nil {
-			return fmt.Errorf("destructive actions flag already configured: %w", ErrInvalidClientOption)
+			return fmt.Errorf("destructive actions flag already configured: %w", ErrInvalidClientOptions)
 		}
 		opts.EnableDestructiveAPICalls = gitprovider.BoolVar(destructiveActions)
 		return nil
@@ -193,12 +193,12 @@ func makeOptions(opts ...ClientOption) (*clientOptions, error) {
 	return o, nil
 }
 
-// NewClient creates a new gitprovider.Client instance for Github API endpoints.
+// NewClient creates a new gitprovider.Client instance for GitHub API endpoints.
 //
 // Using WithOAuth2Token or WithPersonalAccessToken you can specify authentication
-// credentials, given no such ClientOption will allow public read access only.
+// credentials, passing no such ClientOption will allow public read access only.
 //
-// Basic Auth is not supported because it is deprecated by Github, see
+// Basic Auth is not supported because it is deprecated by GitHub, see
 // https://developer.github.com/changes/2020-02-14-deprecating-password-auth/
 //
 // GitHub Enterprise can be used if you specify the domain using the WithDomain option.
@@ -217,7 +217,7 @@ func NewClient(ctx context.Context, optFns ...ClientOption) (gitprovider.Client,
 		httpClient = opts.ClientFactory.Client(ctx)
 	}
 
-	// Create the Github client either for the default github.com domain, or
+	// Create the GitHub client either for the default github.com domain, or
 	// a custom enterprise domain if opts.Domain is set to something other than
 	// the default.
 	var gh *github.Client
@@ -227,7 +227,7 @@ func NewClient(ctx context.Context, optFns ...ClientOption) (gitprovider.Client,
 		domain = defaultDomain
 		gh = github.NewClient(httpClient)
 	} else {
-		// Github Enterprise is used
+		// GitHub Enterprise is used
 		domain = *opts.Domain
 		baseURL := fmt.Sprintf("https://%s/api/v3/", domain)
 		uploadURL := fmt.Sprintf("https://%s/api/uploads/", domain)

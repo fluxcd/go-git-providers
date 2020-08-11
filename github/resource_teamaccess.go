@@ -66,11 +66,7 @@ func (ta *teamAccess) Delete(ctx context.Context) error {
 
 	// DELETE /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}
 	_, err := ta.c.c.Teams.RemoveTeamRepoBySlug(ctx, ta.c.ref.GetIdentity(), ta.ta.Name, ta.c.ref.GetIdentity(), ta.c.ref.GetRepository())
-	if err != nil {
-		return handleHTTPError(err)
-	}
-
-	return nil
+	return handleHTTPError(err)
 }
 
 func (ta *teamAccess) Update(ctx context.Context) error {

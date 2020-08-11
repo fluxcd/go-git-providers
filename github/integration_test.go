@@ -50,10 +50,10 @@ func init() {
 
 func TestProvider(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Github Provider Suite")
+	RunSpecs(t, "GitHub Provider Suite")
 }
 
-var _ = Describe("Github Provider", func() {
+var _ = Describe("GitHub Provider", func() {
 	var (
 		ctx context.Context
 		c   gitprovider.Client

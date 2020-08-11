@@ -34,7 +34,7 @@ const (
 // TODO: Guard better against nil pointer dereference panics in this package, also
 // validate data coming from the server
 
-// validateUserRepositoryRef makes sure the UserRepositoryRef is valid for Github's usage.
+// validateUserRepositoryRef makes sure the UserRepositoryRef is valid for GitHub's usage.
 func validateUserRepositoryRef(ref gitprovider.UserRepositoryRef, expectedDomain string) error {
 	// Make sure the RepositoryRef fields are valid
 	if err := validation.ValidateTargets("UserRepositoryRef", ref); err != nil {
@@ -44,7 +44,7 @@ func validateUserRepositoryRef(ref gitprovider.UserRepositoryRef, expectedDomain
 	return validateIdentityFields(ref, expectedDomain)
 }
 
-// validateOrgRepositoryRef makes sure the OrgRepositoryRef is valid for Github's usage.
+// validateOrgRepositoryRef makes sure the OrgRepositoryRef is valid for GitHub's usage.
 func validateOrgRepositoryRef(ref gitprovider.OrgRepositoryRef, expectedDomain string) error {
 	// Make sure the RepositoryRef fields are valid
 	if err := validation.ValidateTargets("OrgRepositoryRef", ref); err != nil {
@@ -54,7 +54,7 @@ func validateOrgRepositoryRef(ref gitprovider.OrgRepositoryRef, expectedDomain s
 	return validateIdentityFields(ref, expectedDomain)
 }
 
-// validateOrganizationRef makes sure the OrganizationRef is valid for Github's usage.
+// validateOrganizationRef makes sure the OrganizationRef is valid for GitHub's usage.
 func validateOrganizationRef(ref gitprovider.OrganizationRef, expectedDomain string) error {
 	// Make sure the OrganizationRef fields are valid
 	if err := validation.ValidateTargets("OrganizationRef", ref); err != nil {
@@ -64,7 +64,7 @@ func validateOrganizationRef(ref gitprovider.OrganizationRef, expectedDomain str
 	return validateIdentityFields(ref, expectedDomain)
 }
 
-// validateUserRef makes sure the UserRef is valid for Github's usage.
+// validateUserRef makes sure the UserRef is valid for GitHub's usage.
 func validateUserRef(ref gitprovider.UserRef, expectedDomain string) error {
 	// Make sure the OrganizationRef fields are valid
 	if err := validation.ValidateTargets("UserRef", ref); err != nil {

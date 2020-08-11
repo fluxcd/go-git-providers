@@ -32,7 +32,7 @@ type OrganizationsClient struct {
 }
 
 // Get a specific organization the user has access to.
-// This can't refer to a sub-organization in Github, as those aren't supported.
+// This can't refer to a sub-organization in GitHub, as those aren't supported.
 //
 // ErrNotFound is returned if the resource does not exist.
 func (c *OrganizationsClient) Get(ctx context.Context, ref gitprovider.OrganizationRef) (gitprovider.Organization, error) {

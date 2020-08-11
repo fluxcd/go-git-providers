@@ -125,6 +125,6 @@ func (c *UserRepositoriesClient) Reconcile(ctx context.Context, ref gitprovider.
 	}
 
 	// Run generic reconciliation
-	actionTaken, err := genericReconcile(ctx, actual, req)
+	actionTaken, err := reconcileRepository(ctx, actual, req)
 	return actual, actionTaken, err
 }

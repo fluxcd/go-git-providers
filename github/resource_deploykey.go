@@ -93,21 +93,17 @@ func (dk *deployKey) Delete(ctx context.Context) error {
 
 	// DELETE /repos/{owner}/{repo}/keys/{key_id}
 	_, err := dk.c.c.Repositories.DeleteKey(ctx, dk.c.ref.GetIdentity(), dk.c.ref.GetRepository(), *dk.k.ID)
-	if err != nil {
-		return handleHTTPError(err)
-	}
-
-	return nil
+	return handleHTTPError(err)
 }
 
-// Reconcile makes sure req is the actual state in the backing Git provider.
+// Reconcile makes sure the desired state in this object (called "req" here) becomes
+// the actual state in the backing Git provider.
 //
 // If req doesn't exist under the hood, it is created (actionTaken == true).
-// If req doesn't equal the actual state, the resource will be deleted and recreated (actionTaken == true).
+// If req doesn't equal the actual state, the resource will be updated (actionTaken == true).
 // If req is already the actual state, this is a no-op (actionTaken == false).
 //
-// resp will contain any updated information given by the server; hence it is encouraged
-// to stop using req after this call, and use resp instead.
+// The internal API object will be overridden with the received server data if actionTaken == true.
 func (dk *deployKey) Reconcile(ctx context.Context) (bool, error) {
 	actual, err := dk.c.Get(ctx, *dk.k.Key)
 	if err != nil {

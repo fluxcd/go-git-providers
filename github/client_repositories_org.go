@@ -125,7 +125,7 @@ func (c *OrgRepositoriesClient) Reconcile(ctx context.Context, ref gitprovider.O
 		return nil, false, err
 	}
 	// Run generic reconciliation
-	actionTaken, err := genericReconcile(ctx, actual, req)
+	actionTaken, err := reconcileRepository(ctx, actual, req)
 	return actual, actionTaken, err
 }
 
@@ -163,7 +163,7 @@ func createRepositoryData(c *github.Client, ctx context.Context, orgName string,
 	return validateRepositoryAPIResp(apiObj, err)
 }
 
-func genericReconcile(ctx context.Context, actual gitprovider.UserRepository, req gitprovider.RepositoryInfo) (actionTaken bool, err error) {
+func reconcileRepository(ctx context.Context, actual gitprovider.UserRepository, req gitprovider.RepositoryInfo) (actionTaken bool, err error) {
 	// If the desired matches the actual state, just return the actual state
 	if reflect.DeepEqual(req, actual.Get()) {
 		return

@@ -124,7 +124,11 @@ func (r *userRepository) Reconcile(ctx context.Context) (bool, error) {
 	}
 
 	// If desired state already is actual, just return
-	if reflect.DeepEqual(*apiObj, r.r) {
+	// TODO: Create an equality method for "settable" fields of the repository object
+	// Comparing two API objects to each other using reflect.DeepEqual or JSON doesn't work
+	// as current status is conflated in the same object and will result in race conditions.
+	// For now, as a workaround, we'll just compare the RepositoryInfo with each other.
+	if reflect.DeepEqual(repositoryFromAPI(apiObj), r.Get()) {
 		return false, nil
 	}
 	// Otherwise, make the desired state the actual state

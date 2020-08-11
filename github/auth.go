@@ -22,9 +22,10 @@ import (
 	"fmt"
 	"net/http"
 
-	gitprovider "github.com/fluxcd/go-git-providers"
 	"github.com/google/go-github/v32/github"
 	"golang.org/x/oauth2"
+
+	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
 const (

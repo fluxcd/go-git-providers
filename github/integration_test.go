@@ -26,10 +26,11 @@ import (
 	"testing"
 	"time"
 
-	gitprovider "github.com/fluxcd/go-git-providers"
 	githubapi "github.com/google/go-github/v32/github"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
 const (

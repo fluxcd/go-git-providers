@@ -21,8 +21,9 @@ import (
 	"errors"
 	"reflect"
 
-	gitprovider "github.com/fluxcd/go-git-providers"
 	"github.com/google/go-github/v32/github"
+
+	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
 func newTeamAccess(c *TeamAccessClient, ta gitprovider.TeamAccessInfo) *teamAccess {

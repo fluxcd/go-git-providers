@@ -22,8 +22,9 @@ import (
 	"fmt"
 	"reflect"
 
-	gitprovider "github.com/fluxcd/go-git-providers"
 	"github.com/google/go-github/v32/github"
+
+	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
 // TeamAccessClient implements the gitprovider.TeamAccessClient interface

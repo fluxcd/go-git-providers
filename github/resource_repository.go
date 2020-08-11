@@ -22,9 +22,10 @@ import (
 	"fmt"
 	"reflect"
 
-	gitprovider "github.com/fluxcd/go-git-providers"
-	"github.com/fluxcd/go-git-providers/validation"
 	"github.com/google/go-github/v32/github"
+
+	"github.com/fluxcd/go-git-providers/gitprovider"
+	"github.com/fluxcd/go-git-providers/validation"
 )
 
 func newUserRepository(ctx *clientContext, apiObj *github.Repository, ref gitprovider.RepositoryRef) *userRepository {

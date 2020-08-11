@@ -17,8 +17,9 @@ limitations under the License.
 package github
 
 import (
-	gitprovider "github.com/fluxcd/go-git-providers"
 	"github.com/google/go-github/v32/github"
+
+	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
 func newOrganization(ctx *clientContext, apiObj *github.Organization, ref gitprovider.OrganizationRef) *organization {

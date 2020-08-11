@@ -20,8 +20,9 @@ import (
 	"context"
 	"errors"
 
-	gitprovider "github.com/fluxcd/go-git-providers"
 	"github.com/google/go-github/v32/github"
+
+	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
 // UserRepositoriesClient implements the gitprovider.UserRepositoriesClient interface

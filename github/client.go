@@ -24,8 +24,8 @@ import (
 // ProviderID is the provider ID for GitHub
 const ProviderID = gitprovider.ProviderID("github")
 
-func newClient(c *github.Client, domain string) *Client {
-	ctx := &clientContext{c, domain}
+func newClient(c *github.Client, domain string, destructiveActions bool) *Client {
+	ctx := &clientContext{c, domain, destructiveActions}
 	return &Client{
 		clientContext: ctx,
 		orgs: &OrganizationsClient{
@@ -41,8 +41,9 @@ func newClient(c *github.Client, domain string) *Client {
 }
 
 type clientContext struct {
-	c      *github.Client
-	domain string
+	c                  *github.Client
+	domain             string
+	destructiveActions bool
 }
 
 // Client implements the gitprovider.Client interface

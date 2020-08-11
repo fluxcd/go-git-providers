@@ -82,7 +82,7 @@ var _ = Describe("Github Provider", func() {
 
 		ctx = context.Background()
 		var err error
-		c, err = NewClient(ctx, WithPersonalAccessToken(githubToken))
+		c, err = NewClient(ctx, WithPersonalAccessToken(githubToken), WithDestructiveAPICalls(true))
 		Expect(err).ToNot(HaveOccurred())
 	})
 

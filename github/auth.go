@@ -41,6 +41,9 @@ var (
 	// ErrInvalidClientOption is the error returned when calling NewClient() with
 	// invalid options (e.g. specifying mutually exclusive options)
 	ErrInvalidClientOption = errors.New("invalid options given to NewClient()")
+	// ErrDestructiveCallDisallowed happens when the client isn't set up with WithDestructiveAPICalls()
+	// but a destructive action is called.
+	ErrDestructiveCallDisallowed = errors.New("a destructive call was blocked because it wasn't allowed by the client")
 )
 
 // clientOptions is the struct that tracks data about what options have been set
@@ -52,6 +55,10 @@ type clientOptions struct {
 
 	// ClientFactory is a way to aquire a *http.Client, possibly with auth credentials
 	ClientFactory ClientFactory
+
+	// EnableDestructiveAPICalls is a flag to tell whether destructive API calls like
+	// deleting a repository and such is allowed. Default: false
+	EnableDestructiveAPICalls *bool
 }
 
 // ClientOption is a function that is mutating a pointer to a clientOptions object
@@ -125,6 +132,19 @@ func WithDomain(domain string) ClientOption {
 			return fmt.Errorf("domain already configured: %w", ErrInvalidClientOption)
 		}
 		opts.Domain = gitprovider.StringVar(domain)
+		return nil
+	}
+}
+
+// WithDestructiveAPICalls tells the client whether it's allowed to do dangerous and possibly destructive
+// actions, like e.g. deleting a repository.
+func WithDestructiveAPICalls(destructiveActions bool) ClientOption {
+	return func(opts *clientOptions) error {
+		// Make sure the user didn't specify the domain twice
+		if opts.EnableDestructiveAPICalls != nil {
+			return fmt.Errorf("destructive actions flag already configured: %w", ErrInvalidClientOption)
+		}
+		opts.EnableDestructiveAPICalls = gitprovider.BoolVar(destructiveActions)
 		return nil
 	}
 }
@@ -216,6 +236,11 @@ func NewClient(ctx context.Context, optFns ...ClientOption) (gitprovider.Client,
 			return nil, err
 		}
 	}
+	// By default, turn destructive actions off. But allow overrides.
+	destructiveActions := false
+	if opts.EnableDestructiveAPICalls != nil {
+		destructiveActions = *opts.EnableDestructiveAPICalls
+	}
 
-	return newClient(gh, domain), nil
+	return newClient(gh, domain, destructiveActions), nil
 }

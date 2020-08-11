@@ -27,6 +27,7 @@ import (
 	"time"
 
 	gitprovider "github.com/fluxcd/go-git-providers"
+	"github.com/google/go-github/v32/github"
 	githubapi "github.com/google/go-github/v32/github"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -159,7 +160,7 @@ var _ = Describe("Github Provider", func() {
 		getRepo, err := c.OrgRepositories().Get(ctx, repoRef)
 		Expect(err).ToNot(HaveOccurred())
 		// Expect the two responses (one from POST and one from GET to be equal)
-		Expect(getRepo).To(Equal(repo))
+		Expect(getRepo.Get()).To(Equal(repo.Get()))
 	})
 
 	It("should error at creation time if the repo already does exist", func() {
@@ -171,26 +172,32 @@ var _ = Describe("Github Provider", func() {
 	It("should update if the repository already exists when reconciling", func() {
 		repoRef := newOrgRepoRef(testOrgName, testRepoName)
 		// No-op reconcile
-		_, actionTaken, err := c.OrgRepositories().Reconcile(ctx, repoRef, gitprovider.RepositoryInfo{
+		resp, actionTaken, err := c.OrgRepositories().Reconcile(ctx, repoRef, gitprovider.RepositoryInfo{
 			Description:   gitprovider.StringVar(defaultDescription),
 			DefaultBranch: gitprovider.StringVar(defaultBranch),
 			Visibility:    gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
 		})
 		Expect(err).ToNot(HaveOccurred())
 		Expect(actionTaken).To(BeFalse())
+		// no-op set & reconcile
+		Expect(resp.Set(resp.Get())).ToNot(HaveOccurred())
+		actionTaken, err = resp.Reconcile(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(actionTaken).To(BeFalse())
 
 		// Update reconcile
 		newDesc := "New description"
-		repo, actionTaken, err := c.OrgRepositories().Reconcile(ctx, repoRef, gitprovider.RepositoryInfo{
-			Description: gitprovider.StringVar(newDesc),
-		})
+		req := resp.Get()
+		req.Description = gitprovider.StringVar(newDesc)
+		Expect(resp.Set(req)).ToNot(HaveOccurred())
+		actionTaken, err = resp.Reconcile(ctx)
 		// Expect the update to succeed, and modify the state
 		Expect(err).ToNot(HaveOccurred())
 		Expect(actionTaken).To(BeTrue())
-		Expect(*repo.Get().Description).To(Equal(newDesc))
+		Expect(*resp.Get().Description).To(Equal(newDesc))
 
 		// Delete the repository and later re-create
-		Expect(repo.Delete(ctx)).ToNot(HaveOccurred())
+		Expect(resp.Delete(ctx)).ToNot(HaveOccurred())
 
 		// Reconcile and create
 		newRepo, actionTaken, err := c.OrgRepositories().Reconcile(ctx, repoRef, gitprovider.RepositoryInfo{
@@ -203,6 +210,13 @@ var _ = Describe("Github Provider", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(actionTaken).To(BeTrue())
 		validateRepo(newRepo, repoRef)
+
+		r := newRepo.APIObject().(*github.Repository)
+		r.DeleteBranchOnMerge = gitprovider.BoolVar(true)
+		actionTaken, err = newRepo.Reconcile(ctx)
+		// Expect the update to succeed, and modify the state
+		Expect(err).ToNot(HaveOccurred())
+		Expect(actionTaken).To(BeTrue())
 	})
 
 	AfterSuite(func() {

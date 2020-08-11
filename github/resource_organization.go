@@ -48,11 +48,6 @@ func (o *organization) Get() gitprovider.OrganizationInfo {
 	return organizationFromAPI(&o.o)
 }
 
-func (o *organization) Set(info gitprovider.OrganizationInfo) error {
-	// TODO
-	return nil
-}
-
 func (o *organization) APIObject() interface{} {
 	return &o.o
 }

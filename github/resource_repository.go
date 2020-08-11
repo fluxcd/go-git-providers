@@ -54,7 +54,10 @@ func (r *userRepository) Get() gitprovider.RepositoryInfo {
 }
 
 func (r *userRepository) Set(info gitprovider.RepositoryInfo) error {
-	// TODO
+	if err := info.ValidateInfo(); err != nil {
+		return err
+	}
+	repositoryInfoToAPIObj(&info, &r.r)
 	return nil
 }
 
@@ -199,14 +202,22 @@ func validateRepositoryAPIResp(apiObj *github.Repository, err error) (*github.Re
 
 func repositoryToAPI(repo *gitprovider.RepositoryInfo, ref gitprovider.RepositoryRef) github.Repository {
 	apiObj := github.Repository{
-		Name:          gitprovider.StringVar(ref.GetRepository()),
-		Description:   repo.Description,
-		DefaultBranch: repo.DefaultBranch,
+		Name: gitprovider.StringVar(ref.GetRepository()),
+	}
+	repositoryInfoToAPIObj(repo, &apiObj)
+	return apiObj
+}
+
+func repositoryInfoToAPIObj(repo *gitprovider.RepositoryInfo, apiObj *github.Repository) {
+	if repo.Description != nil {
+		apiObj.Description = repo.Description
+	}
+	if repo.DefaultBranch != nil {
+		apiObj.DefaultBranch = repo.DefaultBranch
 	}
 	if repo.Visibility != nil {
 		apiObj.Visibility = gitprovider.StringVar(string(*repo.Visibility))
 	}
-	return apiObj
 }
 
 func applyRepoCreateOptions(apiObj *github.Repository, opts gitprovider.RepositoryCreateOptions) {

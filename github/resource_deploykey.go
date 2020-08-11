@@ -23,14 +23,18 @@ import (
 	"reflect"
 
 	gitprovider "github.com/fluxcd/go-git-providers"
+	"github.com/fluxcd/go-git-providers/validation"
 	"github.com/google/go-github/v32/github"
 )
 
-func newDeployKey(c *DeployKeyClient, key *github.Key) *deployKey {
+func newDeployKey(c *DeployKeyClient, key *github.Key) (*deployKey, error) {
+	if err := validateDeployKeyAPI(key); err != nil {
+		return nil, err
+	}
 	return &deployKey{
 		k: *key,
 		c: c,
-	}
+	}, nil
 }
 
 var _ gitprovider.DeployKey = &deployKey{}
@@ -45,8 +49,10 @@ func (dk *deployKey) Get() gitprovider.DeployKeyInfo {
 }
 
 func (dk *deployKey) Set(info gitprovider.DeployKeyInfo) error {
-	// TODO
-	dk.k.Title = &info.Name
+	if err := info.ValidateInfo(); err != nil {
+		return err
+	}
+	deployKeyInfoToAPIObj(&info, &dk.k)
 	return nil
 }
 
@@ -79,8 +85,8 @@ func (dk *deployKey) Update(ctx context.Context) error {
 //
 // ErrNotFound is returned if the resource does not exist.
 func (dk *deployKey) Delete(ctx context.Context) error {
-	// We can use the same DeployKey ID that we got from the GET calls. Make sure it's non-nil
-	// This _should never_ happen, but just check for it anyways to avoid panicing
+	// We can use the same DeployKey ID that we got from the GET calls. Make sure it's non-nil.
+	// This _should never_ happen, but just check for it anyways to avoid panicing.
 	if dk.k.ID == nil {
 		return fmt.Errorf("didn't expect ID to be nil: %w", gitprovider.ErrUnexpectedEvent)
 	}
@@ -133,7 +139,34 @@ func (dk *deployKey) createIntoSelf(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	dk.k = *apiObj // TODO: VALIDATE HERE?
+	if err := validateDeployKeyAPI(apiObj); err != nil {
+		return err
+	}
+	dk.k = *apiObj
+	return nil
+}
+
+func validateDeployKeyAPI(apiObj *github.Key) error {
+	validator := validation.New("GitHub.Key")
+	// Make sure ID, title, key and readonly fields are populated as per
+	// https://docs.github.com/en/rest/reference/repos#get-a-deploy-key
+	// and similar docs
+	if apiObj.ID == nil {
+		validator.Required("ID")
+	}
+	if apiObj.Title == nil {
+		validator.Required("Title")
+	}
+	if apiObj.Key == nil {
+		validator.Required("Key")
+	}
+	if apiObj.ReadOnly == nil {
+		validator.Required("ReadOnly")
+	}
+	// If there was a validation error, also mark it specifically as invalid server data
+	if err := validator.Error(); err != nil {
+		return validation.NewMultiError(err, gitprovider.ErrInvalidServerData)
+	}
 	return nil
 }
 
@@ -146,9 +179,17 @@ func deployKeyFromAPI(apiObj *github.Key) gitprovider.DeployKeyInfo {
 }
 
 func deployKeyToAPI(info *gitprovider.DeployKeyInfo) *github.Key {
-	return &github.Key{
-		Title:    gitprovider.StringVar(info.Name),
-		Key:      gitprovider.StringVar(string(info.Key)),
-		ReadOnly: info.ReadOnly,
+	k := &github.Key{}
+	deployKeyInfoToAPIObj(info, k)
+	return k
+}
+
+func deployKeyInfoToAPIObj(info *gitprovider.DeployKeyInfo, apiObj *github.Key) {
+	// Required fields, we assume info is validated, and hence these are set
+	apiObj.Title = gitprovider.StringVar(info.Name)
+	apiObj.Key = gitprovider.StringVar(string(info.Key))
+	// optional fields
+	if info.ReadOnly != nil {
+		apiObj.ReadOnly = info.ReadOnly
 	}
 }

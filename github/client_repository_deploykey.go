@@ -73,7 +73,11 @@ func (c *DeployKeyClient) List(ctx context.Context) ([]gitprovider.DeployKey, er
 	// Map the api object to our DeployKey type
 	keys := make([]gitprovider.DeployKey, 0, len(apiObjs))
 	for _, apiObj := range apiObjs {
-		keys = append(keys, newDeployKey(c, apiObj))
+		k, err := newDeployKey(c, apiObj)
+		if err != nil {
+			return nil, err
+		}
+		keys = append(keys, k)
 	}
 
 	return keys, nil
@@ -87,7 +91,7 @@ func (c *DeployKeyClient) Create(ctx context.Context, req gitprovider.DeployKeyI
 	if err != nil {
 		return nil, err
 	}
-	return newDeployKey(c, apiObj), nil
+	return newDeployKey(c, apiObj)
 }
 
 // Reconcile makes sure req is the actual state in the backing Git provider.

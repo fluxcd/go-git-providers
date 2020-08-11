@@ -44,6 +44,9 @@ func (ta *teamAccess) Get() gitprovider.TeamAccessInfo {
 }
 
 func (ta *teamAccess) Set(info gitprovider.TeamAccessInfo) error {
+	if err := info.ValidateInfo(); err != nil {
+		return err
+	}
 	ta.ta = info
 	return nil
 }

@@ -104,7 +104,7 @@ func (c *DeployKeyClient) list(ctx context.Context) ([]*deployKey, error) {
 //
 // ErrAlreadyExists will be returned if the resource already exists.
 func (c *DeployKeyClient) Create(ctx context.Context, req gitprovider.DeployKeyInfo) (gitprovider.DeployKey, error) {
-	apiObj, err := createDeployKey(c.c, ctx, c.ref, req)
+	apiObj, err := createDeployKey(ctx, c.c, c.ref, req)
 	if err != nil {
 		return nil, err
 	}

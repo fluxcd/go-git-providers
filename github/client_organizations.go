@@ -64,7 +64,7 @@ func (c *OrganizationsClient) List(ctx context.Context) ([]gitprovider.Organizat
 		return resp, listErr
 	})
 	if err != nil {
-		return nil, handleHTTPError(err)
+		return nil, err
 	}
 
 	orgs := make([]gitprovider.Organization, 0, len(apiObjs))

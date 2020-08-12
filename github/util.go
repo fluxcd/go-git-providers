@@ -148,11 +148,12 @@ func handleHTTPError(err error) error {
 // allPages runs fn for each page, expecting a HTTP request to be made and returned during that call.
 // allPages expects that the data is saved in fn to an outer variable.
 // allPages calls fn as many times as needed to get all pages, and modifies opts for each call.
+// There is no need to wrap the resulting error in handleHTTPError(err), as that's already done.
 func allPages(opts *github.ListOptions, fn func() (*github.Response, error)) error {
 	for {
 		resp, err := fn()
 		if err != nil {
-			return err
+			return handleHTTPError(err)
 		}
 		if resp.NextPage == 0 {
 			return nil

@@ -67,7 +67,7 @@ func (c *UserRepositoriesClient) List(ctx context.Context, ref gitprovider.UserR
 		return resp, listErr
 	})
 	if err != nil {
-		return nil, handleHTTPError(err)
+		return nil, err
 	}
 
 	// Traverse the list, and return a list of UserRepository objects

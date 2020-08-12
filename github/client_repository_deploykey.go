@@ -68,7 +68,7 @@ func (c *DeployKeyClient) List(ctx context.Context) ([]gitprovider.DeployKey, er
 		return resp, listErr
 	})
 	if err != nil {
-		return nil, handleHTTPError(err)
+		return nil, err
 	}
 
 	// Map the api object to our DeployKey type

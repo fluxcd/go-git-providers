@@ -50,7 +50,7 @@ func (c *TeamsClient) Get(ctx context.Context, teamName string) (gitprovider.Tea
 		return resp, listErr
 	})
 	if err != nil {
-		return nil, handleHTTPError(err)
+		return nil, err
 	}
 
 	logins := make([]string, 0, len(apiObjs))
@@ -83,7 +83,7 @@ func (c *TeamsClient) List(ctx context.Context) ([]gitprovider.Team, error) {
 		return resp, listErr
 	})
 	if err != nil {
-		return nil, handleHTTPError(err)
+		return nil, err
 	}
 
 	// Use .Get() to get detailed information about each member

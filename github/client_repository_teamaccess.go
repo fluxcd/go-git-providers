@@ -65,7 +65,7 @@ func (c *TeamAccessClient) List(ctx context.Context) ([]gitprovider.TeamAccess, 
 		return resp, listErr
 	})
 	if err != nil {
-		return nil, handleHTTPError(err)
+		return nil, err
 	}
 
 	teamAccess := make([]gitprovider.TeamAccess, 0, len(apiObjs))

@@ -69,7 +69,7 @@ type UserRepository interface {
 	DeployKeys() DeployKeyClient
 }
 
-// OrgRepository describes a respository owned by an organization.
+// OrgRepository describes a repository owned by an organization.
 type OrgRepository interface {
 	// OrgRepository is a superset of UserRepository.
 	UserRepository

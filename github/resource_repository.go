@@ -136,11 +136,11 @@ func (r *userRepository) Reconcile(ctx context.Context) (bool, error) {
 	return true, r.Update(ctx)
 }
 
-// Delete deletes the current resource irreversebly.
+// Delete deletes the current resource irreversible.
 //
 // ErrNotFound is returned if the resource doesn't exist anymore.
 func (r *userRepository) Delete(ctx context.Context) error {
-	// Don't allow deleting repositories if the user didn't explicitely allow dangerous API calls.
+	// Don't allow deleting repositories if the user didn't explicitly allow dangerous API calls.
 	if !r.destructiveActions {
 		return fmt.Errorf("cannot delete repository: %w", ErrDestructiveCallDisallowed)
 	}

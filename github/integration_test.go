@@ -70,7 +70,7 @@ var _ = Describe("GitHub Provider", func() {
 			if token := string(b); err == nil && len(token) != 0 {
 				githubToken = token
 			} else {
-				Fail("couldn't aquire GITHUB_TOKEN env variable")
+				Fail("couldn't acquire GITHUB_TOKEN env variable")
 			}
 		}
 

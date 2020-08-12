@@ -54,7 +54,7 @@ type clientOptions struct {
 	// GitHub Enterprise. If unset, defaultDomain will be used.
 	Domain *string
 
-	// ClientFactory is a way to aquire a *http.Client, possibly with auth credentials
+	// ClientFactory is a way to acquire a *http.Client, possibly with auth credentials
 	ClientFactory ClientFactory
 
 	// EnableDestructiveAPICalls is a flag to tell whether destructive API calls like
@@ -102,7 +102,7 @@ func WithPersonalAccessToken(patToken string) ClientOption {
 	}
 }
 
-// WithClientFactory initializes a Client with a given ClientFactory, used for aquiring the *http.Client later.
+// WithClientFactory initializes a Client with a given ClientFactory, used for acquiring the *http.Client later.
 // clientFactory must not be nil.
 // WithClientFactory is mutually exclusive with WithOAuth2Token and WithPersonalAccessToken.
 func WithClientFactory(clientFactory ClientFactory) ClientOption {
@@ -150,7 +150,7 @@ func WithDestructiveAPICalls(destructiveActions bool) ClientOption {
 	}
 }
 
-// ClientFactory is a way to aquire a *http.Client, possibly with auth credentials
+// ClientFactory is a way to acquire a *http.Client, possibly with auth credentials
 type ClientFactory interface {
 	// Client returns a *http.Client, possibly with auth credentials
 	Client(ctx context.Context) *http.Client

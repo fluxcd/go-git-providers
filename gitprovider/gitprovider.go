@@ -51,7 +51,7 @@ type GenericUpdatable interface {
 // GenericDeletable is an interface which all objects that can be deleted
 // using the Client implement.
 type GenericDeletable interface {
-	// Delete deletes the current resource irreversebly.
+	// Delete deletes the current resource irreversible.
 	//
 	// ErrNotFound is returned if the resource doesn't exist anymore.
 	Delete(ctx context.Context) error

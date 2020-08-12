@@ -1,6 +1,10 @@
 # https://github.com/marketplace/actions/run-golangci-lint
 name: golangci-lint
-on: [push, pull_request]
+on:
+  pull_request:
+  push:
+    branches:
+      - master
 jobs:
   golangci:
     name: lint
@@ -11,4 +15,4 @@ jobs:
         uses: golangci/golangci-lint-action@v1
         with:
           # Required: the version of golangci-lint is required and must be specified without patch version: we always use the latest patch version.
-          version: v1.28
+          version: v1.30

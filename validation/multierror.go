@@ -124,7 +124,8 @@ func TestExpectErrors(t testing.TB, funcName string, err error, expectedErrs ...
 		expectedType := reflect.TypeOf(expectedErr)
 		expectedTypeName := expectedType.String()
 		_, nameDisallowed := disallowedCompareAsErrorNames[expectedTypeName]
-		if expectedType == reflect.TypeOf(err) && !nameDisallowed {
+		_, isMultiError := err.(*MultiError)
+		if (expectedType == reflect.TypeOf(err) || isMultiError) && !nameDisallowed {
 			target := expectedErr.(interface{})
 			if errors.As(err, &target) {
 				continue

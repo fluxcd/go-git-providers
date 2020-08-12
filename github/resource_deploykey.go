@@ -106,7 +106,7 @@ func (dk *deployKey) Delete(ctx context.Context) error {
 //
 // The internal API object will be overridden with the received server data if actionTaken == true.
 func (dk *deployKey) Reconcile(ctx context.Context) (bool, error) {
-	actual, err := dk.c.Get(ctx, *dk.k.Key)
+	actual, err := dk.c.get(ctx, *dk.k.Key)
 	if err != nil {
 		// Create if not found
 		if errors.Is(err, gitprovider.ErrNotFound) {
@@ -117,15 +117,9 @@ func (dk *deployKey) Reconcile(ctx context.Context) (bool, error) {
 		return false, err
 	}
 
-	// This should never (tm) fail, but just to make sure, return an error and don't panic
-	actualKey, ok := actual.(*deployKey)
-	if !ok {
-		return false, fmt.Errorf("expected to be able to cast actual to *deployKey: %w", gitprovider.ErrUnexpectedEvent)
-	}
-
 	// Use wrappers here to extract the "spec" part of the object for comparison
 	desiredSpec := newGithubKeySpec(&dk.k)
-	actualSpec := newGithubKeySpec(&actualKey.k)
+	actualSpec := newGithubKeySpec(&actual.k)
 
 	// If the desired matches the actual state, do nothing
 	if desiredSpec.Equals(actualSpec) {

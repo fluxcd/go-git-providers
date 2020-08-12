@@ -39,17 +39,20 @@ type DeployKeyClient struct {
 //
 // ErrNotFound is returned if the resource does not exist.
 func (c *DeployKeyClient) Get(ctx context.Context, name string) (gitprovider.DeployKey, error) {
+	return c.get(ctx, name)
+}
 
-	deployKeys, err := c.List(ctx)
+func (c *DeployKeyClient) get(ctx context.Context, name string) (*deployKey, error) {
+	deployKeys, err := c.list(ctx)
 	if err != nil {
 		return nil, err
 	}
+	// Loop through deploy keys once we find one with the right name
 	for _, dk := range deployKeys {
-		if dk.Get().Name == name {
+		if *dk.k.Title == name {
 			return dk, nil
 		}
 	}
-
 	return nil, gitprovider.ErrNotFound
 }
 
@@ -58,6 +61,19 @@ func (c *DeployKeyClient) Get(ctx context.Context, name string) (gitprovider.Dep
 // List returns all available repository deploy keys for the given type,
 // using multiple paginated requests if needed.
 func (c *DeployKeyClient) List(ctx context.Context) ([]gitprovider.DeployKey, error) {
+	dks, err := c.list(ctx)
+	if err != nil {
+		return nil, err
+	}
+	// Cast to []gitprovider.DeployKey
+	keys := make([]gitprovider.DeployKey, 0, len(dks))
+	for _, dk := range dks {
+		keys = append(keys, dk)
+	}
+	return keys, nil
+}
+
+func (c *DeployKeyClient) list(ctx context.Context) ([]*deployKey, error) {
 	// List all keys, using pagination.
 	apiObjs := []*github.Key{}
 	opts := &github.ListOptions{}
@@ -72,7 +88,7 @@ func (c *DeployKeyClient) List(ctx context.Context) ([]gitprovider.DeployKey, er
 	}
 
 	// Map the api object to our DeployKey type
-	keys := make([]gitprovider.DeployKey, 0, len(apiObjs))
+	keys := make([]*deployKey, 0, len(apiObjs))
 	for _, apiObj := range apiObjs {
 		k, err := newDeployKey(c, apiObj)
 		if err != nil {

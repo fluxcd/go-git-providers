@@ -171,21 +171,20 @@ func (r *orgRepository) TeamAccess() gitprovider.TeamAccessClient {
 	return r.teamAccess
 }
 
+// validateRepositoryAPI validates the apiObj received from the server, to make sure that it is
+// valid for our use
 func validateRepositoryAPI(apiObj *github.Repository) error {
-	validator := validation.New("GitHub.Repository")
-	// Make sure name isn't nil
-	if apiObj.Name == nil {
-		validator.Required("Name")
-	}
-	if apiObj.Visibility != nil {
-		v := gitprovider.RepositoryVisibility(*apiObj.Visibility)
-		validator.Append(gitprovider.ValidateRepositoryVisibility(v), v, "Visibility")
-	}
-	// If there was a validation error, also mark it specifically as invalid server data
-	if err := validator.Error(); err != nil {
-		return validation.NewMultiError(err, gitprovider.ErrInvalidServerData)
-	}
-	return nil
+	return validateAPIObject("GitHub.Repository", func(validator validation.Validator) {
+		// Make sure name is set
+		if apiObj.Name == nil {
+			validator.Required("Name")
+		}
+		// Make sure visibility is valid if set
+		if apiObj.Visibility != nil {
+			v := gitprovider.RepositoryVisibility(*apiObj.Visibility)
+			validator.Append(gitprovider.ValidateRepositoryVisibility(v), v, "Visibility")
+		}
+	})
 }
 
 func repositoryFromAPI(apiObj *github.Repository) gitprovider.RepositoryInfo {

@@ -148,27 +148,23 @@ func (dk *deployKey) createIntoSelf(ctx context.Context) error {
 }
 
 func validateDeployKeyAPI(apiObj *github.Key) error {
-	validator := validation.New("GitHub.Key")
-	// Make sure ID, title, key and readonly fields are populated as per
-	// https://docs.github.com/en/rest/reference/repos#get-a-deploy-key
-	// and similar docs
-	if apiObj.ID == nil {
-		validator.Required("ID")
-	}
-	if apiObj.Title == nil {
-		validator.Required("Title")
-	}
-	if apiObj.Key == nil {
-		validator.Required("Key")
-	}
-	if apiObj.ReadOnly == nil {
-		validator.Required("ReadOnly")
-	}
-	// If there was a validation error, also mark it specifically as invalid server data
-	if err := validator.Error(); err != nil {
-		return validation.NewMultiError(err, gitprovider.ErrInvalidServerData)
-	}
-	return nil
+	return validateAPIObject("GitHub.Key", func(validator validation.Validator) {
+		// Make sure ID, title, key and readonly fields are populated as per
+		// https://docs.github.com/en/rest/reference/repos#get-a-deploy-key
+		// and similar docs
+		if apiObj.ID == nil {
+			validator.Required("ID")
+		}
+		if apiObj.Title == nil {
+			validator.Required("Title")
+		}
+		if apiObj.Key == nil {
+			validator.Required("Key")
+		}
+		if apiObj.ReadOnly == nil {
+			validator.Required("ReadOnly")
+		}
+	})
 }
 
 func deployKeyFromAPI(apiObj *github.Key) gitprovider.DeployKeyInfo {

@@ -105,7 +105,7 @@ func (r *userRepository) Update(ctx context.Context) error {
 //
 // The internal API object will be overridden with the received server data if actionTaken == true.
 func (r *userRepository) Reconcile(ctx context.Context) (bool, error) {
-	apiObj, err := getRepository(r.c, ctx, r.ref)
+	apiObj, err := getRepository(ctx, r.c, r.ref)
 	if err != nil {
 		// Create if not found
 		if errors.Is(err, gitprovider.ErrNotFound) {
@@ -113,7 +113,7 @@ func (r *userRepository) Reconcile(ctx context.Context) (bool, error) {
 			if orgRef, ok := r.ref.(gitprovider.OrgRepositoryRef); ok {
 				orgName = orgRef.Organization
 			}
-			repo, err := createRepositoryData(r.c, ctx, orgName, &r.r)
+			repo, err := createRepositoryData(ctx, r.c, orgName, &r.r)
 			if err != nil {
 				return true, err
 			}

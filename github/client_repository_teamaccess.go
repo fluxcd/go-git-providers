@@ -36,9 +36,15 @@ type TeamAccessClient struct {
 	ref gitprovider.RepositoryRef
 }
 
-func (c *TeamAccessClient) Get(ctx context.Context, teamName string) (gitprovider.TeamAccess, error) {
+// Get a team within the specific organization.
+//
+// name may include slashes, but must not be an empty string.
+// Teams are sub-groups in GitLab.
+//
+// ErrNotFound is returned if the resource does not exist.
+func (c *TeamAccessClient) Get(ctx context.Context, name string) (gitprovider.TeamAccess, error) {
 	// GET /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}
-	apiObj, _, err := c.c.Teams.IsTeamRepoBySlug(ctx, c.ref.GetIdentity(), teamName, c.ref.GetIdentity(), c.ref.GetRepository())
+	apiObj, _, err := c.c.Teams.IsTeamRepoBySlug(ctx, c.ref.GetIdentity(), name, c.ref.GetIdentity(), c.ref.GetRepository())
 	if err != nil {
 		return nil, handleHTTPError(err)
 	}
@@ -48,7 +54,7 @@ func (c *TeamAccessClient) Get(ctx context.Context, teamName string) (gitprovide
 		return nil, fmt.Errorf("didn't expect permissions to be nil for team access object: %+v: %w", apiObj, gitprovider.ErrInvalidServerData)
 	}
 
-	return newTeamAccess(c, teamAccessFromAPI(apiObj, teamName)), nil
+	return newTeamAccess(c, teamAccessFromAPI(apiObj, name)), nil
 }
 
 // List lists the team access control list for this repository.

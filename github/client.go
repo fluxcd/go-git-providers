@@ -50,6 +50,7 @@ type clientContext struct {
 // Client implements the gitprovider.Client interface
 var _ gitprovider.Client = &Client{}
 
+// Client is an interface that allows talking to a Git provider.
 type Client struct {
 	*clientContext
 

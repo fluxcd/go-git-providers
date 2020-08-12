@@ -41,7 +41,7 @@ func (c *UserRepositoriesClient) Get(ctx context.Context, ref gitprovider.UserRe
 	if err := validateUserRepositoryRef(ref, c.domain); err != nil {
 		return nil, err
 	}
-	apiObj, err := getRepository(c.c, ctx, ref)
+	apiObj, err := getRepository(ctx, c.c, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +95,7 @@ func (c *UserRepositoriesClient) Create(ctx context.Context, ref gitprovider.Use
 		return nil, err
 	}
 
-	apiObj, err := createRepository(c.c, ctx, ref, "", req, opts...)
+	apiObj, err := createRepository(ctx, c.c, ref, "", req, opts...)
 	if err != nil {
 		return nil, err
 	}

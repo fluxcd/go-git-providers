@@ -28,6 +28,7 @@ import (
 // OrganizationsClient implements the gitprovider.OrganizationsClient interface
 var _ gitprovider.OrganizationsClient = &OrganizationsClient{}
 
+// OrganizationsClient operates on organizations the user has access to.
 type OrganizationsClient struct {
 	*clientContext
 }

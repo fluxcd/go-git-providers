@@ -148,17 +148,17 @@ func (c *DeployKeyClient) Reconcile(ctx context.Context, req gitprovider.DeployK
 	return actual, true, actual.Update(ctx)
 }
 
-func createDeployKey(c *github.Client, ctx context.Context, ref gitprovider.RepositoryRef, req gitprovider.DeployKeyInfo) (*github.Key, error) {
+func createDeployKey(ctx context.Context, c *github.Client, ref gitprovider.RepositoryRef, req gitprovider.DeployKeyInfo) (*github.Key, error) {
 	// Validate the create request and default
 	if err := req.ValidateInfo(); err != nil {
 		return nil, err
 	}
 	req.Default()
 
-	return createDeployKeyData(c, ctx, ref, deployKeyToAPI(&req))
+	return createDeployKeyData(ctx, c, ref, deployKeyToAPI(&req))
 }
 
-func createDeployKeyData(c *github.Client, ctx context.Context, ref gitprovider.RepositoryRef, data *github.Key) (*github.Key, error) {
+func createDeployKeyData(ctx context.Context, c *github.Client, ref gitprovider.RepositoryRef, data *github.Key) (*github.Key, error) {
 	// POST /repos/{owner}/{repo}/keys
 	apiObj, _, err := c.Repositories.CreateKey(ctx, ref.GetIdentity(), ref.GetRepository(), data)
 	return apiObj, handleHTTPError(err)

@@ -79,6 +79,7 @@ func (r *RepositoryInfo) ValidateInfo() error {
 // TeamAccess can be created and deleted
 var _ CreatableInfo = &TeamAccessInfo{}
 
+// TeamAccessInfo contains high-level information about a team's access to a repository.
 type TeamAccessInfo struct {
 	// Name describes the name of the team. The team name may contain slashes
 	// +required
@@ -114,6 +115,7 @@ func (ta *TeamAccessInfo) ValidateInfo() error {
 
 var _ CreatableInfo = &DeployKeyInfo{}
 
+// DeployKeyInfo contains high-level information about a deploy key.
 type DeployKeyInfo struct {
 	// Name is the human-friendly interpretation of what the key is for (and does)
 	// +required

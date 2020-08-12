@@ -42,7 +42,7 @@ func (c *OrgRepositoriesClient) Get(ctx context.Context, ref gitprovider.OrgRepo
 	if err := validateOrgRepositoryRef(ref, c.domain); err != nil {
 		return nil, err
 	}
-	apiObj, err := getRepository(c.c, ctx, ref)
+	apiObj, err := getRepository(ctx, c.c, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +96,7 @@ func (c *OrgRepositoriesClient) Create(ctx context.Context, ref gitprovider.OrgR
 		return nil, err
 	}
 
-	apiObj, err := createRepository(c.c, ctx, ref, ref.Organization, req, opts...)
+	apiObj, err := createRepository(ctx, c.c, ref, ref.Organization, req, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -130,13 +130,13 @@ func (c *OrgRepositoriesClient) Reconcile(ctx context.Context, ref gitprovider.O
 	return actual, actionTaken, err
 }
 
-func getRepository(c *github.Client, ctx context.Context, ref gitprovider.RepositoryRef) (*github.Repository, error) {
+func getRepository(ctx context.Context, c *github.Client, ref gitprovider.RepositoryRef) (*github.Repository, error) {
 	// GET /repos/{owner}/{repo}
 	apiObj, _, err := c.Repositories.Get(ctx, ref.GetIdentity(), ref.GetRepository())
 	return validateRepositoryAPIResp(apiObj, err)
 }
 
-func createRepository(c *github.Client, ctx context.Context, ref gitprovider.RepositoryRef, orgName string, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryCreateOption) (*github.Repository, error) {
+func createRepository(ctx context.Context, c *github.Client, ref gitprovider.RepositoryRef, orgName string, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryCreateOption) (*github.Repository, error) {
 	// Make sure the request is valid
 	if err := req.ValidateInfo(); err != nil {
 		return nil, err
@@ -153,10 +153,10 @@ func createRepository(c *github.Client, ctx context.Context, ref gitprovider.Rep
 	data := repositoryToAPI(&req, ref)
 	applyRepoCreateOptions(&data, o)
 
-	return createRepositoryData(c, ctx, orgName, &data)
+	return createRepositoryData(ctx, c, orgName, &data)
 }
 
-func createRepositoryData(c *github.Client, ctx context.Context, orgName string, data *github.Repository) (*github.Repository, error) {
+func createRepositoryData(ctx context.Context, c *github.Client, orgName string, data *github.Repository) (*github.Repository, error) {
 	// POST /user/repos or
 	// POST /orgs/{org}/repos
 	// depending on orgName

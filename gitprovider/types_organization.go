@@ -25,7 +25,7 @@ type OrganizationInfo struct {
 	Description *string `json:"description"`
 }
 
-// Team is a representation for a team of users inside of an organization
+// TeamInfo is a representation for a team of users inside of an organization.
 type TeamInfo struct {
 	// Name describes the name of the team. The team name may contain slashes.
 	Name string `json:"name"`

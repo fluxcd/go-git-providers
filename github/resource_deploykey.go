@@ -130,7 +130,7 @@ func (dk *deployKey) Reconcile(ctx context.Context) (bool, error) {
 }
 
 func (dk *deployKey) createIntoSelf(ctx context.Context) error {
-	apiObj, err := createDeployKeyData(dk.c.c, ctx, dk.c.ref, &dk.k)
+	apiObj, err := createDeployKeyData(ctx, dk.c.c, dk.c.ref, &dk.k)
 	if err != nil {
 		return err
 	}

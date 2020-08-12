@@ -17,5 +17,6 @@ limitations under the License.
 package bitbucket
 
 import (
+	// Dummy import until we have the implementation ready
 	_ "github.com/ktrysmt/go-bitbucket"
 )

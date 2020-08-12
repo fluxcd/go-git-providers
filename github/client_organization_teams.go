@@ -55,8 +55,11 @@ func (c *TeamsClient) Get(ctx context.Context, teamName string) (gitprovider.Tea
 
 	logins := make([]string, 0, len(apiObjs))
 	for _, apiObj := range apiObjs {
-		// TODO: Maybe check for non-empty logins?
-		logins = append(logins, apiObj.GetLogin())
+		// Make sure login isn't nil
+		if apiObj.Login == nil {
+			return nil, fmt.Errorf("didn't expect login to be nil for user: %+v: %w", apiObj, gitprovider.ErrInvalidServerData)
+		}
+		logins = append(logins, *apiObj.Login)
 	}
 
 	return &team{

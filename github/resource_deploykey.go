@@ -123,8 +123,12 @@ func (dk *deployKey) Reconcile(ctx context.Context) (bool, error) {
 		return false, fmt.Errorf("expected to be able to cast actual to *deployKey: %w", gitprovider.ErrUnexpectedEvent)
 	}
 
+	// Use wrappers here to extract the "spec" part of the object for comparison
+	desiredSpec := newGithubKeySpec(&dk.k)
+	actualSpec := newGithubKeySpec(&actualKey.k)
+
 	// If the desired matches the actual state, do nothing
-	if reflect.DeepEqual(dk.k, actualKey.k) {
+	if desiredSpec.Equals(actualSpec) {
 		return false, nil
 	}
 	// If desired and actual state mis-match, update
@@ -189,4 +193,26 @@ func deployKeyInfoToAPIObj(info *gitprovider.DeployKeyInfo, apiObj *github.Key) 
 	if info.ReadOnly != nil {
 		apiObj.ReadOnly = info.ReadOnly
 	}
+}
+
+// This function copies over the fields that are part of create request of a deploy
+// i.e. the desired spec of the deploy key. This allows us to separate "spec" from "status" fields.
+func newGithubKeySpec(key *github.Key) *githubKeySpec {
+	return &githubKeySpec{
+		&github.Key{
+			// Create-specific parameters
+			// See: https://docs.github.com/en/rest/reference/repos#create-a-deploy-key
+			Title:    key.Title,
+			Key:      key.Key,
+			ReadOnly: key.ReadOnly,
+		},
+	}
+}
+
+type githubKeySpec struct {
+	*github.Key
+}
+
+func (s *githubKeySpec) Equals(other *githubKeySpec) bool {
+	return reflect.DeepEqual(s, other)
 }

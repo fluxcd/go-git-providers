@@ -26,6 +26,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-github/v32/github"
 	githubapi "github.com/google/go-github/v32/github"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -156,8 +157,10 @@ var _ = Describe("GitHub Provider", func() {
 
 		getRepo, err := c.OrgRepositories().Get(ctx, repoRef)
 		Expect(err).ToNot(HaveOccurred())
-		// Expect the two responses (one from POST and one from GET to be equal)
-		Expect(getRepo.Get()).To(Equal(repo.Get()))
+		// Expect the two responses (one from POST and one from GET to have equal "spec")
+		getSpec := newGithubRepositorySpec(getRepo.APIObject().(*github.Repository))
+		postSpec := newGithubRepositorySpec(repo.APIObject().(*github.Repository))
+		Expect(getSpec.Equals(postSpec)).To(BeTrue())
 	})
 
 	It("should error at creation time if the repo already does exist", func() {
@@ -208,17 +211,13 @@ var _ = Describe("GitHub Provider", func() {
 		Expect(actionTaken).To(BeTrue())
 		validateRepo(newRepo, repoRef)
 
-		/* TODO: Create an equality method for "settable" fields of the repository object
-		Comparing two API objects to each other using reflect.DeepEqual or JSON doesn't work
-		as current status is conflated in the same object and will result in race conditions.
-
 		// Reconcile by setting an "internal" field and updating it
 		r := newRepo.APIObject().(*github.Repository)
 		r.DeleteBranchOnMerge = gitprovider.BoolVar(true)
 		actionTaken, err = newRepo.Reconcile(ctx)
 		// Expect the update to succeed, and modify the state
 		Expect(err).ToNot(HaveOccurred())
-		Expect(actionTaken).To(BeTrue())*/
+		Expect(actionTaken).To(BeTrue())
 	})
 
 	AfterSuite(func() {

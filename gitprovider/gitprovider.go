@@ -33,9 +33,9 @@ type CreatableInfo interface {
 	Default()
 }
 
-// GenericUpdatable is an interface which all objects that can be updated
+// Updatable is an interface which all objects that can be updated
 // using the Client implement.
-type GenericUpdatable interface {
+type Updatable interface {
 	// Update will apply the desired state in this object to the server.
 	// Only set fields will be respected (i.e. PATCH behaviour).
 	// In order to apply changes to this object, use the .Set({Resource}Info) error
@@ -48,18 +48,18 @@ type GenericUpdatable interface {
 	Update(ctx context.Context) error
 }
 
-// GenericDeletable is an interface which all objects that can be deleted
+// Deletable is an interface which all objects that can be deleted
 // using the Client implement.
-type GenericDeletable interface {
+type Deletable interface {
 	// Delete deletes the current resource irreversible.
 	//
 	// ErrNotFound is returned if the resource doesn't exist anymore.
 	Delete(ctx context.Context) error
 }
 
-// GenericReconcilable is an interface which all objects that can be reconciled
+// Reconcilable is an interface which all objects that can be reconciled
 // using the Client implement.
-type GenericReconcilable interface {
+type Reconcilable interface {
 	// Reconcile makes sure the desired state in this object (called "req" here) becomes
 	// the actual state in the backing Git provider.
 	//

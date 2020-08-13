@@ -109,8 +109,9 @@ func (c *OrgRepositoriesClient) Create(ctx context.Context, ref gitprovider.OrgR
 // If req doesn't equal the actual state, the resource will be updated (actionTaken == true).
 // If req is already the actual state, this is a no-op (actionTaken == false).
 func (c *OrgRepositoriesClient) Reconcile(ctx context.Context, ref gitprovider.OrgRepositoryRef, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryReconcileOption) (gitprovider.OrgRepository, bool, error) {
-	// First thing, validate the request
-	if err := req.ValidateInfo(); err != nil {
+	// First thing, validate and default the request to ensure a valid and fully-populated object
+	// (to minimize any possible diffs between desired and actual state)
+	if err := gitprovider.ValidateAndDefaultInfo(&req); err != nil {
 		return nil, false, err
 	}
 
@@ -137,17 +138,17 @@ func getRepository(ctx context.Context, c *github.Client, ref gitprovider.Reposi
 }
 
 func createRepository(ctx context.Context, c *github.Client, ref gitprovider.RepositoryRef, orgName string, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryCreateOption) (*github.Repository, error) {
-	// Make sure the request is valid
-	if err := req.ValidateInfo(); err != nil {
+	// First thing, validate and default the request to ensure a valid and fully-populated object
+	// (to minimize any possible diffs between desired and actual state)
+	if err := gitprovider.ValidateAndDefaultInfo(&req); err != nil {
 		return nil, err
 	}
+
 	// Assemble the options struct based on the given options
 	o, err := gitprovider.MakeRepositoryCreateOptions(opts...)
 	if err != nil {
 		return nil, err
 	}
-	// Default the request object
-	req.Default()
 
 	// Convert to the API object and apply the options
 	data := repositoryToAPI(&req, ref)

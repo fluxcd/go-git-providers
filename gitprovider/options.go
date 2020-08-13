@@ -27,8 +27,7 @@ func MakeRepositoryCreateOptions(opts ...RepositoryCreateOption) (RepositoryCrea
 	for _, opt := range opts {
 		opt.ApplyToRepositoryCreateOptions(o)
 	}
-	o.Default()
-	return *o, o.ValidateInfo()
+	return *o, ValidateAndDefaultInfo(o)
 }
 
 // RepositoryCreateOptions implements CreatableInfo.

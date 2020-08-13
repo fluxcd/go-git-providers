@@ -88,3 +88,19 @@ type RepositoryBound interface {
 	// Repository returns the RepositoryRef associated with this object.
 	Repository() RepositoryRef
 }
+
+// ValidateAndDefaultInfo can be used in client Create() and Reconcile() functions, where the
+// request object, which implements CreatableInfo, shall be first validated, and then defaulted.
+// Defaulting happens at Create(), because we want to consistently apply this library's defaults
+// across providers. Defaulting also happens at Reconcile(), because as the object has been created
+// with defaults, the actual state fetched from the server will contain those defaults, and would
+// result in a diff between the (possibly non-defaulted) request and actual state.
+// TODO: Unit and integration test this.
+// TODO: Document in Create() and Reconcile() that req is modified (?) and should not be used anymore.
+func ValidateAndDefaultInfo(info CreatableInfo) error {
+	if err := info.ValidateInfo(); err != nil {
+		return err
+	}
+	info.Default()
+	return nil
+}

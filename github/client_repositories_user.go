@@ -112,8 +112,9 @@ func (c *UserRepositoriesClient) Create(ctx context.Context,
 // If req doesn't equal the actual state, the resource will be updated (actionTaken == true).
 // If req is already the actual state, this is a no-op (actionTaken == false).
 func (c *UserRepositoriesClient) Reconcile(ctx context.Context, ref gitprovider.UserRepositoryRef, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryReconcileOption) (gitprovider.UserRepository, bool, error) {
-	// First thing, validate the request
-	if err := req.ValidateInfo(); err != nil {
+	// First thing, validate and default the request to ensure a valid and fully-populated object
+	// (to minimize any possible diffs between desired and actual state)
+	if err := gitprovider.ValidateAndDefaultInfo(&req); err != nil {
 		return nil, false, err
 	}
 

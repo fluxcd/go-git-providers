@@ -96,11 +96,11 @@ func (c *TeamAccessClient) List(ctx context.Context) ([]gitprovider.TeamAccess, 
 //
 // ErrAlreadyExists will be returned if the resource already exists.
 func (c *TeamAccessClient) Create(ctx context.Context, req gitprovider.TeamAccessInfo) (gitprovider.TeamAccess, error) {
-	// Validate the request and default
-	if err := req.ValidateInfo(); err != nil {
+	// First thing, validate and default the request to ensure a valid and fully-populated object
+	// (to minimize any possible diffs between desired and actual state)
+	if err := gitprovider.ValidateAndDefaultInfo(&req); err != nil {
 		return nil, err
 	}
-	req.Default()
 
 	opts := &github.TeamAddTeamRepoOptions{
 		Permission: string(*req.Permission),
@@ -122,8 +122,9 @@ func (c *TeamAccessClient) Create(ctx context.Context, req gitprovider.TeamAcces
 func (c *TeamAccessClient) Reconcile(ctx context.Context,
 	req gitprovider.TeamAccessInfo,
 ) (gitprovider.TeamAccess, bool, error) {
-	// First thing, validate the request
-	if err := req.ValidateInfo(); err != nil {
+	// First thing, validate and default the request to ensure a valid and fully-populated object
+	// (to minimize any possible diffs between desired and actual state)
+	if err := gitprovider.ValidateAndDefaultInfo(&req); err != nil {
 		return nil, false, err
 	}
 

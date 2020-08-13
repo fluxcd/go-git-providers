@@ -117,8 +117,9 @@ func (c *DeployKeyClient) Create(ctx context.Context, req gitprovider.DeployKeyI
 // If req doesn't equal the actual state, the resource will be deleted and recreated (actionTaken == true).
 // If req is already the actual state, this is a no-op (actionTaken == false).
 func (c *DeployKeyClient) Reconcile(ctx context.Context, req gitprovider.DeployKeyInfo) (gitprovider.DeployKey, bool, error) {
-	// First thing, validate the request
-	if err := req.ValidateInfo(); err != nil {
+	// First thing, validate and default the request to ensure a valid and fully-populated object
+	// (to minimize any possible diffs between desired and actual state)
+	if err := gitprovider.ValidateAndDefaultInfo(&req); err != nil {
 		return nil, false, err
 	}
 
@@ -149,11 +150,11 @@ func (c *DeployKeyClient) Reconcile(ctx context.Context, req gitprovider.DeployK
 }
 
 func createDeployKey(ctx context.Context, c *github.Client, ref gitprovider.RepositoryRef, req gitprovider.DeployKeyInfo) (*github.Key, error) {
-	// Validate the create request and default
-	if err := req.ValidateInfo(); err != nil {
+	// First thing, validate and default the request to ensure a valid and fully-populated object
+	// (to minimize any possible diffs between desired and actual state)
+	if err := gitprovider.ValidateAndDefaultInfo(&req); err != nil {
 		return nil, err
 	}
-	req.Default()
 
 	return createDeployKeyData(ctx, c, ref, deployKeyToAPI(&req))
 }

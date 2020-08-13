@@ -17,6 +17,8 @@ limitations under the License.
 package gitprovider
 
 import (
+	"reflect"
+
 	"github.com/fluxcd/go-git-providers/validation"
 )
 
@@ -33,8 +35,9 @@ const (
 	defaultDeployKeyReadOnly = true
 )
 
-// RepositoryInfo implements CreatableInfo.
-var _ CreatableInfo = &RepositoryInfo{}
+// RepositoryInfo implements InfoRequest and DefaultedInfoRequest (with a pointer receiver).
+var _ InfoRequest = RepositoryInfo{}
+var _ DefaultedInfoRequest = &RepositoryInfo{}
 
 // RepositoryInfo represents a Git repository provided by a Git provider.
 type RepositoryInfo struct {
@@ -56,7 +59,7 @@ type RepositoryInfo struct {
 	Visibility *RepositoryVisibility `json:"visibility"`
 }
 
-// Default defaults the Repository, implementing the CreatableInfo interface.
+// Default defaults the Repository, implementing the InfoRequest interface.
 func (r *RepositoryInfo) Default() {
 	if r.Visibility == nil {
 		r.Visibility = RepositoryVisibilityVar(defaultRepositoryVisibility)
@@ -67,7 +70,7 @@ func (r *RepositoryInfo) Default() {
 }
 
 // ValidateInfo validates the object at {Object}.Set() and POST-time.
-func (r *RepositoryInfo) ValidateInfo() error {
+func (r RepositoryInfo) ValidateInfo() error {
 	validator := validation.New("Repository")
 	// Validate the Visibility enum
 	if r.Visibility != nil {
@@ -76,8 +79,15 @@ func (r *RepositoryInfo) ValidateInfo() error {
 	return validator.Error()
 }
 
-// TeamAccessInfo implements CreatableInfo.
-var _ CreatableInfo = &TeamAccessInfo{}
+// Equals can be used to check if this *Info request (the desired state) matches the actual
+// passed in as the argument.
+func (r RepositoryInfo) Equals(actual InfoRequest) bool {
+	return reflect.DeepEqual(r, actual)
+}
+
+// TeamAccessInfo implements InfoRequest and DefaultedInfoRequest (with a pointer receiver).
+var _ InfoRequest = TeamAccessInfo{}
+var _ DefaultedInfoRequest = &TeamAccessInfo{}
 
 // TeamAccessInfo contains high-level information about a team's access to a repository.
 type TeamAccessInfo struct {
@@ -100,7 +110,7 @@ func (ta *TeamAccessInfo) Default() {
 }
 
 // ValidateInfo validates the object at {Object}.Set() and POST-time.
-func (ta *TeamAccessInfo) ValidateInfo() error {
+func (ta TeamAccessInfo) ValidateInfo() error {
 	validator := validation.New("TeamAccess")
 	// Make sure we've set the name of the team
 	if len(ta.Name) == 0 {
@@ -113,8 +123,15 @@ func (ta *TeamAccessInfo) ValidateInfo() error {
 	return validator.Error()
 }
 
-// DeployKeyInfo implements CreatableInfo.
-var _ CreatableInfo = &DeployKeyInfo{}
+// Equals can be used to check if this *Info request (the desired state) matches the actual
+// passed in as the argument.
+func (ta TeamAccessInfo) Equals(actual InfoRequest) bool {
+	return reflect.DeepEqual(ta, actual)
+}
+
+// DeployKeyInfo implements InfoRequest and DefaultedInfoRequest (with a pointer receiver).
+var _ InfoRequest = DeployKeyInfo{}
+var _ DefaultedInfoRequest = &DeployKeyInfo{}
 
 // DeployKeyInfo contains high-level information about a deploy key.
 type DeployKeyInfo struct {
@@ -140,7 +157,7 @@ func (dk *DeployKeyInfo) Default() {
 }
 
 // ValidateInfo validates the object at {Object}.Set() and POST-time.
-func (dk *DeployKeyInfo) ValidateInfo() error {
+func (dk DeployKeyInfo) ValidateInfo() error {
 	validator := validation.New("DeployKey")
 	// Make sure we've set the name of the deploy key
 	if len(dk.Name) == 0 {
@@ -153,4 +170,10 @@ func (dk *DeployKeyInfo) ValidateInfo() error {
 	// Don't care about the RepositoryRef, as that information is coming from
 	// the RepositoryClient. In the client, we make sure that they equal.
 	return validator.Error()
+}
+
+// Equals can be used to check if this *Info request (the desired state) matches the actual
+// passed in as the argument.
+func (dk DeployKeyInfo) Equals(actual InfoRequest) bool {
+	return reflect.DeepEqual(dk, actual)
 }

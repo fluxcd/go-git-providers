@@ -16,7 +16,9 @@ limitations under the License.
 
 package gitprovider
 
-import "github.com/fluxcd/go-git-providers/validation"
+import (
+	"github.com/fluxcd/go-git-providers/validation"
+)
 
 // MakeRepositoryCreateOptions returns a RepositoryCreateOptions based off the mutator functions
 // given to e.g. RepositoriesClient.Create(). The returned validation error may be ignored in the
@@ -27,11 +29,8 @@ func MakeRepositoryCreateOptions(opts ...RepositoryCreateOption) (RepositoryCrea
 	for _, opt := range opts {
 		opt.ApplyToRepositoryCreateOptions(o)
 	}
-	return *o, ValidateAndDefaultInfo(o)
+	return *o, o.ValidateOptions()
 }
-
-// RepositoryCreateOptions implements CreatableInfo.
-var _ CreatableInfo = &RepositoryCreateOptions{}
 
 // RepositoryReconcileOption is an interface for applying options to when reconciling repositories.
 type RepositoryReconcileOption interface {
@@ -70,12 +69,8 @@ func (opts *RepositoryCreateOptions) ApplyToRepositoryCreateOptions(target *Repo
 	}
 }
 
-// Default implements CreatableInfo, setting default values for the options if needed
-// For this specific case, it's ok to leave things as nil.
-func (opts *RepositoryCreateOptions) Default() {}
-
 // ValidateInfo validates that the options are valid.
-func (opts *RepositoryCreateOptions) ValidateInfo() error {
+func (opts *RepositoryCreateOptions) ValidateOptions() error {
 	errs := validation.New("RepositoryCreateOptions")
 	if opts.LicenseTemplate != nil {
 		errs.Append(ValidateLicenseTemplate(*opts.LicenseTemplate), *opts.LicenseTemplate, "LicenseTemplate")

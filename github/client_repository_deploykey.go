@@ -19,7 +19,6 @@ package github
 import (
 	"context"
 	"errors"
-	"reflect"
 
 	"github.com/google/go-github/v32/github"
 
@@ -137,7 +136,7 @@ func (c *DeployKeyClient) Reconcile(ctx context.Context, req gitprovider.DeployK
 	}
 
 	// If the desired matches the actual state, just return the actual state
-	if reflect.DeepEqual(req, actual.Get()) {
+	if req.Equals(actual.Get()) {
 		return actual, false, nil
 	}
 

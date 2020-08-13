@@ -19,7 +19,6 @@ package github
 import (
 	"context"
 	"errors"
-	"reflect"
 
 	"github.com/google/go-github/v32/github"
 
@@ -107,7 +106,7 @@ func (ta *teamAccess) Reconcile(ctx context.Context) (bool, error) {
 	}
 
 	// If the desired matches the actual state, just return the actual state
-	if reflect.DeepEqual(req, actual.Get()) {
+	if req.Equals(actual.Get()) {
 		return false, nil
 	}
 

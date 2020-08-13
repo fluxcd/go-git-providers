@@ -19,7 +19,6 @@ package github
 import (
 	"context"
 	"errors"
-	"reflect"
 
 	"github.com/google/go-github/v32/github"
 
@@ -165,20 +164,17 @@ func createRepositoryData(ctx context.Context, c *github.Client, orgName string,
 	return validateRepositoryAPIResp(apiObj, err)
 }
 
-func reconcileRepository(ctx context.Context, actual gitprovider.UserRepository, req gitprovider.RepositoryInfo) (actionTaken bool, err error) {
+func reconcileRepository(ctx context.Context, actual gitprovider.UserRepository, req gitprovider.RepositoryInfo) (bool, error) {
 	// If the desired matches the actual state, just return the actual state
-	if reflect.DeepEqual(req, actual.Get()) {
-		return
+	if req.Equals(actual.Get()) {
+		return false, nil
 	}
-
 	// Populate the desired state to the current-actual object
-	if err = actual.Set(req); err != nil {
-		return
+	if err := actual.Set(req); err != nil {
+		return false, err
 	}
 	// Apply the desired state by running Update
-	err = actual.Update(ctx)
-	actionTaken = true
-	return
+	return true, actual.Update(ctx)
 }
 
 func toCreateOpts(opts ...gitprovider.RepositoryReconcileOption) []gitprovider.RepositoryCreateOption {

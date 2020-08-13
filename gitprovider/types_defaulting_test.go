@@ -25,8 +25,8 @@ func TestDefaulting(t *testing.T) {
 	tests := []struct {
 		name       string
 		structName string
-		object     CreatableInfo
-		expected   CreatableInfo
+		object     DefaultedInfoRequest
+		expected   DefaultedInfoRequest
 	}{
 		{
 			name:       "DeployKey: empty",

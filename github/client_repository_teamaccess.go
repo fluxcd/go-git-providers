@@ -20,7 +20,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"reflect"
 
 	"github.com/google/go-github/v32/github"
 
@@ -141,7 +140,7 @@ func (c *TeamAccessClient) Reconcile(ctx context.Context,
 	}
 
 	// If the desired matches the actual state, just return the actual state
-	if reflect.DeepEqual(req, actual.Get()) {
+	if req.Equals(actual.Get()) {
 		return actual, false, nil
 	}
 

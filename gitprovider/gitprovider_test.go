@@ -24,8 +24,8 @@ import (
 func TestValidateAndDefaultInfo(t *testing.T) {
 	tests := []struct {
 		name     string
-		info     CreatableInfo
-		expected CreatableInfo
+		info     DefaultedInfoRequest
+		expected DefaultedInfoRequest
 		wantErr  bool
 	}{
 		{

@@ -22,14 +22,29 @@ import "context"
 // The provider constants are defined in their respective packages.
 type ProviderID string
 
-// CreatableInfo is an interface which all *Info objects that can be created
-// (using the Client) should implement.
-type CreatableInfo interface {
+// InfoRequest is an interface which all {Object}Info objects that can be used as Create() or Reconcile()
+// requests in the Client should implement. Most likely, the struct should also implement DefaultedInfoRequest,
+// as most objects have optional, defaulted fields.
+type InfoRequest interface {
 	// ValidateInfo validates the object at {Object}.Set() and POST-time, before defaulting.
 	// Set (non-nil) and required fields should be validated.
 	ValidateInfo() error
+
+	// Equals can be used to check if this *Info request (the desired state) matches the actual
+	// passed in as the argument.
+	Equals(actual InfoRequest) bool
+}
+
+// DefaultedInfoRequest is a superset of InfoRequest, also including a Default() function that can
+// modify the underlying object, adding default values. ValidateAndDefaultInfo() can be used
+// to first validate, and then default.
+type DefaultedInfoRequest interface {
+	// DefaultedInfoRequest is a superset of InfoRequest
+	InfoRequest
+
 	// Default will be run after validation, setting optional pointer fields to their
-	// default values before doing the POST request.
+	// default values before doing the POST request. This function MUST be registered with
+	// the base struct as a pointer receiver.
 	Default()
 }
 
@@ -90,14 +105,14 @@ type RepositoryBound interface {
 }
 
 // ValidateAndDefaultInfo can be used in client Create() and Reconcile() functions, where the
-// request object, which implements CreatableInfo, shall be first validated, and then defaulted.
+// request object, which implements InfoRequest, shall be first validated, and then defaulted.
 // Defaulting happens at Create(), because we want to consistently apply this library's defaults
 // across providers. Defaulting also happens at Reconcile(), because as the object has been created
 // with defaults, the actual state fetched from the server will contain those defaults, and would
 // result in a diff between the (possibly non-defaulted) request and actual state.
 // TODO: Unit and integration test this.
 // TODO: Document in Create() and Reconcile() that req is modified (?) and should not be used anymore.
-func ValidateAndDefaultInfo(info CreatableInfo) error {
+func ValidateAndDefaultInfo(info DefaultedInfoRequest) error {
 	if err := info.ValidateInfo(); err != nil {
 		return err
 	}

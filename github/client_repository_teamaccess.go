@@ -20,25 +20,30 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"reflect"
 
 	"github.com/google/go-github/v32/github"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
-// TeamAccessClient implements the gitprovider.TeamAccessClient interface
+// TeamAccessClient implements the gitprovider.TeamAccessClient interface.
 var _ gitprovider.TeamAccessClient = &TeamAccessClient{}
 
-// TeamAccessClient operates on the teams list for a specific repository
+// TeamAccessClient operates on the teams list for a specific repository.
 type TeamAccessClient struct {
 	*clientContext
 	ref gitprovider.RepositoryRef
 }
 
-func (c *TeamAccessClient) Get(ctx context.Context, teamName string) (gitprovider.TeamAccess, error) {
+// Get a team within the specific organization.
+//
+// name may include slashes, but must not be an empty string.
+// Teams are sub-groups in GitLab.
+//
+// ErrNotFound is returned if the resource does not exist.
+func (c *TeamAccessClient) Get(ctx context.Context, name string) (gitprovider.TeamAccess, error) {
 	// GET /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}
-	apiObj, _, err := c.c.Teams.IsTeamRepoBySlug(ctx, c.ref.GetIdentity(), teamName, c.ref.GetIdentity(), c.ref.GetRepository())
+	apiObj, _, err := c.c.Teams.IsTeamRepoBySlug(ctx, c.ref.GetIdentity(), name, c.ref.GetIdentity(), c.ref.GetRepository())
 	if err != nil {
 		return nil, handleHTTPError(err)
 	}
@@ -48,7 +53,7 @@ func (c *TeamAccessClient) Get(ctx context.Context, teamName string) (gitprovide
 		return nil, fmt.Errorf("didn't expect permissions to be nil for team access object: %+v: %w", apiObj, gitprovider.ErrInvalidServerData)
 	}
 
-	return newTeamAccess(c, teamAccessFromAPI(apiObj, teamName)), nil
+	return newTeamAccess(c, teamAccessFromAPI(apiObj, name)), nil
 }
 
 // List lists the team access control list for this repository.
@@ -65,7 +70,7 @@ func (c *TeamAccessClient) List(ctx context.Context) ([]gitprovider.TeamAccess, 
 		return resp, listErr
 	})
 	if err != nil {
-		return nil, handleHTTPError(err)
+		return nil, err
 	}
 
 	teamAccess := make([]gitprovider.TeamAccess, 0, len(apiObjs))
@@ -90,11 +95,11 @@ func (c *TeamAccessClient) List(ctx context.Context) ([]gitprovider.TeamAccess, 
 //
 // ErrAlreadyExists will be returned if the resource already exists.
 func (c *TeamAccessClient) Create(ctx context.Context, req gitprovider.TeamAccessInfo) (gitprovider.TeamAccess, error) {
-	// Validate the request and default
-	if err := req.ValidateInfo(); err != nil {
+	// First thing, validate and default the request to ensure a valid and fully-populated object
+	// (to minimize any possible diffs between desired and actual state)
+	if err := gitprovider.ValidateAndDefaultInfo(&req); err != nil {
 		return nil, err
 	}
-	req.Default()
 
 	opts := &github.TeamAddTeamRepoOptions{
 		Permission: string(*req.Permission),
@@ -113,9 +118,12 @@ func (c *TeamAccessClient) Create(ctx context.Context, req gitprovider.TeamAcces
 // If req doesn't exist under the hood, it is created (actionTaken == true).
 // If req doesn't equal the actual state, the resource will be deleted and recreated (actionTaken == true).
 // If req is already the actual state, this is a no-op (actionTaken == false).
-func (c *TeamAccessClient) Reconcile(ctx context.Context, req gitprovider.TeamAccessInfo) (gitprovider.TeamAccess, bool, error) {
-	// First thing, validate the request
-	if err := req.ValidateInfo(); err != nil {
+func (c *TeamAccessClient) Reconcile(ctx context.Context,
+	req gitprovider.TeamAccessInfo,
+) (gitprovider.TeamAccess, bool, error) {
+	// First thing, validate and default the request to ensure a valid and fully-populated object
+	// (to minimize any possible diffs between desired and actual state)
+	if err := gitprovider.ValidateAndDefaultInfo(&req); err != nil {
 		return nil, false, err
 	}
 
@@ -132,7 +140,7 @@ func (c *TeamAccessClient) Reconcile(ctx context.Context, req gitprovider.TeamAc
 	}
 
 	// If the desired matches the actual state, just return the actual state
-	if reflect.DeepEqual(req, actual.Get()) {
+	if req.Equals(actual.Get()) {
 		return actual, false, nil
 	}
 

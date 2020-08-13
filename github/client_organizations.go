@@ -25,9 +25,10 @@ import (
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
-// OrganizationsClient implements the gitprovider.OrganizationsClient interface
+// OrganizationsClient implements the gitprovider.OrganizationsClient interface.
 var _ gitprovider.OrganizationsClient = &OrganizationsClient{}
 
+// OrganizationsClient operates on organizations the user has access to.
 type OrganizationsClient struct {
 	*clientContext
 }
@@ -64,7 +65,7 @@ func (c *OrganizationsClient) List(ctx context.Context) ([]gitprovider.Organizat
 		return resp, listErr
 	})
 	if err != nil {
-		return nil, handleHTTPError(err)
+		return nil, err
 	}
 
 	orgs := make([]gitprovider.Organization, 0, len(apiObjs))
@@ -73,6 +74,7 @@ func (c *OrganizationsClient) List(ctx context.Context) ([]gitprovider.Organizat
 		if apiObj.Login == nil {
 			return nil, fmt.Errorf("didn't expect login to be nil for org: %+v: %w", apiObj, gitprovider.ErrInvalidServerData)
 		}
+
 		orgs = append(orgs, newOrganization(c.clientContext, apiObj, gitprovider.OrganizationRef{
 			Domain:       c.domain,
 			Organization: *apiObj.Login,

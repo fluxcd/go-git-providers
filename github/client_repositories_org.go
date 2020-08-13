@@ -19,17 +19,16 @@ package github
 import (
 	"context"
 	"errors"
-	"reflect"
 
 	"github.com/google/go-github/v32/github"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
-// OrgRepositoriesClient implements the gitprovider.OrgRepositoriesClient interface
+// OrgRepositoriesClient implements the gitprovider.OrgRepositoriesClient interface.
 var _ gitprovider.OrgRepositoriesClient = &OrgRepositoriesClient{}
 
-// OrgRepositoriesClient operates on repositories the user has access to
+// OrgRepositoriesClient operates on repositories the user has access to.
 type OrgRepositoriesClient struct {
 	*clientContext
 }
@@ -42,7 +41,7 @@ func (c *OrgRepositoriesClient) Get(ctx context.Context, ref gitprovider.OrgRepo
 	if err := validateOrgRepositoryRef(ref, c.domain); err != nil {
 		return nil, err
 	}
-	apiObj, err := getRepository(c.c, ctx, ref)
+	apiObj, err := getRepository(ctx, c.c, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +67,7 @@ func (c *OrgRepositoriesClient) List(ctx context.Context, ref gitprovider.Organi
 		return resp, listErr
 	})
 	if err != nil {
-		return nil, handleHTTPError(err)
+		return nil, err
 	}
 
 	// Traverse the list, and return a list of OrgRepository objects
@@ -87,7 +86,7 @@ func (c *OrgRepositoriesClient) List(ctx context.Context, ref gitprovider.Organi
 	return repos, nil
 }
 
-// Create creates a repository for the given organization, with the data and options
+// Create creates a repository for the given organization, with the data and options.
 //
 // ErrAlreadyExists will be returned if the resource already exists.
 func (c *OrgRepositoriesClient) Create(ctx context.Context, ref gitprovider.OrgRepositoryRef, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryCreateOption) (gitprovider.OrgRepository, error) {
@@ -96,7 +95,7 @@ func (c *OrgRepositoriesClient) Create(ctx context.Context, ref gitprovider.OrgR
 		return nil, err
 	}
 
-	apiObj, err := createRepository(c.c, ctx, ref, ref.Organization, req, opts...)
+	apiObj, err := createRepository(ctx, c.c, ref, ref.Organization, req, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -109,8 +108,9 @@ func (c *OrgRepositoriesClient) Create(ctx context.Context, ref gitprovider.OrgR
 // If req doesn't equal the actual state, the resource will be updated (actionTaken == true).
 // If req is already the actual state, this is a no-op (actionTaken == false).
 func (c *OrgRepositoriesClient) Reconcile(ctx context.Context, ref gitprovider.OrgRepositoryRef, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryReconcileOption) (gitprovider.OrgRepository, bool, error) {
-	// First thing, validate the request
-	if err := req.ValidateInfo(); err != nil {
+	// First thing, validate and default the request to ensure a valid and fully-populated object
+	// (to minimize any possible diffs between desired and actual state)
+	if err := gitprovider.ValidateAndDefaultInfo(&req); err != nil {
 		return nil, false, err
 	}
 
@@ -130,33 +130,33 @@ func (c *OrgRepositoriesClient) Reconcile(ctx context.Context, ref gitprovider.O
 	return actual, actionTaken, err
 }
 
-func getRepository(c *github.Client, ctx context.Context, ref gitprovider.RepositoryRef) (*github.Repository, error) {
+func getRepository(ctx context.Context, c *github.Client, ref gitprovider.RepositoryRef) (*github.Repository, error) {
 	// GET /repos/{owner}/{repo}
 	apiObj, _, err := c.Repositories.Get(ctx, ref.GetIdentity(), ref.GetRepository())
 	return validateRepositoryAPIResp(apiObj, err)
 }
 
-func createRepository(c *github.Client, ctx context.Context, ref gitprovider.RepositoryRef, orgName string, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryCreateOption) (*github.Repository, error) {
-	// Make sure the request is valid
-	if err := req.ValidateInfo(); err != nil {
+func createRepository(ctx context.Context, c *github.Client, ref gitprovider.RepositoryRef, orgName string, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryCreateOption) (*github.Repository, error) {
+	// First thing, validate and default the request to ensure a valid and fully-populated object
+	// (to minimize any possible diffs between desired and actual state)
+	if err := gitprovider.ValidateAndDefaultInfo(&req); err != nil {
 		return nil, err
 	}
+
 	// Assemble the options struct based on the given options
 	o, err := gitprovider.MakeRepositoryCreateOptions(opts...)
 	if err != nil {
 		return nil, err
 	}
-	// Default the request object
-	req.Default()
 
 	// Convert to the API object and apply the options
 	data := repositoryToAPI(&req, ref)
 	applyRepoCreateOptions(&data, o)
 
-	return createRepositoryData(c, ctx, orgName, &data)
+	return createRepositoryData(ctx, c, orgName, &data)
 }
 
-func createRepositoryData(c *github.Client, ctx context.Context, orgName string, data *github.Repository) (*github.Repository, error) {
+func createRepositoryData(ctx context.Context, c *github.Client, orgName string, data *github.Repository) (*github.Repository, error) {
 	// POST /user/repos or
 	// POST /orgs/{org}/repos
 	// depending on orgName
@@ -164,20 +164,17 @@ func createRepositoryData(c *github.Client, ctx context.Context, orgName string,
 	return validateRepositoryAPIResp(apiObj, err)
 }
 
-func reconcileRepository(ctx context.Context, actual gitprovider.UserRepository, req gitprovider.RepositoryInfo) (actionTaken bool, err error) {
+func reconcileRepository(ctx context.Context, actual gitprovider.UserRepository, req gitprovider.RepositoryInfo) (bool, error) {
 	// If the desired matches the actual state, just return the actual state
-	if reflect.DeepEqual(req, actual.Get()) {
-		return
+	if req.Equals(actual.Get()) {
+		return false, nil
 	}
-
 	// Populate the desired state to the current-actual object
-	if err = actual.Set(req); err != nil {
-		return
+	if err := actual.Set(req); err != nil {
+		return false, err
 	}
 	// Apply the desired state by running Update
-	err = actual.Update(ctx)
-	actionTaken = true
-	return
+	return true, actual.Update(ctx)
 }
 
 func toCreateOpts(opts ...gitprovider.RepositoryReconcileOption) []gitprovider.RepositoryCreateOption {

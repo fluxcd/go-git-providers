@@ -19,7 +19,6 @@ package github
 import (
 	"context"
 	"errors"
-	"reflect"
 
 	"github.com/google/go-github/v32/github"
 
@@ -64,9 +63,13 @@ func (ta *teamAccess) Repository() gitprovider.RepositoryRef {
 //
 // ErrNotFound is returned if the resource does not exist.
 func (ta *teamAccess) Delete(ctx context.Context) error {
-
 	// DELETE /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}
-	_, err := ta.c.c.Teams.RemoveTeamRepoBySlug(ctx, ta.c.ref.GetIdentity(), ta.ta.Name, ta.c.ref.GetIdentity(), ta.c.ref.GetRepository())
+	_, err := ta.c.c.Teams.RemoveTeamRepoBySlug(ctx,
+		ta.c.ref.GetIdentity(),
+		ta.ta.Name,
+		ta.c.ref.GetIdentity(),
+		ta.c.ref.GetRepository(),
+	)
 	return handleHTTPError(err)
 }
 
@@ -103,7 +106,7 @@ func (ta *teamAccess) Reconcile(ctx context.Context) (bool, error) {
 	}
 
 	// If the desired matches the actual state, just return the actual state
-	if reflect.DeepEqual(req, actual.Get()) {
+	if req.Equals(actual.Get()) {
 		return false, nil
 	}
 
@@ -117,6 +120,7 @@ func teamAccessFromAPI(apiObj *github.Repository, teamName string) gitprovider.T
 	}
 }
 
+//nolint:gochecknoglobals,gomnd
 var permissionPriority = map[gitprovider.RepositoryPermission]int{
 	gitprovider.RepositoryPermissionPull:     1,
 	gitprovider.RepositoryPermissionTriage:   2,

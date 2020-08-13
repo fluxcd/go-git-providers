@@ -25,10 +25,10 @@ import (
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
-// UserRepositoriesClient implements the gitprovider.UserRepositoriesClient interface
+// UserRepositoriesClient implements the gitprovider.UserRepositoriesClient interface.
 var _ gitprovider.UserRepositoriesClient = &UserRepositoriesClient{}
 
-// UserRepositoriesClient operates on repositories the user has access to
+// UserRepositoriesClient operates on repositories the user has access to.
 type UserRepositoriesClient struct {
 	*clientContext
 }
@@ -41,7 +41,7 @@ func (c *UserRepositoriesClient) Get(ctx context.Context, ref gitprovider.UserRe
 	if err := validateUserRepositoryRef(ref, c.domain); err != nil {
 		return nil, err
 	}
-	apiObj, err := getRepository(c.c, ctx, ref)
+	apiObj, err := getRepository(ctx, c.c, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func (c *UserRepositoriesClient) List(ctx context.Context, ref gitprovider.UserR
 		return resp, listErr
 	})
 	if err != nil {
-		return nil, handleHTTPError(err)
+		return nil, err
 	}
 
 	// Traverse the list, and return a list of UserRepository objects
@@ -89,13 +89,17 @@ func (c *UserRepositoriesClient) List(ctx context.Context, ref gitprovider.UserR
 // Create creates a repository for the given organization, with the data and options
 //
 // ErrAlreadyExists will be returned if the resource already exists.
-func (c *UserRepositoriesClient) Create(ctx context.Context, ref gitprovider.UserRepositoryRef, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryCreateOption) (gitprovider.UserRepository, error) {
+func (c *UserRepositoriesClient) Create(ctx context.Context,
+	ref gitprovider.UserRepositoryRef,
+	req gitprovider.RepositoryInfo,
+	opts ...gitprovider.RepositoryCreateOption,
+) (gitprovider.UserRepository, error) {
 	// Make sure the RepositoryRef is valid
 	if err := validateUserRepositoryRef(ref, c.domain); err != nil {
 		return nil, err
 	}
 
-	apiObj, err := createRepository(c.c, ctx, ref, "", req, opts...)
+	apiObj, err := createRepository(ctx, c.c, ref, "", req, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -108,8 +112,9 @@ func (c *UserRepositoriesClient) Create(ctx context.Context, ref gitprovider.Use
 // If req doesn't equal the actual state, the resource will be updated (actionTaken == true).
 // If req is already the actual state, this is a no-op (actionTaken == false).
 func (c *UserRepositoriesClient) Reconcile(ctx context.Context, ref gitprovider.UserRepositoryRef, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryReconcileOption) (gitprovider.UserRepository, bool, error) {
-	// First thing, validate the request
-	if err := req.ValidateInfo(); err != nil {
+	// First thing, validate and default the request to ensure a valid and fully-populated object
+	// (to minimize any possible diffs between desired and actual state)
+	if err := gitprovider.ValidateAndDefaultInfo(&req); err != nil {
 		return nil, false, err
 	}
 

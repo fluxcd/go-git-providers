@@ -24,27 +24,25 @@ import (
 	"github.com/fluxcd/go-git-providers/validation"
 )
 
-// TODO: Add equality methods for IdentityRef and RepositoryRefs
-
-// IdentityType is a typed string for what kind of identity type an IdentityRef is
+// IdentityType is a typed string for what kind of identity type an IdentityRef is.
 type IdentityType string
 
 const (
-	// IdentityTypeUser represents an identity for a user account
+	// IdentityTypeUser represents an identity for a user account.
 	IdentityTypeUser = IdentityType("user")
-	// IdentityTypeOrganization represents an identity for an organization
+	// IdentityTypeOrganization represents an identity for an organization.
 	IdentityTypeOrganization = IdentityType("organization")
-	// IdentityTypeSuborganization represents an identity for a sub-organization
+	// IdentityTypeSuborganization represents an identity for a sub-organization.
 	IdentityTypeSuborganization = IdentityType("suborganization")
 )
 
-// IdentityRef references an organization or user account in a Git provider
+// IdentityRef references an organization or user account in a Git provider.
 type IdentityRef interface {
-	// IdentityRef implements ValidateTarget so it can easily be validated as a field
+	// IdentityRef implements ValidateTarget so it can easily be validated as a field.
 	validation.ValidateTarget
 
 	// GetDomain returns the URL-domain for the Git provider backend,
-	// e.g. "github.com" or "self-hosted-gitlab.com:6443"
+	// e.g. "github.com" or "self-hosted-gitlab.com:6443".
 	GetDomain() string
 
 	// GetIdentity returns the user account name or a slash-separated path of the
@@ -57,7 +55,7 @@ type IdentityRef interface {
 	// IdentityTypeSuborganization are returned, this IdentityRef can be casted to a OrganizationRef.
 	GetType() IdentityType
 
-	// String returns the HTTPS URL, and implements fmt.Stringer
+	// String returns the HTTPS URL, and implements fmt.Stringer.
 	String() string
 }
 
@@ -85,7 +83,7 @@ type UserRef struct {
 	UserLogin string `json:"userLogin"`
 }
 
-// UserRef implements IdentityRef
+// UserRef implements IdentityRef.
 var _ IdentityRef = UserRef{}
 
 // GetDomain returns the the domain part of the endpoint, can include port information.
@@ -93,22 +91,22 @@ func (u UserRef) GetDomain() string {
 	return u.Domain
 }
 
-// GetIdentity returns the identity of this actor, which in this case is the user login name
+// GetIdentity returns the identity of this actor, which in this case is the user login name.
 func (u UserRef) GetIdentity() string {
 	return u.UserLogin
 }
 
-// GetType marks this UserRef as being a IdentityTypeUser
+// GetType marks this UserRef as being a IdentityTypeUser.
 func (u UserRef) GetType() IdentityType {
 	return IdentityTypeUser
 }
 
-// String returns the HTTPS URL to access the User
+// String returns the HTTPS URL to access the User.
 func (u UserRef) String() string {
 	return fmt.Sprintf("https://%s/%s", u.GetDomain(), u.GetIdentity())
 }
 
-// ValidateFields validates its own fields for a given validator
+// ValidateFields validates its own fields for a given validator.
 func (u UserRef) ValidateFields(validator validation.Validator) {
 	// Require the Domain and Organization to be set
 	if len(u.Domain) == 0 {
@@ -119,13 +117,13 @@ func (u UserRef) ValidateFields(validator validation.Validator) {
 	}
 }
 
-// OrganizationRef implements IdentityRef
+// OrganizationRef implements IdentityRef.
 var _ IdentityRef = OrganizationRef{}
 
-// OrganizationRef is an implementation of OrganizationRef
+// OrganizationRef is an implementation of OrganizationRef.
 type OrganizationRef struct {
 	// Domain returns e.g. "github.com", "gitlab.com" or a custom domain like "self-hosted-gitlab.com" (GitLab)
-	// The domain _might_ contain port information, in the form of "host:port", if applicable
+	// The domain _might_ contain port information, in the form of "host:port", if applicable.
 	// +required
 	Domain string `json:"domain"`
 
@@ -145,13 +143,13 @@ func (o OrganizationRef) GetDomain() string {
 	return o.Domain
 }
 
-// GetIdentity returns the identity of this actor, which in this case is the user login name
+// GetIdentity returns the identity of this actor, which in this case is the user login name.
 func (o OrganizationRef) GetIdentity() string {
 	orgParts := append([]string{o.Organization}, o.SubOrganizations...)
 	return strings.Join(orgParts, "/")
 }
 
-// GetType marks this UserRef as being a IdentityTypeUser
+// GetType marks this UserRef as being a IdentityTypeUser.
 func (o OrganizationRef) GetType() IdentityType {
 	if len(o.SubOrganizations) > 0 {
 		return IdentityTypeSuborganization
@@ -159,12 +157,12 @@ func (o OrganizationRef) GetType() IdentityType {
 	return IdentityTypeOrganization
 }
 
-// String returns the HTTPS URL to access the Organization
+// String returns the HTTPS URL to access the Organization.
 func (o OrganizationRef) String() string {
 	return fmt.Sprintf("https://%s/%s", o.GetDomain(), o.GetIdentity())
 }
 
-// ValidateFields validates its own fields for a given validator
+// ValidateFields validates its own fields for a given validator.
 func (o OrganizationRef) ValidateFields(validator validation.Validator) {
 	// Require the Domain and Organization to be set
 	if len(o.Domain) == 0 {
@@ -181,7 +179,7 @@ type OrgRepositoryRef struct {
 	OrganizationRef `json:",inline"`
 
 	// RepositoryName specifies the Git repository name. This field is URL-friendly,
-	// e.g. "kubernetes" or "cluster-api-provider-aws"
+	// e.g. "kubernetes" or "cluster-api-provider-aws".
 	// +required
 	RepositoryName string `json:"repositoryName"`
 }
@@ -196,7 +194,7 @@ func (r OrgRepositoryRef) GetRepository() string {
 	return r.RepositoryName
 }
 
-// ValidateFields validates its own fields for a given validator
+// ValidateFields validates its own fields for a given validator.
 func (r OrgRepositoryRef) ValidateFields(validator validation.Validator) {
 	// First, validate the embedded OrganizationRef
 	r.OrganizationRef.ValidateFields(validator)
@@ -206,7 +204,7 @@ func (r OrgRepositoryRef) ValidateFields(validator validation.Validator) {
 	}
 }
 
-// GetCloneURL gets the clone URL for the specified transport type
+// GetCloneURL gets the clone URL for the specified transport type.
 func (r OrgRepositoryRef) GetCloneURL(transport TransportType) string {
 	return GetCloneURL(r, transport)
 }
@@ -217,12 +215,12 @@ type UserRepositoryRef struct {
 	UserRef `json:",inline"`
 
 	// RepositoryName specifies the Git repository name. This field is URL-friendly,
-	// e.g. "kubernetes" or "cluster-api-provider-aws"
+	// e.g. "kubernetes" or "cluster-api-provider-aws".
 	// +required
 	RepositoryName string `json:"repositoryName"`
 }
 
-// String returns the HTTPS URL to access the repository
+// String returns the HTTPS URL to access the repository.
 func (r UserRepositoryRef) String() string {
 	return fmt.Sprintf("%s/%s", r.UserRef.String(), r.RepositoryName)
 }
@@ -232,7 +230,7 @@ func (r UserRepositoryRef) GetRepository() string {
 	return r.RepositoryName
 }
 
-// ValidateFields validates its own fields for a given validator
+// ValidateFields validates its own fields for a given validator.
 func (r UserRepositoryRef) ValidateFields(validator validation.Validator) {
 	// First, validate the embedded OrganizationRef
 	r.UserRef.ValidateFields(validator)
@@ -242,7 +240,7 @@ func (r UserRepositoryRef) ValidateFields(validator validation.Validator) {
 	}
 }
 
-// GetCloneURL gets the clone URL for the specified transport type
+// GetCloneURL gets the clone URL for the specified transport type.
 func (r UserRepositoryRef) GetCloneURL(transport TransportType) string {
 	return GetCloneURL(r, transport)
 }
@@ -261,7 +259,7 @@ func GetCloneURL(rs RepositoryRef, transport TransportType) string {
 	return ""
 }
 
-// ParseOrganizationURL parses an URL to an organization into a OrganizationRef object
+// ParseOrganizationURL parses an URL to an organization into a OrganizationRef object.
 func ParseOrganizationURL(o string) (*OrganizationRef, error) {
 	u, parts, err := parseURL(o)
 	if err != nil {
@@ -280,7 +278,7 @@ func ParseOrganizationURL(o string) (*OrganizationRef, error) {
 	return info, nil
 }
 
-// ParseUserURL parses an URL to an organization into a UserRef object
+// ParseUserURL parses an URL to an organization into a UserRef object.
 func ParseUserURL(u string) (*UserRef, error) {
 	// Use the same logic as for parsing organization URLs, but return an UserRef object
 	orgInfoPtr, err := ParseOrganizationURL(u)
@@ -294,7 +292,7 @@ func ParseUserURL(u string) (*UserRef, error) {
 	return userRef, nil
 }
 
-// ParseUserRepositoryURL parses a HTTPS clone URL into a UserRepositoryRef object
+// ParseUserRepositoryURL parses a HTTPS clone URL into a UserRepositoryRef object.
 func ParseUserRepositoryURL(r string) (*UserRepositoryRef, error) {
 	orgInfoPtr, repoName, err := parseRepositoryURL(r)
 	if err != nil {
@@ -312,7 +310,7 @@ func ParseUserRepositoryURL(r string) (*UserRepositoryRef, error) {
 	}, nil
 }
 
-// ParseOrgRepositoryURL parses a HTTPS clone URL into a OrgRepositoryRef object
+// ParseOrgRepositoryURL parses a HTTPS clone URL into a OrgRepositoryRef object.
 func ParseOrgRepositoryURL(r string) (*OrgRepositoryRef, error) {
 	orgInfoPtr, repoName, err := parseRepositoryURL(r)
 	if err != nil {

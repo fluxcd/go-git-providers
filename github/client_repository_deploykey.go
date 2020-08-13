@@ -19,17 +19,16 @@ package github
 import (
 	"context"
 	"errors"
-	"reflect"
 
 	"github.com/google/go-github/v32/github"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
-// DeployKeyClient implements the gitprovider.DeployKeyClient interface
+// DeployKeyClient implements the gitprovider.DeployKeyClient interface.
 var _ gitprovider.DeployKeyClient = &DeployKeyClient{}
 
-// DeployKeyClient operates on the access deploy key list for a specific repository
+// DeployKeyClient operates on the access deploy key list for a specific repository.
 type DeployKeyClient struct {
 	*clientContext
 	ref gitprovider.RepositoryRef
@@ -39,17 +38,20 @@ type DeployKeyClient struct {
 //
 // ErrNotFound is returned if the resource does not exist.
 func (c *DeployKeyClient) Get(ctx context.Context, name string) (gitprovider.DeployKey, error) {
+	return c.get(ctx, name)
+}
 
-	deployKeys, err := c.List(ctx)
+func (c *DeployKeyClient) get(ctx context.Context, name string) (*deployKey, error) {
+	deployKeys, err := c.list(ctx)
 	if err != nil {
 		return nil, err
 	}
+	// Loop through deploy keys once we find one with the right name
 	for _, dk := range deployKeys {
-		if dk.Get().Name == name {
+		if *dk.k.Title == name {
 			return dk, nil
 		}
 	}
-
 	return nil, gitprovider.ErrNotFound
 }
 
@@ -58,6 +60,19 @@ func (c *DeployKeyClient) Get(ctx context.Context, name string) (gitprovider.Dep
 // List returns all available repository deploy keys for the given type,
 // using multiple paginated requests if needed.
 func (c *DeployKeyClient) List(ctx context.Context) ([]gitprovider.DeployKey, error) {
+	dks, err := c.list(ctx)
+	if err != nil {
+		return nil, err
+	}
+	// Cast to []gitprovider.DeployKey
+	keys := make([]gitprovider.DeployKey, 0, len(dks))
+	for _, dk := range dks {
+		keys = append(keys, dk)
+	}
+	return keys, nil
+}
+
+func (c *DeployKeyClient) list(ctx context.Context) ([]*deployKey, error) {
 	// List all keys, using pagination.
 	apiObjs := []*github.Key{}
 	opts := &github.ListOptions{}
@@ -68,11 +83,11 @@ func (c *DeployKeyClient) List(ctx context.Context) ([]gitprovider.DeployKey, er
 		return resp, listErr
 	})
 	if err != nil {
-		return nil, handleHTTPError(err)
+		return nil, err
 	}
 
 	// Map the api object to our DeployKey type
-	keys := make([]gitprovider.DeployKey, 0, len(apiObjs))
+	keys := make([]*deployKey, 0, len(apiObjs))
 	for _, apiObj := range apiObjs {
 		k, err := newDeployKey(c, apiObj)
 		if err != nil {
@@ -88,7 +103,7 @@ func (c *DeployKeyClient) List(ctx context.Context) ([]gitprovider.DeployKey, er
 //
 // ErrAlreadyExists will be returned if the resource already exists.
 func (c *DeployKeyClient) Create(ctx context.Context, req gitprovider.DeployKeyInfo) (gitprovider.DeployKey, error) {
-	apiObj, err := createDeployKey(c.c, ctx, c.ref, req)
+	apiObj, err := createDeployKey(ctx, c.c, c.ref, req)
 	if err != nil {
 		return nil, err
 	}
@@ -101,8 +116,9 @@ func (c *DeployKeyClient) Create(ctx context.Context, req gitprovider.DeployKeyI
 // If req doesn't equal the actual state, the resource will be deleted and recreated (actionTaken == true).
 // If req is already the actual state, this is a no-op (actionTaken == false).
 func (c *DeployKeyClient) Reconcile(ctx context.Context, req gitprovider.DeployKeyInfo) (gitprovider.DeployKey, bool, error) {
-	// First thing, validate the request
-	if err := req.ValidateInfo(); err != nil {
+	// First thing, validate and default the request to ensure a valid and fully-populated object
+	// (to minimize any possible diffs between desired and actual state)
+	if err := gitprovider.ValidateAndDefaultInfo(&req); err != nil {
 		return nil, false, err
 	}
 
@@ -120,7 +136,7 @@ func (c *DeployKeyClient) Reconcile(ctx context.Context, req gitprovider.DeployK
 	}
 
 	// If the desired matches the actual state, just return the actual state
-	if reflect.DeepEqual(req, actual.Get()) {
+	if req.Equals(actual.Get()) {
 		return actual, false, nil
 	}
 
@@ -132,17 +148,17 @@ func (c *DeployKeyClient) Reconcile(ctx context.Context, req gitprovider.DeployK
 	return actual, true, actual.Update(ctx)
 }
 
-func createDeployKey(c *github.Client, ctx context.Context, ref gitprovider.RepositoryRef, req gitprovider.DeployKeyInfo) (*github.Key, error) {
-	// Validate the create request and default
-	if err := req.ValidateInfo(); err != nil {
+func createDeployKey(ctx context.Context, c *github.Client, ref gitprovider.RepositoryRef, req gitprovider.DeployKeyInfo) (*github.Key, error) {
+	// First thing, validate and default the request to ensure a valid and fully-populated object
+	// (to minimize any possible diffs between desired and actual state)
+	if err := gitprovider.ValidateAndDefaultInfo(&req); err != nil {
 		return nil, err
 	}
-	req.Default()
 
-	return createDeployKeyData(c, ctx, ref, deployKeyToAPI(&req))
+	return createDeployKeyData(ctx, c, ref, deployKeyToAPI(&req))
 }
 
-func createDeployKeyData(c *github.Client, ctx context.Context, ref gitprovider.RepositoryRef, data *github.Key) (*github.Key, error) {
+func createDeployKeyData(ctx context.Context, c *github.Client, ref gitprovider.RepositoryRef, data *github.Key) (*github.Key, error) {
 	// POST /repos/{owner}/{repo}/keys
 	apiObj, _, err := c.Repositories.CreateKey(ctx, ref.GetIdentity(), ref.GetRepository(), data)
 	return apiObj, handleHTTPError(err)

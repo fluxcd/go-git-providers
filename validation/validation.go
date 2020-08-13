@@ -23,11 +23,11 @@ import (
 )
 
 var (
-	// ErrFieldRequired specifies the case where a required field isn't populated at use time
+	// ErrFieldRequired specifies the case where a required field isn't populated at use time.
 	ErrFieldRequired = errors.New("field is required")
-	// ErrFieldInvalid specifies the case where a field isn't populated in a valid manner
+	// ErrFieldInvalid specifies the case where a field isn't populated in a valid manner.
 	ErrFieldInvalid = errors.New("field is invalid")
-	// ErrFieldEnumInvalid specifies the case where the given value isn't part of the known values in the enum
+	// ErrFieldEnumInvalid specifies the case where the given value isn't part of the known values in the enum.
 	ErrFieldEnumInvalid = errors.New("field value isn't known to this enum")
 )
 
@@ -62,7 +62,7 @@ type ValidateTarget interface {
 	ValidateFields(v Validator)
 }
 
-// New creates a new validator struct for the given struct name
+// New creates a new validator struct for the given struct name.
 func New(name string) Validator {
 	return &validator{name, nil}
 }
@@ -98,7 +98,7 @@ func (v *validator) Required(fieldPaths ...string) {
 
 // Invalid is a helper method for Append, registering ErrFieldInvalid as the cause, along with what field
 // caused the error. fieldPaths should contain the names of all nested sub-fields (of the struct) that caused
-// the error. Specifying the value that was invalid is also supported
+// the error. Specifying the value that was invalid is also supported.
 func (v *validator) Invalid(value interface{}, fieldPaths ...string) {
 	v.Append(ErrFieldInvalid, value, fieldPaths...)
 }
@@ -125,7 +125,7 @@ func (v *validator) Append(err error, value interface{}, fieldPaths ...string) {
 // Error returns an aggregated error (or nil), based on the errors that have been registered
 // A *MultiError is returned if there are multiple errors. Users of this function might use
 // multiErr := &MultiError{}; errors.As(err, &multiErr) or errors.Is(err, multiErr) to detect
-// that many errors were returned
+// that many errors were returned.
 func (v *validator) Error() error {
 	// If there aren't any errors in the list, return nil quickly
 	if len(v.errs) == 0 {

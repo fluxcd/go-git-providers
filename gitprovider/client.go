@@ -102,7 +102,7 @@ type OrgRepositoriesClient interface {
 	Reconcile(ctx context.Context, r OrgRepositoryRef, req RepositoryInfo, opts ...RepositoryReconcileOption) (resp OrgRepository, actionTaken bool, err error)
 }
 
-// OrgRepositoriesClient operates on repositories for users..
+// UserRepositoriesClient operates on repositories for users.
 type UserRepositoriesClient interface {
 	// Get returns the repository at the given path.
 	//

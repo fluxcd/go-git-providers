@@ -105,7 +105,7 @@ func (r *userRepository) Update(ctx context.Context) error {
 //
 // The internal API object will be overridden with the received server data if actionTaken == true.
 func (r *userRepository) Reconcile(ctx context.Context) (bool, error) {
-	apiObj, err := getRepository(r.c, ctx, r.ref)
+	apiObj, err := getRepository(ctx, r.c, r.ref)
 	if err != nil {
 		// Create if not found
 		if errors.Is(err, gitprovider.ErrNotFound) {
@@ -113,7 +113,7 @@ func (r *userRepository) Reconcile(ctx context.Context) (bool, error) {
 			if orgRef, ok := r.ref.(gitprovider.OrgRepositoryRef); ok {
 				orgName = orgRef.Organization
 			}
-			repo, err := createRepositoryData(r.c, ctx, orgName, &r.r)
+			repo, err := createRepositoryData(ctx, r.c, orgName, &r.r)
 			if err != nil {
 				return true, err
 			}
@@ -124,23 +124,23 @@ func (r *userRepository) Reconcile(ctx context.Context) (bool, error) {
 		return false, err
 	}
 
-	// If desired state already is actual, just return
-	// TODO: Create an equality method for "settable" fields of the repository object
-	// Comparing two API objects to each other using reflect.DeepEqual or JSON doesn't work
-	// as current status is conflated in the same object and will result in race conditions.
-	// For now, as a workaround, we'll just compare the RepositoryInfo with each other.
-	if reflect.DeepEqual(repositoryFromAPI(apiObj), r.Get()) {
+	// Use wrappers here to extract the "spec" part of the object for comparison
+	desiredSpec := newGithubRepositorySpec(&r.r)
+	actualSpec := newGithubRepositorySpec(apiObj)
+
+	// If desired state already is the actual state, do nothing
+	if desiredSpec.Equals(actualSpec) {
 		return false, nil
 	}
 	// Otherwise, make the desired state the actual state
 	return true, r.Update(ctx)
 }
 
-// Delete deletes the current resource irreversebly.
+// Delete deletes the current resource irreversibly.
 //
 // ErrNotFound is returned if the resource doesn't exist anymore.
 func (r *userRepository) Delete(ctx context.Context) error {
-	// Don't allow deleting repositories if the user didn't explicitely allow dangerous API calls.
+	// Don't allow deleting repositories if the user didn't explicitly allow dangerous API calls.
 	if !r.destructiveActions {
 		return fmt.Errorf("cannot delete repository: %w", ErrDestructiveCallDisallowed)
 	}
@@ -171,21 +171,20 @@ func (r *orgRepository) TeamAccess() gitprovider.TeamAccessClient {
 	return r.teamAccess
 }
 
+// validateRepositoryAPI validates the apiObj received from the server, to make sure that it is
+// valid for our use.
 func validateRepositoryAPI(apiObj *github.Repository) error {
-	validator := validation.New("GitHub.Repository")
-	// Make sure name isn't nil
-	if apiObj.Name == nil {
-		validator.Required("Name")
-	}
-	if apiObj.Visibility != nil {
-		v := gitprovider.RepositoryVisibility(*apiObj.Visibility)
-		validator.Append(gitprovider.ValidateRepositoryVisibility(v), v, "Visibility")
-	}
-	// If there was a validation error, also mark it specifically as invalid server data
-	if err := validator.Error(); err != nil {
-		return validation.NewMultiError(err, gitprovider.ErrInvalidServerData)
-	}
-	return nil
+	return validateAPIObject("GitHub.Repository", func(validator validation.Validator) {
+		// Make sure name is set
+		if apiObj.Name == nil {
+			validator.Required("Name")
+		}
+		// Make sure visibility is valid if set
+		if apiObj.Visibility != nil {
+			v := gitprovider.RepositoryVisibility(*apiObj.Visibility)
+			validator.Append(gitprovider.ValidateRepositoryVisibility(v), v, "Visibility")
+		}
+	})
 }
 
 func repositoryFromAPI(apiObj *github.Repository) gitprovider.RepositoryInfo {
@@ -236,4 +235,49 @@ func applyRepoCreateOptions(apiObj *github.Repository, opts gitprovider.Reposito
 	if opts.LicenseTemplate != nil {
 		apiObj.LicenseTemplate = gitprovider.StringVar(string(*opts.LicenseTemplate))
 	}
+}
+
+// This function copies over the fields that are part of create/update requests of a repository
+// i.e. the desired spec of the repository. This allows us to separate "spec" from "status" fields.
+// See also: https://github.com/google/go-github/blob/master/github/repos.go#L340-L358
+func newGithubRepositorySpec(repo *github.Repository) *githubRepositorySpec {
+	return &githubRepositorySpec{
+		&github.Repository{
+			// Generic
+			Name:        repo.Name,
+			Description: repo.Description,
+			Homepage:    repo.Homepage,
+			Private:     repo.Private,
+			Visibility:  repo.Visibility,
+			HasIssues:   repo.HasIssues,
+			HasProjects: repo.HasProjects,
+			HasWiki:     repo.HasWiki,
+			IsTemplate:  repo.IsTemplate,
+
+			// Update-specific parameters
+			// See: https://docs.github.com/en/rest/reference/repos#update-a-repository
+			DefaultBranch: repo.DefaultBranch,
+
+			// Create-specific parameters
+			// See: https://docs.github.com/en/rest/reference/repos#create-an-organization-repository
+			TeamID:            repo.TeamID,
+			AutoInit:          repo.AutoInit,
+			GitignoreTemplate: repo.GitignoreTemplate,
+			LicenseTemplate:   repo.LicenseTemplate,
+
+			// Generic
+			AllowSquashMerge:    repo.AllowSquashMerge,
+			AllowMergeCommit:    repo.AllowMergeCommit,
+			AllowRebaseMerge:    repo.AllowRebaseMerge,
+			DeleteBranchOnMerge: repo.DeleteBranchOnMerge,
+		},
+	}
+}
+
+type githubRepositorySpec struct {
+	*github.Repository
+}
+
+func (s *githubRepositorySpec) Equals(other *githubRepositorySpec) bool {
+	return reflect.DeepEqual(s, other)
 }

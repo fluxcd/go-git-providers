@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	// defaultDomain specifies the default domain used as the backend
+	// defaultDomain specifies the default domain used as the backend.
 	defaultDomain = "github.com"
 	// patUsername is the "username" for the basic auth authentication flow
 	// when using a personal access token as the "password". This string could
@@ -40,7 +40,7 @@ const (
 
 var (
 	// ErrInvalidClientOptions is the error returned when calling NewClient() with
-	// invalid options (e.g. specifying mutually exclusive options)
+	// invalid options (e.g. specifying mutually exclusive options).
 	ErrInvalidClientOptions = errors.New("invalid options given to NewClient()")
 	// ErrDestructiveCallDisallowed happens when the client isn't set up with WithDestructiveAPICalls()
 	// but a destructive action is called.
@@ -48,13 +48,13 @@ var (
 )
 
 // clientOptions is the struct that tracks data about what options have been set
-// It is private so that the user must use the With... functions
+// It is private so that the user must use the With... functions.
 type clientOptions struct {
 	// Domain specifies the backing domain, which can be arbitrary if the user uses
 	// GitHub Enterprise. If unset, defaultDomain will be used.
 	Domain *string
 
-	// ClientFactory is a way to aquire a *http.Client, possibly with auth credentials
+	// ClientFactory is a way to acquire a *http.Client, possibly with auth credentials
 	ClientFactory ClientFactory
 
 	// EnableDestructiveAPICalls is a flag to tell whether destructive API calls like
@@ -79,6 +79,7 @@ func WithOAuth2Token(oauth2Token string) ClientOption {
 		if opts.ClientFactory != nil {
 			return fmt.Errorf("authentication http.Client already configured: %w", ErrInvalidClientOptions)
 		}
+
 		opts.ClientFactory = &oauth2Auth{oauth2Token}
 		return nil
 	}
@@ -102,7 +103,7 @@ func WithPersonalAccessToken(patToken string) ClientOption {
 	}
 }
 
-// WithClientFactory initializes a Client with a given ClientFactory, used for aquiring the *http.Client later.
+// WithClientFactory initializes a Client with a given ClientFactory, used for acquiring the *http.Client later.
 // clientFactory must not be nil.
 // WithClientFactory is mutually exclusive with WithOAuth2Token and WithPersonalAccessToken.
 func WithClientFactory(clientFactory ClientFactory) ClientOption {
@@ -150,18 +151,18 @@ func WithDestructiveAPICalls(destructiveActions bool) ClientOption {
 	}
 }
 
-// ClientFactory is a way to aquire a *http.Client, possibly with auth credentials
+// ClientFactory is a way to acquire a *http.Client, possibly with auth credentials.
 type ClientFactory interface {
-	// Client returns a *http.Client, possibly with auth credentials
+	// Client returns a *http.Client, possibly with auth credentials.
 	Client(ctx context.Context) *http.Client
 }
 
-// oauth2Auth is an implementation of ClientFactory
+// oauth2Auth is an implementation of ClientFactory.
 type oauth2Auth struct {
 	token string
 }
 
-// Client returns a *http.Client, possibly with auth credentials
+// Client returns a *http.Client, possibly with auth credentials.
 func (a *oauth2Auth) Client(ctx context.Context) *http.Client {
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: a.token},
@@ -169,12 +170,12 @@ func (a *oauth2Auth) Client(ctx context.Context) *http.Client {
 	return oauth2.NewClient(ctx, ts)
 }
 
-// patAuth is an implementation of ClientFactory
+// patAuth is an implementation of ClientFactory.
 type patAuth struct {
 	token string
 }
 
-// Client returns a *http.Client, possibly with auth credentials
+// Client returns a *http.Client, possibly with auth credentials.
 func (a *patAuth) Client(ctx context.Context) *http.Client {
 	auth := github.BasicAuthTransport{
 		Username: patUsername,
@@ -223,6 +224,7 @@ func NewClient(ctx context.Context, optFns ...ClientOption) (gitprovider.Client,
 	// the default.
 	var gh *github.Client
 	var domain string
+
 	if opts.Domain == nil || *opts.Domain == defaultDomain {
 		// No domain or the default github.com used
 		domain = defaultDomain

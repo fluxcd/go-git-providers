@@ -19,23 +19,38 @@ package gitprovider
 import "context"
 
 // ProviderID is a typed string for a given Git provider
-// The provider constants are defined in their respective packages
+// The provider constants are defined in their respective packages.
 type ProviderID string
 
-// CreatableInfo is an interface which all *Info objects that can be created
-// (using the Client) should implement.
-type CreatableInfo interface {
+// InfoRequest is an interface which all {Object}Info objects that can be used as Create() or Reconcile()
+// requests in the Client should implement. Most likely, the struct should also implement DefaultedInfoRequest,
+// as most objects have optional, defaulted fields.
+type InfoRequest interface {
 	// ValidateInfo validates the object at {Object}.Set() and POST-time, before defaulting.
 	// Set (non-nil) and required fields should be validated.
 	ValidateInfo() error
+
+	// Equals can be used to check if this *Info request (the desired state) matches the actual
+	// passed in as the argument.
+	Equals(actual InfoRequest) bool
+}
+
+// DefaultedInfoRequest is a superset of InfoRequest, also including a Default() function that can
+// modify the underlying object, adding default values. ValidateAndDefaultInfo() can be used
+// to first validate, and then default.
+type DefaultedInfoRequest interface {
+	// DefaultedInfoRequest is a superset of InfoRequest
+	InfoRequest
+
 	// Default will be run after validation, setting optional pointer fields to their
-	// default values before doing the POST request
+	// default values before doing the POST request. This function MUST be registered with
+	// the base struct as a pointer receiver.
 	Default()
 }
 
-// GenericUpdatable is an interface which all objects that can be updated
+// Updatable is an interface which all objects that can be updated
 // using the Client implement.
-type GenericUpdatable interface {
+type Updatable interface {
 	// Update will apply the desired state in this object to the server.
 	// Only set fields will be respected (i.e. PATCH behaviour).
 	// In order to apply changes to this object, use the .Set({Resource}Info) error
@@ -48,18 +63,18 @@ type GenericUpdatable interface {
 	Update(ctx context.Context) error
 }
 
-// GenericDeletable is an interface which all objects that can be deleted
+// Deletable is an interface which all objects that can be deleted
 // using the Client implement.
-type GenericDeletable interface {
-	// Delete deletes the current resource irreversebly.
+type Deletable interface {
+	// Delete deletes the current resource irreversibly.
 	//
 	// ErrNotFound is returned if the resource doesn't exist anymore.
 	Delete(ctx context.Context) error
 }
 
-// GenericReconcilable is an interface which all objects that can be reconciled
+// Reconcilable is an interface which all objects that can be reconciled
 // using the Client implement.
-type GenericReconcilable interface {
+type Reconcilable interface {
 	// Reconcile makes sure the desired state in this object (called "req" here) becomes
 	// the actual state in the backing Git provider.
 	//
@@ -71,9 +86,9 @@ type GenericReconcilable interface {
 	Reconcile(ctx context.Context) (actionTaken bool, err error)
 }
 
-// Object is the interface all types should implement
+// Object is the interface all types should implement.
 type Object interface {
-	// APIObject returns the underlying value that was returned from the server
+	// APIObject returns the underlying value that was returned from the server.
 	APIObject() interface{}
 }
 
@@ -87,4 +102,20 @@ type OrganizationBound interface {
 type RepositoryBound interface {
 	// Repository returns the RepositoryRef associated with this object.
 	Repository() RepositoryRef
+}
+
+// ValidateAndDefaultInfo can be used in client Create() and Reconcile() functions, where the
+// request object, which implements InfoRequest, shall be first validated, and then defaulted.
+// Defaulting happens at Create(), because we want to consistently apply this library's defaults
+// across providers. Defaulting also happens at Reconcile(), because as the object has been created
+// with defaults, the actual state fetched from the server will contain those defaults, and would
+// result in a diff between the (possibly non-defaulted) request and actual state.
+// TODO: Unit and integration test this.
+// TODO: Document in Create() and Reconcile() that req is modified (?) and should not be used anymore.
+func ValidateAndDefaultInfo(info DefaultedInfoRequest) error {
+	if err := info.ValidateInfo(); err != nil {
+		return err
+	}
+	info.Default()
+	return nil
 }

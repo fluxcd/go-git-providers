@@ -51,11 +51,11 @@ type UserRepository interface {
 	// allowing access to the underlying object returned from the API.
 	Object
 	// The repository can be updated.
-	GenericUpdatable
+	Updatable
 	// The repository can be reconciled.
-	GenericReconcilable
+	Reconcilable
 	// The repository can be deleted.
-	GenericDeletable
+	Deletable
 	// RepositoryBound returns repository reference details.
 	RepositoryBound
 
@@ -69,7 +69,7 @@ type UserRepository interface {
 	DeployKeys() DeployKeyClient
 }
 
-// OrgRepository describes a respository owned by an organization.
+// OrgRepository describes a repository owned by an organization.
 type OrgRepository interface {
 	// OrgRepository is a superset of UserRepository.
 	UserRepository
@@ -84,11 +84,11 @@ type DeployKey interface {
 	// allowing access to the underlying object returned from the API.
 	Object
 	// The deploy key can be updated.
-	GenericUpdatable
+	Updatable
 	// The deploy key can be reconciled.
-	GenericReconcilable
+	Reconcilable
 	// The deploy key can be deleted.
-	GenericDeletable
+	Deletable
 	// RepositoryBound returns repository reference details.
 	RepositoryBound
 
@@ -105,11 +105,11 @@ type TeamAccess interface {
 	// allowing access to the underlying object returned from the API.
 	Object
 	// The deploy key can be updated.
-	GenericUpdatable
+	Updatable
 	// The deploy key can be reconciled.
-	GenericReconcilable
+	Reconcilable
 	// The deploy key can be deleted.
-	GenericDeletable
+	Deletable
 	// RepositoryBound returns repository reference details.
 	RepositoryBound
 

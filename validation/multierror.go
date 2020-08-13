@@ -59,8 +59,8 @@ type MultiError struct {
 	Errors []error
 }
 
-// Error implements the error interface on the pointer type of MultiError.Error
-// This enforces callers to always return &MultiError{} for consistency
+// Error implements the error interface on the pointer type of MultiError.Error.
+// This enforces callers to always return &MultiError{} for consistency.
 func (e *MultiError) Error() string {
 	errStr := ""
 	for _, err := range e.Errors {
@@ -70,7 +70,7 @@ func (e *MultiError) Error() string {
 }
 
 // Is implements the interface used by errors.Is in order to check if two errors are the same.
-// This function recursively checks all contained errors
+// This function recursively checks all contained errors.
 func (e *MultiError) Is(target error) bool {
 	// If target is a MultiError, return that target is a match
 	_, ok := target.(*MultiError)
@@ -88,7 +88,7 @@ func (e *MultiError) Is(target error) bool {
 }
 
 // As implements the interface used by errors.As in order to get the value of an embedded
-// struct error of this MultiError
+// struct error of this MultiError.
 func (e *MultiError) As(target interface{}) bool {
 	// There is no need to check for if target is a MultiError, as it it would be, this function
 	// wouldn't be called.
@@ -104,13 +104,14 @@ func (e *MultiError) As(target interface{}) bool {
 
 // disallowedCompareAsErrorNames contains a list of which errors should NOT be compared for equality
 // using errors.As, as they could be very different errors although being the same type
+//nolint:gochecknoglobals
 var disallowedCompareAsErrorNames = map[string]struct{}{
 	"*errors.errorString": {},
 	"*fmt.wrapError":      {},
 }
 
 // TestExpectErrors loops through all expected errors and make sure that errors.Is returns true
-// for all of them. If there aren't any expected errors, and err != nil, an error will be reported too
+// for all of them. If there aren't any expected errors, and err != nil, an error will be reported too.
 func TestExpectErrors(t testing.TB, funcName string, err error, expectedErrs ...error) {
 	for _, expectedErr := range expectedErrs {
 		// Check equality between the errors using errors.Is
@@ -124,7 +125,8 @@ func TestExpectErrors(t testing.TB, funcName string, err error, expectedErrs ...
 		expectedType := reflect.TypeOf(expectedErr)
 		expectedTypeName := expectedType.String()
 		_, nameDisallowed := disallowedCompareAsErrorNames[expectedTypeName]
-		if expectedType == reflect.TypeOf(err) && !nameDisallowed {
+		_, isMultiError := err.(*MultiError)
+		if (expectedType == reflect.TypeOf(err) || isMultiError) && !nameDisallowed {
 			target := expectedErr.(interface{})
 			if errors.As(err, &target) {
 				continue

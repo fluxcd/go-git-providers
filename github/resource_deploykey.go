@@ -106,7 +106,7 @@ func (dk *deployKey) Delete(ctx context.Context) error {
 //
 // The internal API object will be overridden with the received server data if actionTaken == true.
 func (dk *deployKey) Reconcile(ctx context.Context) (bool, error) {
-	actual, err := dk.c.Get(ctx, *dk.k.Key)
+	actual, err := dk.c.get(ctx, *dk.k.Key)
 	if err != nil {
 		// Create if not found
 		if errors.Is(err, gitprovider.ErrNotFound) {
@@ -117,14 +117,12 @@ func (dk *deployKey) Reconcile(ctx context.Context) (bool, error) {
 		return false, err
 	}
 
-	// This should never (tm) fail, but just to make sure, return an error and don't panic
-	actualKey, ok := actual.(*deployKey)
-	if !ok {
-		return false, fmt.Errorf("expected to be able to cast actual to *deployKey: %w", gitprovider.ErrUnexpectedEvent)
-	}
+	// Use wrappers here to extract the "spec" part of the object for comparison
+	desiredSpec := newGithubKeySpec(&dk.k)
+	actualSpec := newGithubKeySpec(&actual.k)
 
 	// If the desired matches the actual state, do nothing
-	if reflect.DeepEqual(dk.k, actualKey.k) {
+	if desiredSpec.Equals(actualSpec) {
 		return false, nil
 	}
 	// If desired and actual state mis-match, update
@@ -132,7 +130,7 @@ func (dk *deployKey) Reconcile(ctx context.Context) (bool, error) {
 }
 
 func (dk *deployKey) createIntoSelf(ctx context.Context) error {
-	apiObj, err := createDeployKeyData(dk.c.c, ctx, dk.c.ref, &dk.k)
+	apiObj, err := createDeployKeyData(ctx, dk.c.c, dk.c.ref, &dk.k)
 	if err != nil {
 		return err
 	}
@@ -144,27 +142,23 @@ func (dk *deployKey) createIntoSelf(ctx context.Context) error {
 }
 
 func validateDeployKeyAPI(apiObj *github.Key) error {
-	validator := validation.New("GitHub.Key")
-	// Make sure ID, title, key and readonly fields are populated as per
-	// https://docs.github.com/en/rest/reference/repos#get-a-deploy-key
-	// and similar docs
-	if apiObj.ID == nil {
-		validator.Required("ID")
-	}
-	if apiObj.Title == nil {
-		validator.Required("Title")
-	}
-	if apiObj.Key == nil {
-		validator.Required("Key")
-	}
-	if apiObj.ReadOnly == nil {
-		validator.Required("ReadOnly")
-	}
-	// If there was a validation error, also mark it specifically as invalid server data
-	if err := validator.Error(); err != nil {
-		return validation.NewMultiError(err, gitprovider.ErrInvalidServerData)
-	}
-	return nil
+	return validateAPIObject("GitHub.Key", func(validator validation.Validator) {
+		// Make sure ID, title, key and readonly fields are populated as per
+		// https://docs.github.com/en/rest/reference/repos#get-a-deploy-key
+		// and similar docs
+		if apiObj.ID == nil {
+			validator.Required("ID")
+		}
+		if apiObj.Title == nil {
+			validator.Required("Title")
+		}
+		if apiObj.Key == nil {
+			validator.Required("Key")
+		}
+		if apiObj.ReadOnly == nil {
+			validator.Required("ReadOnly")
+		}
+	})
 }
 
 func deployKeyFromAPI(apiObj *github.Key) gitprovider.DeployKeyInfo {
@@ -189,4 +183,26 @@ func deployKeyInfoToAPIObj(info *gitprovider.DeployKeyInfo, apiObj *github.Key) 
 	if info.ReadOnly != nil {
 		apiObj.ReadOnly = info.ReadOnly
 	}
+}
+
+// This function copies over the fields that are part of create request of a deploy
+// i.e. the desired spec of the deploy key. This allows us to separate "spec" from "status" fields.
+func newGithubKeySpec(key *github.Key) *githubKeySpec {
+	return &githubKeySpec{
+		&github.Key{
+			// Create-specific parameters
+			// See: https://docs.github.com/en/rest/reference/repos#create-a-deploy-key
+			Title:    key.Title,
+			Key:      key.Key,
+			ReadOnly: key.ReadOnly,
+		},
+	}
+}
+
+type githubKeySpec struct {
+	*github.Key
+}
+
+func (s *githubKeySpec) Equals(other *githubKeySpec) bool {
+	return reflect.DeepEqual(s, other)
 }

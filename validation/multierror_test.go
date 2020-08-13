@@ -212,6 +212,11 @@ func Test_ExpectErrors(t *testing.T) {
 			err:          &url.Error{Op: "foo", URL: "bar", Err: fmt.Errorf("baz")},
 			expectedErrs: []error{&url.Error{}},
 		},
+		{
+			name:         "multierror struct propagation",
+			err:          &MultiError{Errors: []error{&url.Error{}}},
+			expectedErrs: []error{&MultiError{}, &url.Error{}},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

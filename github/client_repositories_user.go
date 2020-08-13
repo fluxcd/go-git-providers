@@ -25,10 +25,10 @@ import (
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
-// UserRepositoriesClient implements the gitprovider.UserRepositoriesClient interface
+// UserRepositoriesClient implements the gitprovider.UserRepositoriesClient interface.
 var _ gitprovider.UserRepositoriesClient = &UserRepositoriesClient{}
 
-// UserRepositoriesClient operates on repositories the user has access to
+// UserRepositoriesClient operates on repositories the user has access to.
 type UserRepositoriesClient struct {
 	*clientContext
 }
@@ -89,7 +89,11 @@ func (c *UserRepositoriesClient) List(ctx context.Context, ref gitprovider.UserR
 // Create creates a repository for the given organization, with the data and options
 //
 // ErrAlreadyExists will be returned if the resource already exists.
-func (c *UserRepositoriesClient) Create(ctx context.Context, ref gitprovider.UserRepositoryRef, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryCreateOption) (gitprovider.UserRepository, error) {
+func (c *UserRepositoriesClient) Create(ctx context.Context,
+	ref gitprovider.UserRepositoryRef,
+	req gitprovider.RepositoryInfo,
+	opts ...gitprovider.RepositoryCreateOption,
+) (gitprovider.UserRepository, error) {
 	// Make sure the RepositoryRef is valid
 	if err := validateUserRepositoryRef(ref, c.domain); err != nil {
 		return nil, err

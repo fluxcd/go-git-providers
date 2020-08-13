@@ -75,7 +75,7 @@ func validateUserRef(ref gitprovider.UserRef, expectedDomain string) error {
 	return validateIdentityFields(ref, expectedDomain)
 }
 
-// validateIdentityFields makes sure the type of the IdentityRef is supported, and the domain is as expected
+// validateIdentityFields makes sure the type of the IdentityRef is supported, and the domain is as expected.
 func validateIdentityFields(ref gitprovider.IdentityRef, expectedDomain string) error {
 	// Make sure the expected domain is used
 	if ref.GetDomain() != expectedDomain {
@@ -93,7 +93,7 @@ func validateIdentityFields(ref gitprovider.IdentityRef, expectedDomain string) 
 
 // handleHTTPError checks the type of err, and returns typed variants of it
 // However, it _always_ keeps the original error too, and just wraps it in a MultiError
-// The consumer must use errors.Is and errors.As to check for equality and get data out of it
+// The consumer must use errors.Is and errors.As to check for equality and get data out of it.
 func handleHTTPError(err error) error {
 	// Short-circuit quickly if possible, allow always piping through this function
 	if err == nil {

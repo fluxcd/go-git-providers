@@ -22,7 +22,7 @@ import (
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
-// ProviderID is the provider ID for GitHub
+// ProviderID is the provider ID for GitHub.
 const ProviderID = gitprovider.ProviderID("github")
 
 func newClient(c *github.Client, domain string, destructiveActions bool) *Client {
@@ -47,7 +47,7 @@ type clientContext struct {
 	destructiveActions bool
 }
 
-// Client implements the gitprovider.Client interface
+// Client implements the gitprovider.Client interface.
 var _ gitprovider.Client = &Client{}
 
 // Client is an interface that allows talking to a Git provider.
@@ -62,13 +62,13 @@ type Client struct {
 // SupportedDomain returns the domain endpoint for this client, e.g. "github.com", "enterprise.github.com" or
 // "my-custom-git-server.com:6443". This allows a higher-level user to know what Client to use for
 // what endpoints.
-// This field is set at client creation time, and can't be changed
+// This field is set at client creation time, and can't be changed.
 func (c *Client) SupportedDomain() string {
 	return c.domain
 }
 
-// ProviderID returns the provider ID "github"
-// This field is set at client creation time, and can't be changed
+// ProviderID returns the provider ID "github".
+// This field is set at client creation time, and can't be changed.
 func (c *Client) ProviderID() gitprovider.ProviderID {
 	return ProviderID
 }

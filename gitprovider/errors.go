@@ -23,58 +23,58 @@ import (
 )
 
 var (
-	// ErrNoProviderSupport describes that the provider doesn't support the requested feature
+	// ErrNoProviderSupport describes that the provider doesn't support the requested feature.
 	ErrNoProviderSupport = errors.New("no provider support for this feature")
 	// ErrDomainUnsupported describes the case where e.g. a GitHub provider used for trying to get
-	// information from e.g. gitlab.com
+	// information from e.g. "gitlab.com".
 	ErrDomainUnsupported = errors.New("the client doesn't support handling requests for this domain")
 
 	// ErrNotTopLevelOrganization describes the case where it's mandatory to specify a top-level organization
-	// (e.g. to access teams), but a sub-organization was passed as the OrganizationRef
+	// (e.g. to access teams), but a sub-organization was passed as the OrganizationRef.
 	ErrNotTopLevelOrganization = errors.New("expected top-level organization, received sub-organization instead")
-	// ErrInvalidArgument describes a generic error where an invalid argument have been specified to a function
+	// ErrInvalidArgument describes a generic error where an invalid argument have been specified to a function.
 	ErrInvalidArgument = errors.New("invalid argument specified")
-	// ErrUnexpectedEvent describes a case where something really unexpected happened in the program
+	// ErrUnexpectedEvent describes a case where something really unexpected happened in the program.
 	ErrUnexpectedEvent = errors.New("an unexpected error occurred")
 
 	// ErrAlreadyExists is returned by .Create() requests if the given resource already exists.
-	// Use .Reconcile() instead if you want to idempotently create the resource
+	// Use .Reconcile() instead if you want to idempotently create the resource.
 	ErrAlreadyExists = errors.New("resource already exists, cannot create object. Use Reconcile() to create it idempotently")
-	// ErrNotFound is returned by .Get() and .Update() calls if the given resource doesn't exist
+	// ErrNotFound is returned by .Get() and .Update() calls if the given resource doesn't exist.
 	ErrNotFound = errors.New("the requested resource was not found")
 	// ErrInvalidServerData is returned when the server returned invalid data, e.g. missing required fields in the response.
 	ErrInvalidServerData = errors.New("got invalid data from server, don't know how to handle")
 
-	// ErrURLUnsupportedScheme is returned if an URL without the HTTPS scheme is parsed
+	// ErrURLUnsupportedScheme is returned if an URL without the HTTPS scheme is parsed.
 	ErrURLUnsupportedScheme = errors.New("unsupported URL scheme, only HTTPS supported")
-	// ErrURLUnsupportedParts is returned if an URL with fragment, query values and/or user information is parsed
+	// ErrURLUnsupportedParts is returned if an URL with fragment, query values and/or user information is parsed.
 	ErrURLUnsupportedParts = errors.New("URL cannot have fragments, query values nor user information")
-	// ErrURLInvalid is returned if an URL is invalid when parsing
+	// ErrURLInvalid is returned if an URL is invalid when parsing.
 	ErrURLInvalid = errors.New("invalid organization, user or repository URL")
-	// ErrURLMissingRepoName is returned if there is no repository name in the URL
+	// ErrURLMissingRepoName is returned if there is no repository name in the URL.
 	ErrURLMissingRepoName = errors.New("missing repository name")
 )
 
-// HTTPError is an error that contains context about the HTTP request/response that failed
+// HTTPError is an error that contains context about the HTTP request/response that failed.
 type HTTPError struct {
 	// HTTP response that caused this error.
 	Response *http.Response `json:"-"`
-	// Full error message, human-friendly and formatted
+	// Full error message, human-friendly and formatted.
 	ErrorMessage string `json:"errorMessage"`
-	// Message about what happened
+	// Message about what happened.
 	Message string `json:"message"`
-	// Where to find more information about the error
+	// Where to find more information about the error.
 	DocumentationURL string `json:"documentationURL"`
 }
 
-// Error implements the error interface
+// Error implements the error interface.
 func (e *HTTPError) Error() string {
 	return e.ErrorMessage
 }
 
-// RateLimitError is an error, extending HTTPError, that contains context about rate limits
+// RateLimitError is an error, extending HTTPError, that contains context about rate limits.
 type RateLimitError struct {
-	// RateLimitError extends HTTPError
+	// RateLimitError extends HTTPError.
 	HTTPError `json:",inline"`
 
 	// The number of requests per hour the client is currently limited to.
@@ -85,22 +85,22 @@ type RateLimitError struct {
 	Reset time.Time `json:"reset"`
 }
 
-// ValidationError is an error, extending HTTPError, that contains context about failed server-side validation
+// ValidationError is an error, extending HTTPError, that contains context about failed server-side validation.
 type ValidationError struct {
-	// RateLimitError extends HTTPError
+	// RateLimitError extends HTTPError.
 	HTTPError `json:",inline"`
 
-	// Errors contain context about what validation(s) failed
+	// Errors contain context about what validation(s) failed.
 	Errors []ValidationErrorItem `json:"errors"`
 }
 
-// ValidationErrorItem represents a single invalid field in an invalid request
+// ValidationErrorItem represents a single invalid field in an invalid request.
 type ValidationErrorItem struct {
-	// Resource on which the error occurred
+	// Resource on which the error occurred.
 	Resource string `json:"resource"`
-	// Field on which the error occurred
+	// Field on which the error occurred.
 	Field string `json:"field"`
-	// Code for the validation error
+	// Code for the validation error.
 	Code string `json:"code"`
 	// Message describing the error. Errors with Code == "custom" will always have this set.
 	Message string `json:"message"`
@@ -111,6 +111,6 @@ type ValidationErrorItem struct {
 // "the login was successful but you don't have permission to access this resource". In that case, a
 // 404 Not Found error would be returned.
 type InvalidCredentialsError struct {
-	// InvalidCredentialsError extends HTTPError
+	// InvalidCredentialsError extends HTTPError.
 	HTTPError `json:",inline"`
 }

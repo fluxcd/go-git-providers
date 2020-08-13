@@ -27,7 +27,6 @@ import (
 	"time"
 
 	"github.com/google/go-github/v32/github"
-	githubapi "github.com/google/go-github/v32/github"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -115,7 +114,7 @@ var _ = Describe("GitHub Provider", func() {
 		Expect(getOrg.Get().Name).ToNot(BeNil())
 		Expect(getOrg.Get().Description).ToNot(BeNil())
 		// Expect Name and Description to match their underlying data
-		internal := getOrg.APIObject().(*githubapi.Organization)
+		internal := getOrg.APIObject().(*github.Organization)
 		Expect(getOrg.Get().Name).To(Equal(internal.Name))
 		Expect(getOrg.Get().Description).To(Equal(internal.Description))
 	})
@@ -267,7 +266,7 @@ func validateRepo(repo gitprovider.OrgRepository, expectedRepoRef gitprovider.Re
 	Expect(*info.Visibility).To(Equal(gitprovider.RepositoryVisibilityPrivate))
 	Expect(*info.DefaultBranch).To(Equal(defaultBranch))
 	// Expect high-level fields to match their underlying data
-	internal := repo.APIObject().(*githubapi.Repository)
+	internal := repo.APIObject().(*github.Repository)
 	Expect(repo.Repository().GetRepository()).To(Equal(*internal.Name))
 	Expect(repo.Repository().GetIdentity()).To(Equal(internal.Owner.GetLogin()))
 	Expect(*info.Description).To(Equal(*internal.Description))

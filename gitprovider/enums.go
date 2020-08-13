@@ -18,9 +18,10 @@ package gitprovider
 
 import "github.com/fluxcd/go-git-providers/validation"
 
-// TransportType is an enum specifying the transport type used when cloning a repository
+// TransportType is an enum specifying the transport type used when cloning a repository.
 type TransportType string
 
+//nolint:godot
 const (
 	// TransportTypeHTTPS specifies a clone URL of the form:
 	// https://<domain>/<org>/[<sub-orgs...>/]<repo>.git
@@ -33,21 +34,22 @@ const (
 	TransportTypeSSH = TransportType("ssh")
 )
 
-// RepositoryVisibility is an enum specifying the visibility of a repository
+// RepositoryVisibility is an enum specifying the visibility of a repository.
 type RepositoryVisibility string
 
 const (
-	// RepositoryVisibilityPublic specifies that the repository should be publicly accessible
+	// RepositoryVisibilityPublic specifies that the repository should be publicly accessible.
 	RepositoryVisibilityPublic = RepositoryVisibility("public")
 	// RepositoryVisibilityInternal specifies that the repository should accessible within the
-	// own organization
+	// own organization.
 	RepositoryVisibilityInternal = RepositoryVisibility("internal")
 	// RepositoryVisibilityPrivate specifies that the repository should only be accessible by
-	// specifically added team members
+	// specifically added team members.
 	RepositoryVisibilityPrivate = RepositoryVisibility("private")
 )
 
-// knownRepositoryVisibilityValues is a map of known RepositoryVisibility values, used for validation
+// knownRepositoryVisibilityValues is a map of known RepositoryVisibility values, used for validation.
+//nolint:gochecknoglobals
 var knownRepositoryVisibilityValues = map[RepositoryVisibility]struct{}{
 	RepositoryVisibilityPublic:   {},
 	RepositoryVisibilityInternal: {},
@@ -55,7 +57,7 @@ var knownRepositoryVisibilityValues = map[RepositoryVisibility]struct{}{
 }
 
 // ValidateRepositoryVisibility validates a given RepositoryVisibility.
-// Use as errs.Append(ValidateRepositoryVisibility(visibility), visibility, "FieldName")
+// Use as errs.Append(ValidateRepositoryVisibility(visibility), visibility, "FieldName").
 func ValidateRepositoryVisibility(r RepositoryVisibility) error {
 	_, ok := knownRepositoryVisibilityValues[r]
 	if !ok {
@@ -64,38 +66,39 @@ func ValidateRepositoryVisibility(r RepositoryVisibility) error {
 	return nil
 }
 
-// RepositoryVisibilityVar returns a pointer to a RepositoryVisibility
+// RepositoryVisibilityVar returns a pointer to a RepositoryVisibility.
 func RepositoryVisibilityVar(r RepositoryVisibility) *RepositoryVisibility {
 	return &r
 }
 
 // RepositoryPermission is an enum specifying the access level for a certain team or person
-// for a given repository
+// for a given repository.
 type RepositoryPermission string
 
 const (
 	// RepositoryPermissionPull ("pull") - team members can pull, but not push to or administer this repository
-	// This is called "guest" in GitLab
+	// This is called "guest" in GitLab.
 	RepositoryPermissionPull = RepositoryPermission("pull")
 
 	// RepositoryPermissionTriage ("triage") - team members can proactively manage issues and pull requests without write access.
-	// This is called "reporter" in GitLab
+	// This is called "reporter" in GitLab.
 	RepositoryPermissionTriage = RepositoryPermission("triage")
 
 	// RepositoryPermissionPush ("push") - team members can pull and push, but not administer this repository
-	// This is called "developer" in GitLab
+	// This is called "developer" in GitLab.
 	RepositoryPermissionPush = RepositoryPermission("push")
 
 	// RepositoryPermissionMaintain ("maintain") - team members can manage the repository without access to sensitive or destructive actions.
-	// This is called "maintainer" in GitLab
+	// This is called "maintainer" in GitLab.
 	RepositoryPermissionMaintain = RepositoryPermission("maintain")
 
 	// RepositoryPermissionAdmin ("admin") - team members can pull, push and administer this repository
-	// This is called "admin" or "owner" in GitLab
+	// This is called "admin" or "owner" in GitLab.
 	RepositoryPermissionAdmin = RepositoryPermission("admin")
 )
 
-// knownRepositoryVisibilityValues is a map of known RepositoryPermission values, used for validation
+// knownRepositoryVisibilityValues is a map of known RepositoryPermission values, used for validation.
+//nolint:gochecknoglobals
 var knownRepositoryPermissionValues = map[RepositoryPermission]struct{}{
 	RepositoryPermissionPull:     {},
 	RepositoryPermissionTriage:   {},
@@ -105,7 +108,7 @@ var knownRepositoryPermissionValues = map[RepositoryPermission]struct{}{
 }
 
 // ValidateRepositoryPermission validates a given RepositoryPermission.
-// Use as errs.Append(ValidateRepositoryPermission(permission), permission, "FieldName")
+// Use as errs.Append(ValidateRepositoryPermission(permission), permission, "FieldName").
 func ValidateRepositoryPermission(p RepositoryPermission) error {
 	_, ok := knownRepositoryPermissionValues[p]
 	if !ok {
@@ -114,7 +117,7 @@ func ValidateRepositoryPermission(p RepositoryPermission) error {
 	return nil
 }
 
-// RepositoryPermissionVar returns a pointer to a RepositoryPermission
+// RepositoryPermissionVar returns a pointer to a RepositoryPermission.
 func RepositoryPermissionVar(p RepositoryPermission) *RepositoryPermission {
 	return &p
 }
@@ -137,6 +140,7 @@ const (
 )
 
 // knownLicenseTemplateValues is a map of known LicenseTemplate values, used for validation
+//nolint:gochecknoglobals
 var knownLicenseTemplateValues = map[LicenseTemplate]struct{}{
 	LicenseTemplateApache2: {},
 	LicenseTemplateMIT:     {},
@@ -144,7 +148,7 @@ var knownLicenseTemplateValues = map[LicenseTemplate]struct{}{
 }
 
 // ValidateLicenseTemplate validates a given LicenseTemplate.
-// Use as errs.Append(ValidateLicenseTemplate(template), template, "FieldName")
+// Use as errs.Append(ValidateLicenseTemplate(template), template, "FieldName").
 func ValidateLicenseTemplate(t LicenseTemplate) error {
 	_, ok := knownLicenseTemplateValues[t]
 	if !ok {
@@ -153,7 +157,7 @@ func ValidateLicenseTemplate(t LicenseTemplate) error {
 	return nil
 }
 
-// LicenseTemplateVar returns a pointer to a LicenseTemplate
+// LicenseTemplateVar returns a pointer to a LicenseTemplate.
 func LicenseTemplateVar(t LicenseTemplate) *LicenseTemplate {
 	return &t
 }

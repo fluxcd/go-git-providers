@@ -26,10 +26,10 @@ import (
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
-// OrgRepositoriesClient implements the gitprovider.OrgRepositoriesClient interface
+// OrgRepositoriesClient implements the gitprovider.OrgRepositoriesClient interface.
 var _ gitprovider.OrgRepositoriesClient = &OrgRepositoriesClient{}
 
-// OrgRepositoriesClient operates on repositories the user has access to
+// OrgRepositoriesClient operates on repositories the user has access to.
 type OrgRepositoriesClient struct {
 	*clientContext
 }
@@ -87,7 +87,7 @@ func (c *OrgRepositoriesClient) List(ctx context.Context, ref gitprovider.Organi
 	return repos, nil
 }
 
-// Create creates a repository for the given organization, with the data and options
+// Create creates a repository for the given organization, with the data and options.
 //
 // ErrAlreadyExists will be returned if the resource already exists.
 func (c *OrgRepositoriesClient) Create(ctx context.Context, ref gitprovider.OrgRepositoryRef, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryCreateOption) (gitprovider.OrgRepository, error) {

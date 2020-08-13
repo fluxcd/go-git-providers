@@ -25,10 +25,10 @@ import (
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
-// TeamsClient implements the gitprovider.TeamsClient interface
+// TeamsClient implements the gitprovider.TeamsClient interface.
 var _ gitprovider.TeamsClient = &TeamsClient{}
 
-// TeamsClient handles teams organization-wide
+// TeamsClient handles teams organization-wide.
 type TeamsClient struct {
 	*clientContext
 	ref gitprovider.OrganizationRef
@@ -59,6 +59,7 @@ func (c *TeamsClient) Get(ctx context.Context, teamName string) (gitprovider.Tea
 		if apiObj.Login == nil {
 			return nil, fmt.Errorf("didn't expect login to be nil for user: %+v: %w", apiObj, gitprovider.ErrInvalidServerData)
 		}
+
 		logins = append(logins, *apiObj.Login)
 	}
 
@@ -72,7 +73,7 @@ func (c *TeamsClient) Get(ctx context.Context, teamName string) (gitprovider.Tea
 	}, nil
 }
 
-// List all teams (recursively, in terms of subgroups) within the specific organization
+// List all teams (recursively, in terms of subgroups) within the specific organization.
 //
 // List returns all available organizations, using multiple paginated requests if needed.
 func (c *TeamsClient) List(ctx context.Context) ([]gitprovider.Team, error) {
@@ -102,6 +103,7 @@ func (c *TeamsClient) List(ctx context.Context) ([]gitprovider.Team, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		teams = append(teams, team)
 	}
 

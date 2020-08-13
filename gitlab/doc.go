@@ -17,6 +17,6 @@ limitations under the License.
 package gitlab
 
 import (
-	// Dummy import until we have the implementation ready
+	// Dummy import until we have the implementation ready.
 	_ "github.com/xanzy/go-gitlab"
 )

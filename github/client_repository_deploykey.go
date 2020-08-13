@@ -26,10 +26,10 @@ import (
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
-// DeployKeyClient implements the gitprovider.DeployKeyClient interface
+// DeployKeyClient implements the gitprovider.DeployKeyClient interface.
 var _ gitprovider.DeployKeyClient = &DeployKeyClient{}
 
-// DeployKeyClient operates on the access deploy key list for a specific repository
+// DeployKeyClient operates on the access deploy key list for a specific repository.
 type DeployKeyClient struct {
 	*clientContext
 	ref gitprovider.RepositoryRef

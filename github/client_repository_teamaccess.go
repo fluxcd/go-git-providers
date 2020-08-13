@@ -27,10 +27,10 @@ import (
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
-// TeamAccessClient implements the gitprovider.TeamAccessClient interface
+// TeamAccessClient implements the gitprovider.TeamAccessClient interface.
 var _ gitprovider.TeamAccessClient = &TeamAccessClient{}
 
-// TeamAccessClient operates on the teams list for a specific repository
+// TeamAccessClient operates on the teams list for a specific repository.
 type TeamAccessClient struct {
 	*clientContext
 	ref gitprovider.RepositoryRef
@@ -119,7 +119,9 @@ func (c *TeamAccessClient) Create(ctx context.Context, req gitprovider.TeamAcces
 // If req doesn't exist under the hood, it is created (actionTaken == true).
 // If req doesn't equal the actual state, the resource will be deleted and recreated (actionTaken == true).
 // If req is already the actual state, this is a no-op (actionTaken == false).
-func (c *TeamAccessClient) Reconcile(ctx context.Context, req gitprovider.TeamAccessInfo) (gitprovider.TeamAccess, bool, error) {
+func (c *TeamAccessClient) Reconcile(ctx context.Context,
+	req gitprovider.TeamAccessInfo,
+) (gitprovider.TeamAccess, bool, error) {
 	// First thing, validate the request
 	if err := req.ValidateInfo(); err != nil {
 		return nil, false, err

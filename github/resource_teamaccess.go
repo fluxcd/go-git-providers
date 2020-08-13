@@ -64,9 +64,13 @@ func (ta *teamAccess) Repository() gitprovider.RepositoryRef {
 //
 // ErrNotFound is returned if the resource does not exist.
 func (ta *teamAccess) Delete(ctx context.Context) error {
-
 	// DELETE /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}
-	_, err := ta.c.c.Teams.RemoveTeamRepoBySlug(ctx, ta.c.ref.GetIdentity(), ta.ta.Name, ta.c.ref.GetIdentity(), ta.c.ref.GetRepository())
+	_, err := ta.c.c.Teams.RemoveTeamRepoBySlug(ctx,
+		ta.c.ref.GetIdentity(),
+		ta.ta.Name,
+		ta.c.ref.GetIdentity(),
+		ta.c.ref.GetRepository(),
+	)
 	return handleHTTPError(err)
 }
 
@@ -117,6 +121,7 @@ func teamAccessFromAPI(apiObj *github.Repository, teamName string) gitprovider.T
 	}
 }
 
+//nolint:gochecknoglobals,gomnd
 var permissionPriority = map[gitprovider.RepositoryPermission]int{
 	gitprovider.RepositoryPermissionPull:     1,
 	gitprovider.RepositoryPermissionTriage:   2,

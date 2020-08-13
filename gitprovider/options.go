@@ -21,7 +21,7 @@ import "github.com/fluxcd/go-git-providers/validation"
 // MakeRepositoryCreateOptions returns a RepositoryCreateOptions based off the mutator functions
 // given to e.g. RepositoriesClient.Create(). The returned validation error may be ignored in the
 // case that the client allows e.g. other license templates than those that are common.
-// validation.ErrFieldEnumInvalid is returned if the license template doesn't match known values
+// validation.ErrFieldEnumInvalid is returned if the license template doesn't match known values.
 func MakeRepositoryCreateOptions(opts ...RepositoryCreateOption) (RepositoryCreateOptions, error) {
 	o := &RepositoryCreateOptions{}
 	for _, opt := range opts {
@@ -31,36 +31,36 @@ func MakeRepositoryCreateOptions(opts ...RepositoryCreateOption) (RepositoryCrea
 	return *o, o.ValidateInfo()
 }
 
-// RepositoryCreateOptions implements CreatableInfo
+// RepositoryCreateOptions implements CreatableInfo.
 var _ CreatableInfo = &RepositoryCreateOptions{}
 
-// RepositoryReconcileOption is an interface for applying options to when reconciling repositories
+// RepositoryReconcileOption is an interface for applying options to when reconciling repositories.
 type RepositoryReconcileOption interface {
-	// RepositoryCreateOption is embedded, as reconcile uses the create options
+	// RepositoryCreateOption is embedded, as reconcile uses the create options.
 	RepositoryCreateOption
 }
 
-// RepositoryCreateOption is an interface for applying options to when creating repositories
+// RepositoryCreateOption is an interface for applying options to when creating repositories.
 type RepositoryCreateOption interface {
-	// ApplyToRepositoryCreateOptions should apply relevant options to the target
+	// ApplyToRepositoryCreateOptions should apply relevant options to the target.
 	ApplyToRepositoryCreateOptions(target *RepositoryCreateOptions)
 }
 
-// RepositoryCreateOptions specifies optional options when creating a repository
+// RepositoryCreateOptions specifies optional options when creating a repository.
 type RepositoryCreateOptions struct {
 	// AutoInit can be set to true in order to automatically initialize the Git repo with a
 	// README.md and optionally a license in the first commit.
 	// Default: nil (which means "false, don't create")
 	AutoInit *bool
 
-	// LicenseTemplate lets the user specify a license template to use when AutoInit is true
-	// Default: nil
-	// Available options: See the LicenseTemplate enum
+	// LicenseTemplate lets the user specify a license template to use when AutoInit is true.
+	// Default: nil.
+	// Available options: See the LicenseTemplate enum.
 	LicenseTemplate *LicenseTemplate
 }
 
 // ApplyToRepositoryCreateOptions applies the options defined in the options struct to the
-// target struct that is being completed
+// target struct that is being completed.
 func (opts *RepositoryCreateOptions) ApplyToRepositoryCreateOptions(target *RepositoryCreateOptions) {
 	// Go through each field in opts, and apply it to target if set
 	if opts.AutoInit != nil {
@@ -72,10 +72,10 @@ func (opts *RepositoryCreateOptions) ApplyToRepositoryCreateOptions(target *Repo
 }
 
 // Default implements CreatableInfo, setting default values for the options if needed
-// For this specific case, it's ok to leave things as nil
+// For this specific case, it's ok to leave things as nil.
 func (opts *RepositoryCreateOptions) Default() {}
 
-// ValidateInfo validates that the options are valid
+// ValidateInfo validates that the options are valid.
 func (opts *RepositoryCreateOptions) ValidateInfo() error {
 	errs := validation.New("RepositoryCreateOptions")
 	if opts.LicenseTemplate != nil {

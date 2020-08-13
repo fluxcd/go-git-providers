@@ -172,7 +172,7 @@ func (r *orgRepository) TeamAccess() gitprovider.TeamAccessClient {
 }
 
 // validateRepositoryAPI validates the apiObj received from the server, to make sure that it is
-// valid for our use
+// valid for our use.
 func validateRepositoryAPI(apiObj *github.Repository) error {
 	return validateAPIObject("GitHub.Repository", func(validator validation.Validator) {
 		// Make sure name is set

@@ -19,7 +19,7 @@ package gitprovider
 import "context"
 
 // ProviderID is a typed string for a given Git provider
-// The provider constants are defined in their respective packages
+// The provider constants are defined in their respective packages.
 type ProviderID string
 
 // CreatableInfo is an interface which all *Info objects that can be created
@@ -29,7 +29,7 @@ type CreatableInfo interface {
 	// Set (non-nil) and required fields should be validated.
 	ValidateInfo() error
 	// Default will be run after validation, setting optional pointer fields to their
-	// default values before doing the POST request
+	// default values before doing the POST request.
 	Default()
 }
 
@@ -71,9 +71,9 @@ type GenericReconcilable interface {
 	Reconcile(ctx context.Context) (actionTaken bool, err error)
 }
 
-// Object is the interface all types should implement
+// Object is the interface all types should implement.
 type Object interface {
-	// APIObject returns the underlying value that was returned from the server
+	// APIObject returns the underlying value that was returned from the server.
 	APIObject() interface{}
 }
 

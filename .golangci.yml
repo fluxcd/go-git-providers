@@ -1,6 +1,7 @@
 run:
   # timeout for analysis, e.g. 30s, 5m, default is 1m
-  timeout: 2m
+  timeout: 1m
+  tests: false
 
 linters:
   enable:
@@ -33,7 +34,7 @@ linters:
   - maligned
   # - depguard is not applicable here
   - misspell
-  - lll
+  # - lll allow long lines for now, maybe revisit this later
   - unparam
   - dogsled
   - nakedret
@@ -42,10 +43,10 @@ linters:
   - gocritic
   - gochecknoinits
   - gochecknoglobals
-  - godox
+  # - godox don't error although there are TODOs in the code
   - funlen
   - whitespace
-  - wsl
+  # - wsl allow "non-ideomatic" whitespace formattings for now
   - goprintffuncname
   - gomnd
   - goerr113

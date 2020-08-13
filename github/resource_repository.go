@@ -136,7 +136,7 @@ func (r *userRepository) Reconcile(ctx context.Context) (bool, error) {
 	return true, r.Update(ctx)
 }
 
-// Delete deletes the current resource irreversible.
+// Delete deletes the current resource irreversibly.
 //
 // ErrNotFound is returned if the resource doesn't exist anymore.
 func (r *userRepository) Delete(ctx context.Context) error {

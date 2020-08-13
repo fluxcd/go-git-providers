@@ -66,7 +66,7 @@ type Updatable interface {
 // Deletable is an interface which all objects that can be deleted
 // using the Client implement.
 type Deletable interface {
-	// Delete deletes the current resource irreversible.
+	// Delete deletes the current resource irreversibly.
 	//
 	// ErrNotFound is returned if the resource doesn't exist anymore.
 	Delete(ctx context.Context) error

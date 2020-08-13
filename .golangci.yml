@@ -46,7 +46,7 @@ linters:
   # - godox don't error although there are TODOs in the code
   - funlen
   - whitespace
-  # - wsl allow "non-ideomatic" whitespace formattings for now
+  # - wsl allow "non-idiomatic" whitespace formattings for now
   - goprintffuncname
   - gomnd
   - goerr113

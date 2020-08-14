@@ -244,32 +244,9 @@ func NewClient(ctx context.Context, optFns ...ClientOption) (gitprovider.Client,
 		return nil, err
 	}
 
-	// transport will be the http.RoundTripper for the *http.Client given to the Github client.
-	var transport http.RoundTripper
-	// Get an authenticated http.RoundTripper, if set
-	if opts.authTransportFactory != nil {
-		transport = opts.authTransportFactory.Transport(ctx)
-	}
-
-	// Conditionally enable conditional requests
-	if opts.EnableConditionalRequests != nil && *opts.EnableConditionalRequests {
-		// Create a new httpcache high-level Transport
-		t := httpcache.NewMemoryCacheTransport()
-		// Make the httpcache high-level transport use the auth transport "underneath"
-		if transport != nil {
-			t.Transport = transport
-		}
-		// Override the transport with our embedded underlying auth transport
-		transport = &cacheRoundtripper{t}
-	}
-
-	// If a custom roundtripper was set, pipe it through the transport too
-	if opts.RoundTripperFactory != nil {
-		customTransport := opts.RoundTripperFactory.Transport(transport)
-		if customTransport == nil {
-			return nil, fmt.Errorf("the custom transport returned from the RoundTripperFactory must not be nil: %w", ErrInvalidClientOptions)
-		}
-		transport = customTransport
+	transport, err := buildTransportChain(ctx, opts)
+	if err != nil {
+		return nil, err
 	}
 
 	// Create a *http.Client using the transport chain
@@ -304,27 +281,63 @@ func NewClient(ctx context.Context, optFns ...ClientOption) (gitprovider.Client,
 	return newClient(gh, domain, destructiveActions), nil
 }
 
+// buildTransportChain builds a chain of http.RoundTrippers calling each other as per the
+// description in NewClient.
+func buildTransportChain(ctx context.Context, opts *clientOptions) (http.RoundTripper, error) {
+	// transport will be the http.RoundTripper for the *http.Client given to the Github client.
+	var transport http.RoundTripper
+	// Get an authenticated http.RoundTripper, if set
+	if opts.authTransportFactory != nil {
+		transport = opts.authTransportFactory.Transport(ctx)
+	}
+
+	// Conditionally enable conditional requests
+	if opts.EnableConditionalRequests != nil && *opts.EnableConditionalRequests {
+		// Create a new httpcache high-level Transport
+		t := httpcache.NewMemoryCacheTransport()
+		// Make the httpcache high-level transport use the auth transport "underneath"
+		if transport != nil {
+			t.Transport = transport
+		}
+		// Override the transport with our embedded underlying auth transport
+		transport = &cacheRoundtripper{t}
+	}
+
+	// If a custom roundtripper was set, pipe it through the transport too
+	if opts.RoundTripperFactory != nil {
+		customTransport := opts.RoundTripperFactory.Transport(transport)
+		if customTransport == nil {
+			// The lint failure here is a false positive, for some (unknown) reason
+			//nolint:goerr113
+			return nil, fmt.Errorf("the RoundTripper returned from the RoundTripperFactory must not be nil: %w", ErrInvalidClientOptions)
+		}
+		transport = customTransport
+	}
+
+	return transport, nil
+}
+
 type cacheRoundtripper struct {
 	t *httpcache.Transport
 }
 
-// this is copied over from github.com/gregjones/httpcache to be able
-// to implement our custom roundtripper below
+// This function follows the same logic as in github.com/gregjones/httpcache to be able
+// to implement our custom roundtripper logic below.
 func cacheKey(req *http.Request) string {
 	if req.Method == http.MethodGet {
 		return req.URL.String()
-	} else {
-		return req.Method + " " + req.URL.String()
 	}
+	return req.Method + " " + req.URL.String()
 }
 
 // RoundTrip calls the underlying RoundTrip (using the cache), but invalidates the cache on
 // non GET/HEAD requests and non-"200 OK" responses.
 func (r *cacheRoundtripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	// These two statements are copied from github.com/gregjones/httpcache Transport.RoundTrip
+	// These two statements are the same as in github.com/gregjones/httpcache Transport.RoundTrip
 	// to be able to implement our custom roundtripper below
 	cacheKey := cacheKey(req)
 	cacheable := (req.Method == "GET" || req.Method == "HEAD") && req.Header.Get("range") == ""
+
 	// If the object isn't a GET or HEAD request, also invalidate the cache of the GET URL
 	// as this action will modify the underlying resource (e.g. DELETE/POST/PATCH)
 	if !cacheable {

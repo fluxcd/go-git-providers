@@ -22,11 +22,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"net/http"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/google/go-github/v32/github"
+	"github.com/gregjones/httpcache"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -53,10 +56,78 @@ func TestProvider(t *testing.T) {
 	RunSpecs(t, "GitHub Provider Suite")
 }
 
+type customTransportFactory struct {
+	customTransport *customTransport
+}
+
+func (f *customTransportFactory) Transport(transport http.RoundTripper) http.RoundTripper {
+	if f.customTransport != nil {
+		panic("didn't expect this function to be called twice")
+	}
+	f.customTransport = &customTransport{
+		transport:      transport,
+		countCacheHits: false,
+		cacheHits:      0,
+		mux:            &sync.Mutex{},
+	}
+	return f.customTransport
+}
+
+type customTransport struct {
+	transport      http.RoundTripper
+	countCacheHits bool
+	cacheHits      int
+	mux            *sync.Mutex
+}
+
+func (t *customTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	t.mux.Lock()
+	defer t.mux.Unlock()
+
+	resp, err := t.transport.RoundTrip(req)
+	// If we should count, count all cache hits whenever found
+	if t.countCacheHits {
+		if _, ok := resp.Header[httpcache.XFromCache]; ok {
+			t.cacheHits++
+		}
+	}
+	return resp, err
+}
+
+func (t *customTransport) resetCounter() {
+	t.mux.Lock()
+	defer t.mux.Unlock()
+
+	t.cacheHits = 0
+}
+
+func (t *customTransport) setCounter(state bool) {
+	t.mux.Lock()
+	defer t.mux.Unlock()
+
+	t.countCacheHits = state
+}
+
+func (t *customTransport) getCacheHits() int {
+	t.mux.Lock()
+	defer t.mux.Unlock()
+
+	return t.cacheHits
+}
+
+func (t *customTransport) countCacheHitsForFunc(fn func()) int {
+	t.setCounter(true)
+	t.resetCounter()
+	fn()
+	t.setCounter(false)
+	return t.getCacheHits()
+}
+
 var _ = Describe("GitHub Provider", func() {
 	var (
-		ctx context.Context
-		c   gitprovider.Client
+		ctx              context.Context
+		c                gitprovider.Client
+		transportFactory = &customTransportFactory{}
 
 		testRepoName string
 		testOrgName  string = "fluxcd-testing"
@@ -79,7 +150,12 @@ var _ = Describe("GitHub Provider", func() {
 
 		ctx = context.Background()
 		var err error
-		c, err = NewClient(ctx, WithPersonalAccessToken(githubToken), WithDestructiveAPICalls(true))
+		c, err = NewClient(ctx,
+			WithPersonalAccessToken(githubToken),
+			WithDestructiveAPICalls(true),
+			WithConditionalRequests(true),
+			WithRoundTripper(transportFactory),
+		)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -89,7 +165,7 @@ var _ = Describe("GitHub Provider", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		// Make sure we find the expected one given as testOrgName
-		var listedOrg gitprovider.Organization
+		var listedOrg, getOrg gitprovider.Organization
 		for _, org := range orgs {
 			if org.Organization().Organization == testOrgName {
 				listedOrg = org
@@ -98,9 +174,14 @@ var _ = Describe("GitHub Provider", func() {
 		}
 		Expect(listedOrg).ToNot(BeNil())
 
-		// Do a GET call for that organization
-		getOrg, err := c.Organizations().Get(ctx, listedOrg.Organization())
-		Expect(err).ToNot(HaveOccurred())
+		hits := transportFactory.customTransport.countCacheHitsForFunc(func() {
+			// Do a GET call for that organization
+			getOrg, err = c.Organizations().Get(ctx, listedOrg.Organization())
+			Expect(err).ToNot(HaveOccurred())
+		})
+		// don't expect any cache hit, as we didn't request this before
+		Expect(hits).To(Equal(0))
+
 		// Expect that the organization's info is the same regardless of method
 		Expect(getOrg.Organization()).To(Equal(listedOrg.Organization()))
 		// We don't expect the name from LIST calls, but we do expect
@@ -117,6 +198,14 @@ var _ = Describe("GitHub Provider", func() {
 		internal := getOrg.APIObject().(*github.Organization)
 		Expect(getOrg.Get().Name).To(Equal(internal.Name))
 		Expect(getOrg.Get().Description).To(Equal(internal.Description))
+
+		// Expect that when we do the same request a second time, it will hit the cache
+		hits = transportFactory.customTransport.countCacheHitsForFunc(func() {
+			getOrg2, err := c.Organizations().Get(ctx, listedOrg.Organization())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(getOrg2).ToNot(BeNil())
+		})
+		Expect(hits).To(Equal(1))
 	})
 
 	It("should fail when .Children is called", func() {

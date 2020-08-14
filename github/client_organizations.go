@@ -45,6 +45,8 @@ func (c *OrganizationsClient) Get(ctx context.Context, ref gitprovider.Organizat
 
 	// GET /orgs/{org}
 	apiObj, _, err := c.c.Organizations.Get(ctx, ref.Organization)
+	// TODO: Provide some kind of debug logging if/when the httpcache is used
+	// One can see if the request hit the cache using: resp.Header[httpcache.XFromCache]
 	if err != nil {
 		return nil, handleHTTPError(err)
 	}

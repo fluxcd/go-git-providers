@@ -26,7 +26,8 @@ import (
 const ProviderID = gitprovider.ProviderID("github")
 
 func newClient(c *github.Client, domain string, destructiveActions bool) *Client {
-	ctx := &clientContext{c, domain, destructiveActions}
+	ghClient := &githubClientImpl{c, destructiveActions}
+	ctx := &clientContext{ghClient, domain, destructiveActions}
 	return &Client{
 		clientContext: ctx,
 		orgs: &OrganizationsClient{
@@ -42,7 +43,7 @@ func newClient(c *github.Client, domain string, destructiveActions bool) *Client
 }
 
 type clientContext struct {
-	c                  *github.Client
+	c                  githubClient
 	domain             string
 	destructiveActions bool
 }

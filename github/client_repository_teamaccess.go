@@ -19,9 +19,6 @@ package github
 import (
 	"context"
 	"errors"
-	"fmt"
-
-	"github.com/google/go-github/v32/github"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
@@ -41,19 +38,19 @@ type TeamAccessClient struct {
 // Teams are sub-groups in GitLab.
 //
 // ErrNotFound is returned if the resource does not exist.
+//
+// TeamAccess.APIObject will be nil, because there's no underlying Github struct.
 func (c *TeamAccessClient) Get(ctx context.Context, name string) (gitprovider.TeamAccess, error) {
 	// GET /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}
-	apiObj, _, err := c.c.Teams.IsTeamRepoBySlug(ctx, c.ref.GetIdentity(), name, c.ref.GetIdentity(), c.ref.GetRepository())
+	permissionMap, err := c.c.GetTeamPermissions(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), name)
 	if err != nil {
-		return nil, handleHTTPError(err)
+		return nil, err
 	}
 
-	// Make sure name isn't nil
-	if apiObj.Permissions == nil {
-		return nil, fmt.Errorf("didn't expect permissions to be nil for team access object: %+v: %w", apiObj, gitprovider.ErrInvalidServerData)
-	}
-
-	return newTeamAccess(c, teamAccessFromAPI(apiObj, name)), nil
+	return newTeamAccess(c, gitprovider.TeamAccessInfo{
+		Name:       name,
+		Permission: getPermissionFromMap(permissionMap),
+	}), nil
 }
 
 // List lists the team access control list for this repository.
@@ -61,26 +58,14 @@ func (c *TeamAccessClient) Get(ctx context.Context, name string) (gitprovider.Te
 // List returns all available team access lists, using multiple paginated requests if needed.
 func (c *TeamAccessClient) List(ctx context.Context) ([]gitprovider.TeamAccess, error) {
 	// List all teams, using pagination. This does not contain information about the members
-	apiObjs := []*github.Team{}
-	opts := &github.ListOptions{}
-	err := allPages(opts, func() (*github.Response, error) {
-		// GET /repos/{owner}/{repo}/teams
-		pageObjs, resp, listErr := c.c.Repositories.ListTeams(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), opts)
-		apiObjs = append(apiObjs, pageObjs...)
-		return resp, listErr
-	})
+	apiObjs, err := c.c.ListRepoTeams(ctx, c.ref.GetIdentity(), c.ref.GetRepository())
 	if err != nil {
 		return nil, err
 	}
 
 	teamAccess := make([]gitprovider.TeamAccess, 0, len(apiObjs))
 	for _, apiObj := range apiObjs {
-		// Make sure name isn't nil
-		if apiObj.Slug == nil {
-			return nil, fmt.Errorf("didn't expect slug to be nil for team access: %+v: %w", apiObj, gitprovider.ErrInvalidServerData)
-		}
-
-		// Get more detailed info about the team
+		// Get more detailed info about the team, we know that Slug is non-nil as of ListTeams.
 		ta, err := c.Get(ctx, *apiObj.Slug)
 		if err != nil {
 			return nil, err
@@ -101,13 +86,9 @@ func (c *TeamAccessClient) Create(ctx context.Context, req gitprovider.TeamAcces
 		return nil, err
 	}
 
-	opts := &github.TeamAddTeamRepoOptions{
-		Permission: string(*req.Permission),
-	}
 	// PUT /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}
-	_, err := c.c.Teams.AddTeamRepoBySlug(ctx, c.ref.GetIdentity(), req.Name, c.ref.GetIdentity(), c.ref.GetRepository(), opts)
-	if err != nil {
-		return nil, handleHTTPError(err)
+	if err := c.c.AddTeam(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), req.Name, *req.Permission); err != nil {
+		return nil, err
 	}
 
 	return newTeamAccess(c, req), nil

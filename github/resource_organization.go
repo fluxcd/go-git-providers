@@ -17,6 +17,8 @@ limitations under the License.
 package github
 
 import (
+	"fmt"
+
 	"github.com/google/go-github/v32/github"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
@@ -66,4 +68,13 @@ func organizationFromAPI(apiObj *github.Organization) gitprovider.OrganizationIn
 		Name:        apiObj.Name,
 		Description: apiObj.Description,
 	}
+}
+
+// validateOrganizationAPI validates the apiObj received from the server, to make sure that it is
+// valid for our use.
+func validateOrganizationAPI(apiObj *github.Organization) error {
+	if apiObj.Login == nil {
+		return fmt.Errorf("didn't expect login to be nil for org: %+v: %w", apiObj, gitprovider.ErrInvalidServerData)
+	}
+	return nil
 }

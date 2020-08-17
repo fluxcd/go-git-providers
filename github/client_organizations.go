@@ -18,9 +18,6 @@ package github
 
 import (
 	"context"
-	"fmt"
-
-	"github.com/google/go-github/v32/github"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
@@ -44,11 +41,9 @@ func (c *OrganizationsClient) Get(ctx context.Context, ref gitprovider.Organizat
 	}
 
 	// GET /orgs/{org}
-	apiObj, _, err := c.c.Organizations.Get(ctx, ref.Organization)
-	// TODO: Provide some kind of debug logging if/when the httpcache is used
-	// One can see if the request hit the cache using: resp.Header[httpcache.XFromCache]
+	apiObj, err := c.c.GetOrg(ctx, ref.Organization)
 	if err != nil {
-		return nil, handleHTTPError(err)
+		return nil, err
 	}
 
 	return newOrganization(c.clientContext, apiObj, ref), nil
@@ -58,25 +53,15 @@ func (c *OrganizationsClient) Get(ctx context.Context, ref gitprovider.Organizat
 //
 // List returns all available organizations, using multiple paginated requests if needed.
 func (c *OrganizationsClient) List(ctx context.Context) ([]gitprovider.Organization, error) {
-	apiObjs := []*github.Organization{}
-	opts := &github.ListOptions{}
-	err := allPages(opts, func() (*github.Response, error) {
-		// GET /user/orgs
-		pageObjs, resp, listErr := c.c.Organizations.List(ctx, "", opts)
-		apiObjs = append(apiObjs, pageObjs...)
-		return resp, listErr
-	})
+	// GET /user/orgs
+	apiObjs, err := c.c.ListOrgs(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	orgs := make([]gitprovider.Organization, 0, len(apiObjs))
 	for _, apiObj := range apiObjs {
-		// Make sure name isn't nil
-		if apiObj.Login == nil {
-			return nil, fmt.Errorf("didn't expect login to be nil for org: %+v: %w", apiObj, gitprovider.ErrInvalidServerData)
-		}
-
+		// apiObj.Login is already validated to be non-nil in ListOrgs
 		orgs = append(orgs, newOrganization(c.clientContext, apiObj, gitprovider.OrganizationRef{
 			Domain:       c.domain,
 			Organization: *apiObj.Login,

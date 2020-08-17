@@ -20,8 +20,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/google/go-github/v32/github"
-
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
@@ -64,13 +62,7 @@ func (ta *teamAccess) Repository() gitprovider.RepositoryRef {
 // ErrNotFound is returned if the resource does not exist.
 func (ta *teamAccess) Delete(ctx context.Context) error {
 	// DELETE /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}
-	_, err := ta.c.c.Teams.RemoveTeamRepoBySlug(ctx,
-		ta.c.ref.GetIdentity(),
-		ta.ta.Name,
-		ta.c.ref.GetIdentity(),
-		ta.c.ref.GetRepository(),
-	)
-	return handleHTTPError(err)
+	return ta.c.c.RemoveTeam(ctx, ta.c.ref.GetIdentity(), ta.c.ref.GetRepository(), ta.ta.Name)
 }
 
 func (ta *teamAccess) Update(ctx context.Context) error {
@@ -111,13 +103,6 @@ func (ta *teamAccess) Reconcile(ctx context.Context) (bool, error) {
 	}
 
 	return true, ta.Update(ctx)
-}
-
-func teamAccessFromAPI(apiObj *github.Repository, teamName string) gitprovider.TeamAccessInfo {
-	return gitprovider.TeamAccessInfo{
-		Name:       teamName,
-		Permission: getPermissionFromMap(*apiObj.Permissions),
-	}
 }
 
 //nolint:gochecknoglobals,gomnd

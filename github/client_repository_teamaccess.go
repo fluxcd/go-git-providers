@@ -113,7 +113,7 @@ func (c *TeamAccessClient) Create(ctx context.Context, req gitprovider.TeamAcces
 	return newTeamAccess(c, req), nil
 }
 
-// Reconcile makes sure req is the actual state in the backing Git provider.
+// Reconcile makes sure the given desired state (req) becomes the actual state in the backing Git provider.
 //
 // If req doesn't exist under the hood, it is created (actionTaken == true).
 // If req doesn't equal the actual state, the resource will be deleted and recreated (actionTaken == true).

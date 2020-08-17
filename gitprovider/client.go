@@ -79,7 +79,7 @@ type OrganizationsClient interface {
 
 // OrgRepositoriesClient operates on repositories for organizations.
 type OrgRepositoriesClient interface {
-	// Get returns the repository at the given path.
+	// Get returns the repository for the given reference.
 	//
 	// ErrNotFound is returned if the resource does not exist.
 	Get(ctx context.Context, r OrgRepositoryRef) (OrgRepository, error)
@@ -89,12 +89,12 @@ type OrgRepositoriesClient interface {
 	// List returns all available repositories, using multiple paginated requests if needed.
 	List(ctx context.Context, o OrganizationRef) ([]OrgRepository, error)
 
-	// Create creates a repository for the given organization, with the data and options
+	// Create creates a repository for the given organization, with the data and options.
 	//
 	// ErrAlreadyExists will be returned if the resource already exists.
 	Create(ctx context.Context, r OrgRepositoryRef, req RepositoryInfo, opts ...RepositoryCreateOption) (OrgRepository, error)
 
-	// Reconcile makes sure req is the actual state in the backing Git provider.
+	// Reconcile makes sure the given desired state (req) becomes the actual state in the backing Git provider.
 	//
 	// If req doesn't exist under the hood, it is created (actionTaken == true).
 	// If req doesn't equal the actual state, the resource will be updated (actionTaken == true).
@@ -119,7 +119,7 @@ type UserRepositoriesClient interface {
 	// ErrAlreadyExists will be returned if the resource already exists.
 	Create(ctx context.Context, r UserRepositoryRef, req RepositoryInfo, opts ...RepositoryCreateOption) (UserRepository, error)
 
-	// Reconcile makes sure req is the actual state in the backing Git provider.
+	// Reconcile makes sure the given desired state (req) becomes the actual state in the backing Git provider.
 	//
 	// If req doesn't exist under the hood, it is created (actionTaken == true).
 	// If req doesn't equal the actual state, the resource will be updated (actionTaken == true).
@@ -153,22 +153,22 @@ type TeamsClient interface {
 // TeamAccessClient operates on the teams list for a specific repository.
 // This client can be accessed through Repository.TeamAccess().
 type TeamAccessClient interface {
-	// Get gets a TeamAccess by its name.
+	// Get a team's permission level of this given repository.
 	//
 	// ErrNotFound is returned if the resource does not exist.
 	Get(ctx context.Context, name string) (TeamAccess, error)
 
-	// List lists the team access control list for this repository.
+	// List the team access control list for this repository.
 	//
 	// List returns all available team access lists, using multiple paginated requests if needed.
 	List(ctx context.Context) ([]TeamAccess, error)
 
-	// Create adds a given team to the repo's team access control list.
+	// Create adds a given team to the repository's team access control list.
 	//
 	// ErrAlreadyExists will be returned if the resource already exists.
 	Create(ctx context.Context, req TeamAccessInfo) (TeamAccess, error)
 
-	// Reconcile makes sure req is the actual state in the backing Git provider.
+	// Reconcile makes sure the given desired state (req) becomes the actual state in the backing Git provider.
 	//
 	// If req doesn't exist under the hood, it is created (actionTaken == true).
 	// If req doesn't equal the actual state, the resource will be updated (actionTaken == true).
@@ -179,23 +179,23 @@ type TeamAccessClient interface {
 // DeployKeyClient operates on the access credential list for a specific repository.
 // This client can be accessed through Repository.DeployKeys().
 type DeployKeyClient interface {
-	// Get gets a DeployKey by its name.
+	// Get a DeployKey by its name.
 	//
 	// ErrNotFound is returned if the resource does not exist.
 	Get(ctx context.Context, name string) (DeployKey, error)
 
-	// List lists all deploy keys of the given credential type.
+	// List all deploy keys for the given repository.
 	//
 	// List returns all available deploy keys for the given type,
 	// using multiple paginated requests if needed.
 	List(ctx context.Context) ([]DeployKey, error)
 
-	// Create creates a deploy key with the given specifications.
+	// Create a deploy key with the given specifications.
 	//
 	// ErrAlreadyExists will be returned if the resource already exists.
 	Create(ctx context.Context, req DeployKeyInfo) (DeployKey, error)
 
-	// Reconcile makes sure req is the actual state in the backing Git provider.
+	// Reconcile makes sure the given desired state (req) becomes the actual state in the backing Git provider.
 	//
 	// If req doesn't exist under the hood, it is created (actionTaken == true).
 	// If req doesn't equal the actual state, the resource will be updated (actionTaken == true).

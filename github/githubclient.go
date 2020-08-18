@@ -262,7 +262,7 @@ func (c *githubClientImpl) UpdateRepo(ctx context.Context, owner, repo string, r
 func (c *githubClientImpl) DeleteRepo(ctx context.Context, owner, repo string) error {
 	// Don't allow deleting repositories if the user didn't explicitly allow dangerous API calls.
 	if !c.destructiveActions {
-		return fmt.Errorf("cannot delete repository: %w", ErrDestructiveCallDisallowed)
+		return fmt.Errorf("cannot delete repository: %w", gitprovider.ErrDestructiveCallDisallowed)
 	}
 	// DELETE /repos/{owner}/{repo}
 	_, err := c.c.Repositories.Delete(ctx, owner, repo)

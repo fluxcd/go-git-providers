@@ -20,7 +20,7 @@ func checkErr(err error) {
 func ExampleOrganizationsClient_Get() {
 	// Create a new client
 	ctx := context.Background()
-	c, err := github.NewClient(ctx)
+	c, err := github.NewClient()
 	checkErr(err)
 
 	// Get public information about the fluxcd organization

@@ -45,6 +45,11 @@ const (
 	defaultBranch = "master"
 )
 
+var (
+	// customTransportImpl is a shared instance of a customTransport, allowing counting of cache hits.
+	customTransportImpl *customTransport
+)
+
 func init() {
 	// Call testing.Init() prior to tests.NewParams(), as otherwise -test.* will not be recognised. See also: https://golang.org/doc/go1.13#testing
 	testing.Init()
@@ -56,21 +61,17 @@ func TestProvider(t *testing.T) {
 	RunSpecs(t, "GitHub Provider Suite")
 }
 
-type customTransportFactory struct {
-	customTransport *customTransport
-}
-
-func (f *customTransportFactory) Transport(transport http.RoundTripper) http.RoundTripper {
-	if f.customTransport != nil {
+func customTransportFactory(transport http.RoundTripper) http.RoundTripper {
+	if customTransportImpl != nil {
 		panic("didn't expect this function to be called twice")
 	}
-	f.customTransport = &customTransport{
+	customTransportImpl = &customTransport{
 		transport:      transport,
 		countCacheHits: false,
 		cacheHits:      0,
 		mux:            &sync.Mutex{},
 	}
-	return f.customTransport
+	return customTransportImpl
 }
 
 type customTransport struct {
@@ -125,9 +126,8 @@ func (t *customTransport) countCacheHitsForFunc(fn func()) int {
 
 var _ = Describe("GitHub Provider", func() {
 	var (
-		ctx              context.Context
-		c                gitprovider.Client
-		transportFactory = &customTransportFactory{}
+		ctx context.Context = context.Background()
+		c   gitprovider.Client
 
 		testRepoName string
 		testOrgName  string = "fluxcd-testing"
@@ -148,13 +148,12 @@ var _ = Describe("GitHub Provider", func() {
 			testOrgName = orgName
 		}
 
-		ctx = context.Background()
 		var err error
-		c, err = NewClient(ctx,
+		c, err = NewClient(
 			WithPersonalAccessToken(githubToken),
 			WithDestructiveAPICalls(true),
 			WithConditionalRequests(true),
-			WithRoundTripper(transportFactory),
+			WithPreChainTransportHook(customTransportFactory),
 		)
 		Expect(err).ToNot(HaveOccurred())
 	})
@@ -174,7 +173,7 @@ var _ = Describe("GitHub Provider", func() {
 		}
 		Expect(listedOrg).ToNot(BeNil())
 
-		hits := transportFactory.customTransport.countCacheHitsForFunc(func() {
+		hits := customTransportImpl.countCacheHitsForFunc(func() {
 			// Do a GET call for that organization
 			getOrg, err = c.Organizations().Get(ctx, listedOrg.Organization())
 			Expect(err).ToNot(HaveOccurred())
@@ -200,7 +199,7 @@ var _ = Describe("GitHub Provider", func() {
 		Expect(getOrg.Get().Description).To(Equal(internal.Description))
 
 		// Expect that when we do the same request a second time, it will hit the cache
-		hits = transportFactory.customTransport.countCacheHitsForFunc(func() {
+		hits = customTransportImpl.countCacheHitsForFunc(func() {
 			getOrg2, err := c.Organizations().Get(ctx, listedOrg.Organization())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(getOrg2).ToNot(BeNil())

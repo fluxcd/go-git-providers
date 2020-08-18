@@ -305,6 +305,9 @@ func buildTransportChain(ctx context.Context, opts *clientOptions) (http.RoundTr
 
 	// If a custom roundtripper was set, pipe it through the transport too
 	if opts.RoundTripperFactory != nil {
+		// TODO: Document usage of a nil transport here
+		// TODO: Provide some kind of debug logging if/when the httpcache is used
+		// One can see if the request hit the cache using: resp.Header[httpcache.XFromCache]
 		customTransport := opts.RoundTripperFactory.Transport(transport)
 		if customTransport == nil {
 			// The lint failure here is a false positive, for some (unknown) reason

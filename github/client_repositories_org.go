@@ -41,7 +41,8 @@ func (c *OrgRepositoriesClient) Get(ctx context.Context, ref gitprovider.OrgRepo
 	if err := validateOrgRepositoryRef(ref, c.domain); err != nil {
 		return nil, err
 	}
-	apiObj, err := getRepository(ctx, c.c, ref)
+	// GET /repos/{owner}/{repo}
+	apiObj, err := c.c.GetRepo(ctx, ref.GetIdentity(), ref.GetRepository())
 	if err != nil {
 		return nil, err
 	}
@@ -57,15 +58,8 @@ func (c *OrgRepositoriesClient) List(ctx context.Context, ref gitprovider.Organi
 		return nil, err
 	}
 
-	// Get all of the repositories in the organization using pagination.
-	var apiObjs []*github.Repository
-	opts := &github.RepositoryListByOrgOptions{}
-	err := allPages(&opts.ListOptions, func() (*github.Response, error) {
-		// GET /orgs/{org}/repos
-		pageObjs, resp, listErr := c.c.Repositories.ListByOrg(ctx, ref.Organization, opts)
-		apiObjs = append(apiObjs, pageObjs...)
-		return resp, listErr
-	})
+	// GET /orgs/{org}/repos
+	apiObjs, err := c.c.ListOrgRepos(ctx, ref.Organization)
 	if err != nil {
 		return nil, err
 	}
@@ -73,11 +67,7 @@ func (c *OrgRepositoriesClient) List(ctx context.Context, ref gitprovider.Organi
 	// Traverse the list, and return a list of OrgRepository objects
 	repos := make([]gitprovider.OrgRepository, 0, len(apiObjs))
 	for _, apiObj := range apiObjs {
-		// Make sure apiObj is valid
-		if err := validateRepositoryAPI(apiObj); err != nil {
-			return nil, err
-		}
-
+		// apiObj is already validated at ListOrgRepos
 		repos = append(repos, newOrgRepository(c.clientContext, apiObj, gitprovider.OrgRepositoryRef{
 			OrganizationRef: ref,
 			RepositoryName:  *apiObj.Name,
@@ -130,13 +120,7 @@ func (c *OrgRepositoriesClient) Reconcile(ctx context.Context, ref gitprovider.O
 	return actual, actionTaken, err
 }
 
-func getRepository(ctx context.Context, c *github.Client, ref gitprovider.RepositoryRef) (*github.Repository, error) {
-	// GET /repos/{owner}/{repo}
-	apiObj, _, err := c.Repositories.Get(ctx, ref.GetIdentity(), ref.GetRepository())
-	return validateRepositoryAPIResp(apiObj, err)
-}
-
-func createRepository(ctx context.Context, c *github.Client, ref gitprovider.RepositoryRef, orgName string, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryCreateOption) (*github.Repository, error) {
+func createRepository(ctx context.Context, c githubClient, ref gitprovider.RepositoryRef, orgName string, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryCreateOption) (*github.Repository, error) {
 	// First thing, validate and default the request to ensure a valid and fully-populated object
 	// (to minimize any possible diffs between desired and actual state)
 	if err := gitprovider.ValidateAndDefaultInfo(&req); err != nil {
@@ -153,15 +137,7 @@ func createRepository(ctx context.Context, c *github.Client, ref gitprovider.Rep
 	data := repositoryToAPI(&req, ref)
 	applyRepoCreateOptions(&data, o)
 
-	return createRepositoryData(ctx, c, orgName, &data)
-}
-
-func createRepositoryData(ctx context.Context, c *github.Client, orgName string, data *github.Repository) (*github.Repository, error) {
-	// POST /user/repos or
-	// POST /orgs/{org}/repos
-	// depending on orgName
-	apiObj, _, err := c.Repositories.Create(ctx, orgName, data)
-	return validateRepositoryAPIResp(apiObj, err)
+	return c.CreateRepo(ctx, orgName, &data)
 }
 
 func reconcileRepository(ctx context.Context, actual gitprovider.UserRepository, req gitprovider.RepositoryInfo) (bool, error) {

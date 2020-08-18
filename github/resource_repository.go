@@ -19,7 +19,6 @@ package github
 import (
 	"context"
 	"errors"
-	"fmt"
 	"reflect"
 
 	"github.com/google/go-github/v32/github"
@@ -45,7 +44,7 @@ var _ gitprovider.UserRepository = &userRepository{}
 type userRepository struct {
 	*clientContext
 
-	r   github.Repository
+	r   github.Repository // go-github
 	ref gitprovider.RepositoryRef
 
 	deployKeys *DeployKeyClient
@@ -86,9 +85,7 @@ func (r *userRepository) DeployKeys() gitprovider.DeployKeyClient {
 // The internal API object will be overridden with the received server data.
 func (r *userRepository) Update(ctx context.Context) error {
 	// PATCH /repos/{owner}/{repo}
-	apiObj, _, err := r.c.Repositories.Edit(ctx, r.ref.GetIdentity(), r.ref.GetRepository(), &r.r)
-	// Run through validation
-	apiObj, err = validateRepositoryAPIResp(apiObj, err)
+	apiObj, err := r.c.UpdateRepo(ctx, r.ref.GetIdentity(), r.ref.GetRepository(), &r.r)
 	if err != nil {
 		return err
 	}
@@ -105,7 +102,7 @@ func (r *userRepository) Update(ctx context.Context) error {
 //
 // The internal API object will be overridden with the received server data if actionTaken == true.
 func (r *userRepository) Reconcile(ctx context.Context) (bool, error) {
-	apiObj, err := getRepository(ctx, r.c, r.ref)
+	apiObj, err := r.c.GetRepo(ctx, r.ref.GetIdentity(), r.ref.GetRepository())
 	if err != nil {
 		// Create if not found
 		if errors.Is(err, gitprovider.ErrNotFound) {
@@ -113,7 +110,7 @@ func (r *userRepository) Reconcile(ctx context.Context) (bool, error) {
 			if orgRef, ok := r.ref.(gitprovider.OrgRepositoryRef); ok {
 				orgName = orgRef.Organization
 			}
-			repo, err := createRepositoryData(ctx, r.c, orgName, &r.r)
+			repo, err := r.c.CreateRepo(ctx, orgName, &r.r)
 			if err != nil {
 				return true, err
 			}
@@ -140,13 +137,7 @@ func (r *userRepository) Reconcile(ctx context.Context) (bool, error) {
 //
 // ErrNotFound is returned if the resource doesn't exist anymore.
 func (r *userRepository) Delete(ctx context.Context) error {
-	// Don't allow deleting repositories if the user didn't explicitly allow dangerous API calls.
-	if !r.destructiveActions {
-		return fmt.Errorf("cannot delete repository: %w", ErrDestructiveCallDisallowed)
-	}
-
-	_, err := r.c.Repositories.Delete(ctx, r.ref.GetIdentity(), r.ref.GetRepository())
-	return handleHTTPError(err)
+	return r.c.DeleteRepo(ctx, r.ref.GetIdentity(), r.ref.GetRepository())
 }
 
 func newOrgRepository(ctx *clientContext, apiObj *github.Repository, ref gitprovider.RepositoryRef) *orgRepository {
@@ -196,18 +187,6 @@ func repositoryFromAPI(apiObj *github.Repository) gitprovider.RepositoryInfo {
 		repo.Visibility = gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibility(*apiObj.Visibility))
 	}
 	return repo
-}
-
-func validateRepositoryAPIResp(apiObj *github.Repository, err error) (*github.Repository, error) {
-	// If the response contained an error, return
-	if err != nil {
-		return nil, handleHTTPError(err)
-	}
-	// Make sure apiObj is valid
-	if err := validateRepositoryAPI(apiObj); err != nil {
-		return nil, err
-	}
-	return apiObj, nil
 }
 
 func repositoryToAPI(repo *gitprovider.RepositoryInfo, ref gitprovider.RepositoryRef) github.Repository {

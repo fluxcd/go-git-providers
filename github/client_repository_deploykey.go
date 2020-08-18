@@ -64,7 +64,7 @@ func (c *DeployKeyClient) List(ctx context.Context) ([]gitprovider.DeployKey, er
 	if err != nil {
 		return nil, err
 	}
-	// Cast to []gitprovider.DeployKey
+	// Cast to the generic []gitprovider.DeployKey
 	keys := make([]gitprovider.DeployKey, 0, len(dks))
 	for _, dk := range dks {
 		keys = append(keys, dk)
@@ -73,15 +73,8 @@ func (c *DeployKeyClient) List(ctx context.Context) ([]gitprovider.DeployKey, er
 }
 
 func (c *DeployKeyClient) list(ctx context.Context) ([]*deployKey, error) {
-	// List all keys, using pagination.
-	apiObjs := []*github.Key{}
-	opts := &github.ListOptions{}
-	err := allPages(opts, func() (*github.Response, error) {
-		// GET /repos/{owner}/{repo}/keys
-		pageObjs, resp, listErr := c.c.Repositories.ListKeys(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), opts)
-		apiObjs = append(apiObjs, pageObjs...)
-		return resp, listErr
-	})
+	// GET /repos/{owner}/{repo}/keys
+	apiObjs, err := c.c.ListKeys(ctx, c.ref.GetIdentity(), c.ref.GetRepository())
 	if err != nil {
 		return nil, err
 	}
@@ -89,11 +82,8 @@ func (c *DeployKeyClient) list(ctx context.Context) ([]*deployKey, error) {
 	// Map the api object to our DeployKey type
 	keys := make([]*deployKey, 0, len(apiObjs))
 	for _, apiObj := range apiObjs {
-		k, err := newDeployKey(c, apiObj)
-		if err != nil {
-			return nil, err
-		}
-		keys = append(keys, k)
+		// apiObj is already validated at ListKeys
+		keys = append(keys, newDeployKey(c, apiObj))
 	}
 
 	return keys, nil
@@ -107,7 +97,7 @@ func (c *DeployKeyClient) Create(ctx context.Context, req gitprovider.DeployKeyI
 	if err != nil {
 		return nil, err
 	}
-	return newDeployKey(c, apiObj)
+	return newDeployKey(c, apiObj), nil
 }
 
 // Reconcile makes sure the given desired state (req) becomes the actual state in the backing Git provider.
@@ -148,18 +138,12 @@ func (c *DeployKeyClient) Reconcile(ctx context.Context, req gitprovider.DeployK
 	return actual, true, actual.Update(ctx)
 }
 
-func createDeployKey(ctx context.Context, c *github.Client, ref gitprovider.RepositoryRef, req gitprovider.DeployKeyInfo) (*github.Key, error) {
+func createDeployKey(ctx context.Context, c githubClient, ref gitprovider.RepositoryRef, req gitprovider.DeployKeyInfo) (*github.Key, error) {
 	// First thing, validate and default the request to ensure a valid and fully-populated object
 	// (to minimize any possible diffs between desired and actual state)
 	if err := gitprovider.ValidateAndDefaultInfo(&req); err != nil {
 		return nil, err
 	}
-
-	return createDeployKeyData(ctx, c, ref, deployKeyToAPI(&req))
-}
-
-func createDeployKeyData(ctx context.Context, c *github.Client, ref gitprovider.RepositoryRef, data *github.Key) (*github.Key, error) {
 	// POST /repos/{owner}/{repo}/keys
-	apiObj, _, err := c.Repositories.CreateKey(ctx, ref.GetIdentity(), ref.GetRepository(), data)
-	return apiObj, handleHTTPError(err)
+	return c.CreateKey(ctx, ref.GetIdentity(), ref.GetRepository(), deployKeyToAPI(&req))
 }

@@ -18,7 +18,6 @@ package github
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/google/go-github/v32/github"
 
@@ -41,25 +40,16 @@ type TeamsClient struct {
 //
 // ErrNotFound is returned if the resource does not exist.
 func (c *TeamsClient) Get(ctx context.Context, teamName string) (gitprovider.Team, error) {
-	apiObjs := []*github.User{}
-	opts := &github.TeamListTeamMembersOptions{}
-	err := allPages(&opts.ListOptions, func() (*github.Response, error) {
-		// GET /orgs/{org}/teams/{team_slug}/members
-		pageObjs, resp, listErr := c.c.Teams.ListTeamMembersBySlug(ctx, c.ref.Organization, teamName, opts)
-		apiObjs = append(apiObjs, pageObjs...)
-		return resp, listErr
-	})
+	// GET /orgs/{org}/teams/{team_slug}/members
+	apiObjs, err := c.c.ListOrgTeamMembers(ctx, c.ref.Organization, teamName)
 	if err != nil {
 		return nil, err
 	}
 
+	// Collect a list of the members' names. Login is validated to be non-nil in ListOrgTeamMembers.
 	logins := make([]string, 0, len(apiObjs))
 	for _, apiObj := range apiObjs {
-		// Make sure login isn't nil
-		if apiObj.Login == nil {
-			return nil, fmt.Errorf("didn't expect login to be nil for user: %+v: %w", apiObj, gitprovider.ErrInvalidServerData)
-		}
-
+		// Login is validated to be non-nil in ListOrgTeamMembers
 		logins = append(logins, *apiObj.Login)
 	}
 
@@ -77,15 +67,8 @@ func (c *TeamsClient) Get(ctx context.Context, teamName string) (gitprovider.Tea
 //
 // List returns all available organizations, using multiple paginated requests if needed.
 func (c *TeamsClient) List(ctx context.Context) ([]gitprovider.Team, error) {
-	// List all teams, using pagination. This does not contain information about the members
-	apiObjs := []*github.Team{}
-	opts := &github.ListOptions{}
-	err := allPages(opts, func() (*github.Response, error) {
-		// GET /orgs/{org}/teams
-		pageObjs, resp, listErr := c.c.Teams.ListTeams(ctx, c.ref.Organization, opts)
-		apiObjs = append(apiObjs, pageObjs...)
-		return resp, listErr
-	})
+	// GET /orgs/{org}/teams
+	apiObjs, err := c.c.ListOrgTeams(ctx, c.ref.Organization)
 	if err != nil {
 		return nil, err
 	}
@@ -93,12 +76,8 @@ func (c *TeamsClient) List(ctx context.Context) ([]gitprovider.Team, error) {
 	// Use .Get() to get detailed information about each member
 	teams := make([]gitprovider.Team, 0, len(apiObjs))
 	for _, apiObj := range apiObjs {
-		// Make sure name isn't nil
-		if apiObj.Slug == nil {
-			return nil, fmt.Errorf("didn't expect slug to be nil for team: %+v: %w", apiObj, gitprovider.ErrInvalidServerData)
-		}
-
-		// Get information about individual teams
+		// Get detailed information about individual teams (including members).
+		// Slug is validated to be non-nil in ListOrgTeams.
 		team, err := c.Get(ctx, *apiObj.Slug)
 		if err != nil {
 			return nil, err

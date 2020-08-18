@@ -20,8 +20,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/google/go-github/v32/github"
-
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
@@ -41,7 +39,8 @@ func (c *UserRepositoriesClient) Get(ctx context.Context, ref gitprovider.UserRe
 	if err := validateUserRepositoryRef(ref, c.domain); err != nil {
 		return nil, err
 	}
-	apiObj, err := getRepository(ctx, c.c, ref)
+	// GET /repos/{owner}/{repo}
+	apiObj, err := c.c.GetRepo(ctx, ref.GetIdentity(), ref.GetRepository())
 	if err != nil {
 		return nil, err
 	}
@@ -57,15 +56,8 @@ func (c *UserRepositoriesClient) List(ctx context.Context, ref gitprovider.UserR
 		return nil, err
 	}
 
-	// Get all of the user's repositories using pagination.
-	var apiObjs []*github.Repository
-	opts := &github.RepositoryListOptions{}
-	err := allPages(&opts.ListOptions, func() (*github.Response, error) {
-		// GET /users/{username}/repos
-		pageObjs, resp, listErr := c.c.Repositories.List(ctx, ref.GetIdentity(), opts)
-		apiObjs = append(apiObjs, pageObjs...)
-		return resp, listErr
-	})
+	// GET /users/{username}/repos
+	apiObjs, err := c.c.ListUserRepos(ctx, ref.UserLogin)
 	if err != nil {
 		return nil, err
 	}
@@ -73,11 +65,7 @@ func (c *UserRepositoriesClient) List(ctx context.Context, ref gitprovider.UserR
 	// Traverse the list, and return a list of UserRepository objects
 	repos := make([]gitprovider.UserRepository, 0, len(apiObjs))
 	for _, apiObj := range apiObjs {
-		// Make sure apiObj is valid
-		if err := validateRepositoryAPI(apiObj); err != nil {
-			return nil, err
-		}
-
+		// apiObj is already validated at ListUserRepos
 		repos = append(repos, newUserRepository(c.clientContext, apiObj, gitprovider.UserRepositoryRef{
 			UserRef:        ref,
 			RepositoryName: *apiObj.Name,

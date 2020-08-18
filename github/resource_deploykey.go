@@ -28,14 +28,11 @@ import (
 	"github.com/fluxcd/go-git-providers/validation"
 )
 
-func newDeployKey(c *DeployKeyClient, key *github.Key) (*deployKey, error) {
-	if err := validateDeployKeyAPI(key); err != nil {
-		return nil, err
-	}
+func newDeployKey(c *DeployKeyClient, key *github.Key) *deployKey {
 	return &deployKey{
 		k: *key,
 		c: c,
-	}, nil
+	}
 }
 
 var _ gitprovider.DeployKey = &deployKey{}
@@ -92,9 +89,7 @@ func (dk *deployKey) Delete(ctx context.Context) error {
 		return fmt.Errorf("didn't expect ID to be nil: %w", gitprovider.ErrUnexpectedEvent)
 	}
 
-	// DELETE /repos/{owner}/{repo}/keys/{key_id}
-	_, err := dk.c.c.Repositories.DeleteKey(ctx, dk.c.ref.GetIdentity(), dk.c.ref.GetRepository(), *dk.k.ID)
-	return handleHTTPError(err)
+	return dk.c.c.DeleteKey(ctx, dk.c.ref.GetIdentity(), dk.c.ref.GetRepository(), *dk.k.ID)
 }
 
 // Reconcile makes sure the desired state in this object (called "req" here) becomes
@@ -130,11 +125,9 @@ func (dk *deployKey) Reconcile(ctx context.Context) (bool, error) {
 }
 
 func (dk *deployKey) createIntoSelf(ctx context.Context) error {
-	apiObj, err := createDeployKeyData(ctx, dk.c.c, dk.c.ref, &dk.k)
+	// POST /repos/{owner}/{repo}/keys
+	apiObj, err := dk.c.c.CreateKey(ctx, dk.c.ref.GetIdentity(), dk.c.ref.GetRepository(), &dk.k)
 	if err != nil {
-		return err
-	}
-	if err := validateDeployKeyAPI(apiObj); err != nil {
 		return err
 	}
 	dk.k = *apiObj

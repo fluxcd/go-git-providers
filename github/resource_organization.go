@@ -20,6 +20,7 @@ import (
 	"github.com/google/go-github/v32/github"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
+	"github.com/fluxcd/go-git-providers/validation"
 )
 
 func newOrganization(ctx *clientContext, apiObj *github.Organization, ref gitprovider.OrganizationRef) *organization {
@@ -66,4 +67,14 @@ func organizationFromAPI(apiObj *github.Organization) gitprovider.OrganizationIn
 		Name:        apiObj.Name,
 		Description: apiObj.Description,
 	}
+}
+
+// validateOrganizationAPI validates the apiObj received from the server, to make sure that it is
+// valid for our use.
+func validateOrganizationAPI(apiObj *github.Organization) error {
+	return validateAPIObject("GitHub.Organization", func(validator validation.Validator) {
+		if apiObj.Login == nil {
+			validator.Required("Login")
+		}
+	})
 }

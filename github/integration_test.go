@@ -126,7 +126,7 @@ func (t *customTransport) countCacheHitsForFunc(fn func()) int {
 
 var _ = Describe("GitHub Provider", func() {
 	var (
-		ctx context.Context
+		ctx context.Context = context.Background()
 		c   gitprovider.Client
 
 		testRepoName string
@@ -148,13 +148,12 @@ var _ = Describe("GitHub Provider", func() {
 			testOrgName = orgName
 		}
 
-		ctx = context.Background()
 		var err error
-		c, err = NewClient(ctx,
+		c, err = NewClient(
 			WithPersonalAccessToken(githubToken),
 			WithDestructiveAPICalls(true),
 			WithConditionalRequests(true),
-			WithRoundTripper(customTransportFactory),
+			WithPreChainTransportHook(customTransportFactory),
 		)
 		Expect(err).ToNot(HaveOccurred())
 	})

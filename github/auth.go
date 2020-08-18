@@ -17,15 +17,14 @@ limitations under the License.
 package github
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 
 	"github.com/google/go-github/v32/github"
-	"github.com/gregjones/httpcache"
 	"golang.org/x/oauth2"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
+	"github.com/fluxcd/go-git-providers/gitprovider/cache"
 )
 
 const (
@@ -38,58 +37,157 @@ const (
 	patUsername = "git"
 )
 
-// ChainableRoundTripperFunc is a function that returns a higher-level "out" RoundTripper,
-// chained to call the "in" RoundTripper internally, with extra logic. This function must be able
-// to handle "in" being nil, and use the http.DefaultTransport default RoundTripper in that case.
-// "out" must never be nil.
-type ChainableRoundTripperFunc func(in http.RoundTripper) (out http.RoundTripper)
+// ClientOption is the interface to implement for passing options to NewClient.
+// The clientOptions struct is private to force usage of the With... functions.
+type ClientOption interface {
+	// ApplyToGithubClientOptions applies set fields of this object into target.
+	ApplyToGithubClientOptions(target *clientOptions) error
+}
 
-// clientOptions is the struct that tracks data about what options have been set
-// It is private so that the user must use the With... functions.
+// clientOptions is the struct that tracks data about what options have been set.
 type clientOptions struct {
-	// Domain specifies the backing domain, which can be arbitrary if the user uses
-	// GitHub Enterprise. If unset, defaultDomain will be used.
-	Domain *string
+	// clientOptions shares all the common options
+	gitprovider.CommonClientOptions
 
-	// authTransportFactory is a way to acquire a http.RoundTripper with auth credentials configured.
-	authTransportFactory authTransportFactory
-
-	// PreCacheRoundTripper is a function to get a custom RoundTripper that is given as the Transport
-	// to the *http.Client given to the *github.Client. The "in" RoundTripper given is *httpcache.Transport
-	// (if used), the authenticated RoundTripper, or nil. It can be set for doing arbitrary
-	// modifications to HTTP requests.
-	PreCacheRoundTripper ChainableRoundTripperFunc
-
-	// EnableDestructiveAPICalls is a flag to tell whether destructive API calls like
-	// deleting a repository and such is allowed. Default: false
-	EnableDestructiveAPICalls *bool
+	// AuthTransport is a ChainableRoundTripperFunc adding authentication credentials to the transport chain.
+	AuthTransport gitprovider.ChainableRoundTripperFunc
 
 	// EnableConditionalRequests will be set if conditional requests should be used.
+	// TODO: Move this to gitprovider.CommonClientOptions if other providers support this too.
 	// See: https://developer.github.com/v3/#conditional-requests for more info.
 	// Default: false
 	EnableConditionalRequests *bool
 }
 
-// ClientOption is a function that is mutating a pointer to a clientOptions object
-// which holds information of how the Client should be initialized.
-type ClientOption func(*clientOptions) error
+// ApplyToGithubClientOptions implements ClientOption, and applies the set fields of opts
+// into target. If both opts and target has the same specific field set, ErrInvalidClientOptions is returned.
+func (opts *clientOptions) ApplyToGithubClientOptions(target *clientOptions) error {
+	// Apply common values, if any
+	if err := opts.CommonClientOptions.ApplyToCommonClientOptions(&target.CommonClientOptions); err != nil {
+		return err
+	}
+
+	if opts.AuthTransport != nil {
+		// Make sure the user didn't specify the AuthTransport twice
+		if target.AuthTransport != nil {
+			return fmt.Errorf("option AuthTransport already configured: %w", gitprovider.ErrInvalidClientOptions)
+		}
+		target.AuthTransport = opts.AuthTransport
+	}
+
+	if opts.EnableConditionalRequests != nil {
+		// Make sure the user didn't specify the EnableConditionalRequests twice
+		if target.EnableConditionalRequests != nil {
+			return fmt.Errorf("option EnableConditionalRequests already configured: %w", gitprovider.ErrInvalidClientOptions)
+		}
+		target.EnableConditionalRequests = opts.EnableConditionalRequests
+	}
+	return nil
+}
+
+// getTransportChain builds the full chain of transports (from left to right,
+// as per gitprovider.BuildClientFromTransportChain) of the form described in NewClient.
+func (opts *clientOptions) getTransportChain() (chain []gitprovider.ChainableRoundTripperFunc) {
+	if opts.PostChainTransportHook != nil {
+		chain = append(chain, opts.PostChainTransportHook)
+	}
+	if opts.AuthTransport != nil {
+		chain = append(chain, opts.AuthTransport)
+	}
+	if opts.EnableConditionalRequests != nil && *opts.EnableConditionalRequests {
+		// TODO: Provide some kind of debug logging if/when the httpcache is used
+		// One can see if the request hit the cache using: resp.Header[httpcache.XFromCache]
+		chain = append(chain, cache.NewHTTPCacheTransport)
+	}
+	if opts.PreChainTransportHook != nil {
+		chain = append(chain, opts.PreChainTransportHook)
+	}
+	return
+}
+
+// buildCommonOption is a helper for returning a ClientOption out of a common option field.
+func buildCommonOption(opt gitprovider.CommonClientOptions) *clientOptions {
+	return &clientOptions{CommonClientOptions: opt}
+}
+
+// errorOption implements ClientOption, and just wraps an error which is immediately returned.
+// This struct can be used through the optionError function, in order to make makeOptions fail
+// if there are invalid options given to the With... functions.
+type errorOption struct {
+	err error
+}
+
+// ApplyToGithubClientOptions implements ClientOption, but just returns the internal error.
+func (e *errorOption) ApplyToGithubClientOptions(*clientOptions) error { return e.err }
+
+// optionError is a constructor for errorOption.
+func optionError(err error) ClientOption {
+	return &errorOption{err}
+}
+
+//
+// Common options
+//
+
+// WithDomain initializes a Client for a custom GitHub Enterprise instance of the given domain.
+// Only host and port information should be present in domain. domain must not be an empty string.
+func WithDomain(domain string) ClientOption {
+	return buildCommonOption(gitprovider.CommonClientOptions{Domain: &domain})
+}
+
+// WithDestructiveAPICalls tells the client whether it's allowed to do dangerous and possibly destructive
+// actions, like e.g. deleting a repository.
+func WithDestructiveAPICalls(destructiveActions bool) ClientOption {
+	return buildCommonOption(gitprovider.CommonClientOptions{EnableDestructiveAPICalls: &destructiveActions})
+}
+
+// WithPreChainTransportHook registers a ChainableRoundTripperFunc "before" the cache and authentication
+// transports in the chain. For more information, see NewClient, and gitprovider.CommonClientOptions.PreChainTransportHook.
+func WithPreChainTransportHook(preRoundTripperFunc gitprovider.ChainableRoundTripperFunc) ClientOption {
+	// Don't allow an empty value
+	if preRoundTripperFunc == nil {
+		return optionError(fmt.Errorf("preRoundTripperFunc cannot be nil: %w", gitprovider.ErrInvalidClientOptions))
+	}
+
+	return buildCommonOption(gitprovider.CommonClientOptions{PreChainTransportHook: preRoundTripperFunc})
+}
+
+// WithPostChainTransportHook registers a ChainableRoundTripperFunc "before" the cache and authentication
+// transports in the chain. For more information, see NewClient, and gitprovider.CommonClientOptions.PreChainTransportHook.
+func WithPostChainTransportHook(postRoundTripperFunc gitprovider.ChainableRoundTripperFunc) ClientOption {
+	// Don't allow an empty value
+	if postRoundTripperFunc == nil {
+		return optionError(fmt.Errorf("postRoundTripperFunc cannot be nil: %w", gitprovider.ErrInvalidClientOptions))
+	}
+
+	return buildCommonOption(gitprovider.CommonClientOptions{PostChainTransportHook: postRoundTripperFunc})
+}
+
+//
+// GitHub-specific options
+//
 
 // WithOAuth2Token initializes a Client which authenticates with GitHub through an OAuth2 token.
 // oauth2Token must not be an empty string.
 // WithOAuth2Token is mutually exclusive with WithPersonalAccessToken.
 func WithOAuth2Token(oauth2Token string) ClientOption {
-	return func(opts *clientOptions) error {
-		// Don't allow an empty value
-		if len(oauth2Token) == 0 {
-			return fmt.Errorf("oauth2Token cannot be empty: %w", gitprovider.ErrInvalidClientOptions)
-		}
-		// Make sure the user didn't specify auth twice
-		if opts.authTransportFactory != nil {
-			return fmt.Errorf("authentication http.Client already configured: %w", gitprovider.ErrInvalidClientOptions)
-		}
+	// Don't allow an empty value
+	if len(oauth2Token) == 0 {
+		return optionError(fmt.Errorf("oauth2Token cannot be empty: %w", gitprovider.ErrInvalidClientOptions))
+	}
 
-		opts.authTransportFactory = &oauth2Auth{oauth2Token}
-		return nil
+	return &clientOptions{AuthTransport: oauth2Transport(oauth2Token)}
+}
+
+func oauth2Transport(oauth2Token string) gitprovider.ChainableRoundTripperFunc {
+	return func(in http.RoundTripper) http.RoundTripper {
+		// Create a TokenSource of the given access token
+		ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: oauth2Token})
+		// Create a Transport, with "in" as the underlying transport, and the given TokenSource
+		return &oauth2.Transport{
+			Base:   in,
+			Source: oauth2.ReuseTokenSource(nil, ts),
+		}
 	}
 }
 
@@ -97,64 +195,21 @@ func WithOAuth2Token(oauth2Token string) ClientOption {
 // patToken must not be an empty string.
 // WithPersonalAccessToken is mutually exclusive with WithOAuth2Token.
 func WithPersonalAccessToken(patToken string) ClientOption {
-	return func(opts *clientOptions) error {
-		// Don't allow an empty value
-		if len(patToken) == 0 {
-			return fmt.Errorf("patToken cannot be empty: %w", gitprovider.ErrInvalidClientOptions)
-		}
-		// Make sure the user didn't specify auth twice
-		if opts.authTransportFactory != nil {
-			return fmt.Errorf("authentication http.Client already configured: %w", gitprovider.ErrInvalidClientOptions)
-		}
-		opts.authTransportFactory = &patAuth{patToken}
-		return nil
+	// Don't allow an empty value
+	if len(patToken) == 0 {
+		return optionError(fmt.Errorf("patToken cannot be empty: %w", gitprovider.ErrInvalidClientOptions))
 	}
+
+	return &clientOptions{AuthTransport: patTransport(patToken)}
 }
 
-// WithRoundTripper initializes a Client with a given authTransportFactory, used for acquiring the *http.Client later.
-// authTransportFactory must not be nil.
-func WithRoundTripper(roundTripperFunc ChainableRoundTripperFunc) ClientOption {
-	return func(opts *clientOptions) error {
-		// Don't allow an empty value
-		if roundTripperFunc == nil {
-			return fmt.Errorf("roundTripperFunc cannot be nil: %w", gitprovider.ErrInvalidClientOptions)
+func patTransport(patToken string) gitprovider.ChainableRoundTripperFunc {
+	return func(in http.RoundTripper) http.RoundTripper {
+		return &github.BasicAuthTransport{
+			Username:  patUsername,
+			Password:  patToken,
+			Transport: in,
 		}
-		// Make sure the user didn't specify the PreCacheRoundTripper twice
-		if opts.PreCacheRoundTripper != nil {
-			return fmt.Errorf("roundTripperFunc already configured: %w", gitprovider.ErrInvalidClientOptions)
-		}
-		opts.PreCacheRoundTripper = roundTripperFunc
-		return nil
-	}
-}
-
-// WithDomain initializes a Client for a custom GitHub Enterprise instance of the given domain.
-// Only host and port information should be present in domain. domain must not be an empty string.
-func WithDomain(domain string) ClientOption {
-	return func(opts *clientOptions) error {
-		// Don't set an empty value
-		if len(domain) == 0 {
-			return fmt.Errorf("domain cannot be empty: %w", gitprovider.ErrInvalidClientOptions)
-		}
-		// Make sure the user didn't specify the domain twice
-		if opts.Domain != nil {
-			return fmt.Errorf("domain already configured: %w", gitprovider.ErrInvalidClientOptions)
-		}
-		opts.Domain = gitprovider.StringVar(domain)
-		return nil
-	}
-}
-
-// WithDestructiveAPICalls tells the client whether it's allowed to do dangerous and possibly destructive
-// actions, like e.g. deleting a repository.
-func WithDestructiveAPICalls(destructiveActions bool) ClientOption {
-	return func(opts *clientOptions) error {
-		// Make sure the user didn't specify the flag twice
-		if opts.EnableDestructiveAPICalls != nil {
-			return fmt.Errorf("destructive actions flag already configured: %w", gitprovider.ErrInvalidClientOptions)
-		}
-		opts.EnableDestructiveAPICalls = gitprovider.BoolVar(destructiveActions)
-		return nil
 	}
 }
 
@@ -162,53 +217,14 @@ func WithDestructiveAPICalls(destructiveActions bool) ClientOption {
 // whether a resource has changed (without burning your quota), and using an in-memory cached "database"
 // if so. See: https://developer.github.com/v3/#conditional-requests for more information.
 func WithConditionalRequests(conditionalRequests bool) ClientOption {
-	return func(opts *clientOptions) error {
-		// Make sure the user didn't specify the flag twice
-		if opts.EnableConditionalRequests != nil {
-			return fmt.Errorf("conditional requests flag already configured: %w", gitprovider.ErrInvalidClientOptions)
-		}
-		opts.EnableConditionalRequests = gitprovider.BoolVar(conditionalRequests)
-		return nil
-	}
-}
-
-// authTransportFactory is a way to acquire a http.RoundTripper with auth credentials configured.
-type authTransportFactory interface {
-	// Transport returns a http.RoundTripper with auth credentials configured.
-	Transport(ctx context.Context) http.RoundTripper
-}
-
-// oauth2Auth is an implementation of authTransportFactory.
-type oauth2Auth struct {
-	token string
-}
-
-// Transport returns a http.RoundTripper with auth credentials configured.
-func (a *oauth2Auth) Transport(ctx context.Context) http.RoundTripper {
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: a.token},
-	)
-	return oauth2.NewClient(ctx, ts).Transport
-}
-
-// patAuth is an implementation of authTransportFactory.
-type patAuth struct {
-	token string
-}
-
-// Transport returns a http.RoundTripper with auth credentials configured.
-func (a *patAuth) Transport(ctx context.Context) http.RoundTripper {
-	return &github.BasicAuthTransport{
-		Username: patUsername,
-		Password: a.token,
-	}
+	return &clientOptions{EnableConditionalRequests: &conditionalRequests}
 }
 
 // makeOptions assembles a clientOptions struct from ClientOption mutator functions.
 func makeOptions(opts ...ClientOption) (*clientOptions, error) {
 	o := &clientOptions{}
 	for _, opt := range opts {
-		if err := opt(o); err != nil {
+		if err := opt.ApplyToGithubClientOptions(o); err != nil {
 			return nil, err
 		}
 	}
@@ -223,27 +239,25 @@ func makeOptions(opts ...ClientOption) (*clientOptions, error) {
 // Basic Auth is not supported because it is deprecated by GitHub, see
 // https://developer.github.com/changes/2020-02-14-deprecating-password-auth/
 //
-// GitHub Enterprise can be used if you specify the domain using the WithDomain option.
+// GitHub Enterprise can be used if you specify the domain using WithDomain.
 //
-// You can customize low-level HTTP Transport functionality by using WithRoundTripper.
+// You can customize low-level HTTP Transport functionality by using the With{Pre,Post}ChainTransportHook options.
 // You can also use conditional requests (and an in-memory cache) using WithConditionalRequests.
 //
 // The chain of transports looks like this:
-// github.com API <-> Authentication <-> Cache <-> Custom Roundtripper <-> This Client.
-func NewClient(ctx context.Context, optFns ...ClientOption) (gitprovider.Client, error) {
+// github.com API <-> "Post Chain" <-> Authentication <-> Cache <-> "Pre Chain" <-> *github.Client.
+func NewClient(optFns ...ClientOption) (gitprovider.Client, error) {
 	// Complete the options struct
 	opts, err := makeOptions(optFns...)
 	if err != nil {
 		return nil, err
 	}
 
-	transport, err := buildTransportChain(ctx, opts)
+	// Create a *http.Client using the transport chain
+	httpClient, err := gitprovider.BuildClientFromTransportChain(opts.getTransportChain())
 	if err != nil {
 		return nil, err
 	}
-
-	// Create a *http.Client using the transport chain
-	httpClient := &http.Client{Transport: transport}
 
 	// Create the GitHub client either for the default github.com domain, or
 	// a custom enterprise domain if opts.Domain is set to something other than
@@ -272,77 +286,4 @@ func NewClient(ctx context.Context, optFns ...ClientOption) (gitprovider.Client,
 	}
 
 	return newClient(gh, domain, destructiveActions), nil
-}
-
-// buildTransportChain builds a chain of http.RoundTrippers calling each other as per the
-// description in NewClient.
-func buildTransportChain(ctx context.Context, opts *clientOptions) (http.RoundTripper, error) {
-	// transport will be the http.RoundTripper for the *http.Client given to the Github client.
-	var transport http.RoundTripper
-	// Get an authenticated http.RoundTripper, if set
-	if opts.authTransportFactory != nil {
-		transport = opts.authTransportFactory.Transport(ctx)
-	}
-
-	// Conditionally enable conditional requests
-	if opts.EnableConditionalRequests != nil && *opts.EnableConditionalRequests {
-		// Create a new httpcache high-level Transport
-		t := httpcache.NewMemoryCacheTransport()
-		// Make the httpcache high-level transport use the auth transport "underneath"
-		if transport != nil {
-			t.Transport = transport
-		}
-		// Override the transport with our embedded underlying auth transport
-		transport = &cacheRoundtripper{t}
-	}
-
-	// If a custom roundtripper was set, pipe it through the transport too
-	if opts.PreCacheRoundTripper != nil {
-		// TODO: Provide some kind of debug logging if/when the httpcache is used
-		// One can see if the request hit the cache using: resp.Header[httpcache.XFromCache]
-		customTransport := opts.PreCacheRoundTripper(transport)
-		if customTransport == nil {
-			// The lint failure here is a false positive, for some (unknown) reason
-			//nolint:goerr113
-			return nil, fmt.Errorf("the RoundTripper returned from the RoundTripperFactory must not be nil: %w", gitprovider.ErrInvalidClientOptions)
-		}
-		transport = customTransport
-	}
-
-	return transport, nil
-}
-
-type cacheRoundtripper struct {
-	t *httpcache.Transport
-}
-
-// This function follows the same logic as in github.com/gregjones/httpcache to be able
-// to implement our custom roundtripper logic below.
-func cacheKey(req *http.Request) string {
-	if req.Method == http.MethodGet {
-		return req.URL.String()
-	}
-	return req.Method + " " + req.URL.String()
-}
-
-// RoundTrip calls the underlying RoundTrip (using the cache), but invalidates the cache on
-// non GET/HEAD requests and non-"200 OK" responses.
-func (r *cacheRoundtripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	// These two statements are the same as in github.com/gregjones/httpcache Transport.RoundTrip
-	// to be able to implement our custom roundtripper below
-	cacheKey := cacheKey(req)
-	cacheable := (req.Method == "GET" || req.Method == "HEAD") && req.Header.Get("range") == ""
-
-	// If the object isn't a GET or HEAD request, also invalidate the cache of the GET URL
-	// as this action will modify the underlying resource (e.g. DELETE/POST/PATCH)
-	if !cacheable {
-		r.t.Cache.Delete(req.URL.String())
-	}
-	// Call the underlying roundtrip
-	resp, err := r.t.RoundTrip(req)
-	// Don't cache anything but "200 OK" requests
-	if resp.StatusCode != http.StatusOK {
-		r.t.Cache.Delete(cacheKey)
-	}
-	return resp, err
 }

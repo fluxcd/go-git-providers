@@ -60,6 +60,8 @@ var (
 	// ErrDestructiveCallDisallowed happens when the client isn't set up with WithDestructiveAPICalls()
 	// but a destructive action is called.
 	ErrDestructiveCallDisallowed = errors.New("a destructive call was blocked because it wasn't allowed by the client")
+	// ErrInvalidTransportChainReturn is returned if a ChainableRoundTripperFunc returns nil, which is invalid.
+	ErrInvalidTransportChainReturn = errors.New("the return value of a ChainableRoundTripperFunc must not be nil")
 )
 
 // HTTPError is an error that contains context about the HTTP request/response that failed.

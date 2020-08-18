@@ -82,6 +82,7 @@ func (c *DeployKeyClient) list(ctx context.Context) ([]*deployKey, error) {
 	// Map the api object to our DeployKey type
 	keys := make([]*deployKey, 0, len(apiObjs))
 	for _, apiObj := range apiObjs {
+		// apiObj is already validated at ListKeys
 		keys = append(keys, newDeployKey(c, apiObj))
 	}
 

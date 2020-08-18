@@ -49,6 +49,7 @@ func (c *TeamsClient) Get(ctx context.Context, teamName string) (gitprovider.Tea
 	// Collect a list of the members' names. Login is validated to be non-nil in ListOrgTeamMembers.
 	logins := make([]string, 0, len(apiObjs))
 	for _, apiObj := range apiObjs {
+		// Login is validated to be non-nil in ListOrgTeamMembers
 		logins = append(logins, *apiObj.Login)
 	}
 

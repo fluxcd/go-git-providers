@@ -18,7 +18,6 @@ package github
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 
@@ -37,15 +36,6 @@ const (
 	// be arbitrary, even unset, as it is not respected server-side. For conventions'
 	// sake, we'll set this to "git".
 	patUsername = "git"
-)
-
-var (
-	// ErrInvalidClientOptions is the error returned when calling NewClient() with
-	// invalid options (e.g. specifying mutually exclusive options).
-	ErrInvalidClientOptions = errors.New("invalid options given to NewClient()")
-	// ErrDestructiveCallDisallowed happens when the client isn't set up with WithDestructiveAPICalls()
-	// but a destructive action is called.
-	ErrDestructiveCallDisallowed = errors.New("a destructive call was blocked because it wasn't allowed by the client")
 )
 
 // clientOptions is the struct that tracks data about what options have been set
@@ -84,11 +74,11 @@ func WithOAuth2Token(oauth2Token string) ClientOption {
 	return func(opts *clientOptions) error {
 		// Don't allow an empty value
 		if len(oauth2Token) == 0 {
-			return fmt.Errorf("oauth2Token cannot be empty: %w", ErrInvalidClientOptions)
+			return fmt.Errorf("oauth2Token cannot be empty: %w", gitprovider.ErrInvalidClientOptions)
 		}
 		// Make sure the user didn't specify auth twice
 		if opts.authTransportFactory != nil {
-			return fmt.Errorf("authentication http.Client already configured: %w", ErrInvalidClientOptions)
+			return fmt.Errorf("authentication http.Client already configured: %w", gitprovider.ErrInvalidClientOptions)
 		}
 
 		opts.authTransportFactory = &oauth2Auth{oauth2Token}
@@ -103,11 +93,11 @@ func WithPersonalAccessToken(patToken string) ClientOption {
 	return func(opts *clientOptions) error {
 		// Don't allow an empty value
 		if len(patToken) == 0 {
-			return fmt.Errorf("patToken cannot be empty: %w", ErrInvalidClientOptions)
+			return fmt.Errorf("patToken cannot be empty: %w", gitprovider.ErrInvalidClientOptions)
 		}
 		// Make sure the user didn't specify auth twice
 		if opts.authTransportFactory != nil {
-			return fmt.Errorf("authentication http.Client already configured: %w", ErrInvalidClientOptions)
+			return fmt.Errorf("authentication http.Client already configured: %w", gitprovider.ErrInvalidClientOptions)
 		}
 		opts.authTransportFactory = &patAuth{patToken}
 		return nil
@@ -120,11 +110,11 @@ func WithRoundTripper(roundTripper RoundTripperFactory) ClientOption {
 	return func(opts *clientOptions) error {
 		// Don't allow an empty value
 		if roundTripper == nil {
-			return fmt.Errorf("roundTripper cannot be nil: %w", ErrInvalidClientOptions)
+			return fmt.Errorf("roundTripper cannot be nil: %w", gitprovider.ErrInvalidClientOptions)
 		}
 		// Make sure the user didn't specify the RoundTripperFactory twice
 		if opts.RoundTripperFactory != nil {
-			return fmt.Errorf("roundTripper already configured: %w", ErrInvalidClientOptions)
+			return fmt.Errorf("roundTripper already configured: %w", gitprovider.ErrInvalidClientOptions)
 		}
 		opts.RoundTripperFactory = roundTripper
 		return nil
@@ -137,11 +127,11 @@ func WithDomain(domain string) ClientOption {
 	return func(opts *clientOptions) error {
 		// Don't set an empty value
 		if len(domain) == 0 {
-			return fmt.Errorf("domain cannot be empty: %w", ErrInvalidClientOptions)
+			return fmt.Errorf("domain cannot be empty: %w", gitprovider.ErrInvalidClientOptions)
 		}
 		// Make sure the user didn't specify the domain twice
 		if opts.Domain != nil {
-			return fmt.Errorf("domain already configured: %w", ErrInvalidClientOptions)
+			return fmt.Errorf("domain already configured: %w", gitprovider.ErrInvalidClientOptions)
 		}
 		opts.Domain = gitprovider.StringVar(domain)
 		return nil
@@ -154,7 +144,7 @@ func WithDestructiveAPICalls(destructiveActions bool) ClientOption {
 	return func(opts *clientOptions) error {
 		// Make sure the user didn't specify the flag twice
 		if opts.EnableDestructiveAPICalls != nil {
-			return fmt.Errorf("destructive actions flag already configured: %w", ErrInvalidClientOptions)
+			return fmt.Errorf("destructive actions flag already configured: %w", gitprovider.ErrInvalidClientOptions)
 		}
 		opts.EnableDestructiveAPICalls = gitprovider.BoolVar(destructiveActions)
 		return nil
@@ -168,7 +158,7 @@ func WithConditionalRequests(conditionalRequests bool) ClientOption {
 	return func(opts *clientOptions) error {
 		// Make sure the user didn't specify the flag twice
 		if opts.EnableConditionalRequests != nil {
-			return fmt.Errorf("conditional requests flag already configured: %w", ErrInvalidClientOptions)
+			return fmt.Errorf("conditional requests flag already configured: %w", gitprovider.ErrInvalidClientOptions)
 		}
 		opts.EnableConditionalRequests = gitprovider.BoolVar(conditionalRequests)
 		return nil
@@ -312,7 +302,7 @@ func buildTransportChain(ctx context.Context, opts *clientOptions) (http.RoundTr
 		if customTransport == nil {
 			// The lint failure here is a false positive, for some (unknown) reason
 			//nolint:goerr113
-			return nil, fmt.Errorf("the RoundTripper returned from the RoundTripperFactory must not be nil: %w", ErrInvalidClientOptions)
+			return nil, fmt.Errorf("the RoundTripper returned from the RoundTripperFactory must not be nil: %w", gitprovider.ErrInvalidClientOptions)
 		}
 		transport = customTransport
 	}

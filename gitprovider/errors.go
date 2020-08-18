@@ -53,6 +53,13 @@ var (
 	ErrURLInvalid = errors.New("invalid organization, user or repository URL")
 	// ErrURLMissingRepoName is returned if there is no repository name in the URL.
 	ErrURLMissingRepoName = errors.New("missing repository name")
+
+	// ErrInvalidClientOptions is the error returned when calling NewClient() with
+	// invalid options (e.g. specifying mutually exclusive options).
+	ErrInvalidClientOptions = errors.New("invalid options given to NewClient()")
+	// ErrDestructiveCallDisallowed happens when the client isn't set up with WithDestructiveAPICalls()
+	// but a destructive action is called.
+	ErrDestructiveCallDisallowed = errors.New("a destructive call was blocked because it wasn't allowed by the client")
 )
 
 // HTTPError is an error that contains context about the HTTP request/response that failed.

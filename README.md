@@ -16,7 +16,7 @@
 - **Consistency:** Using the same Client interface and high-level structs for multiple backends.
 - **Authentication:** Personal Access Tokens, OAuth2 Tokens, and unauthenticated.
 - **Pagination:** List calls automatically return all available pages.
-- **Conditional Requests:** Asks the Git provider if cached data is up-to-date before requesting, to not burn quota unnecessarily.
+- **Conditional Requests:** Asks the Git provider if cached data is up-to-date before requesting, to avoid being rate limited.
 - **Reconciling:** Support reconciling desired state towards actual state, and know if any action was taken.
 - **Low-level access:** Access the underlying, provider-specific data easily, if needed, and support applying it to the server.
 - **Wrapped errors:** Data-rich, Go 1.14-errors are consistent across provider, including cases like rate limit, validation, not found, etc.

@@ -89,6 +89,7 @@ type Reconcilable interface {
 // Object is the interface all types should implement.
 type Object interface {
 	// APIObject returns the underlying value that was returned from the server.
+	// This is always a pointer to a struct.
 	APIObject() interface{}
 }
 

@@ -74,7 +74,7 @@ type OrgRepository interface {
 	// OrgRepository is a superset of UserRepository.
 	UserRepository
 
-	// TeamAccess returns a client for operating on the teams that have access to this specific repository.
+	// TeamAccess returns a TeamsAccessClient for operating on teams' access to this specific repository.
 	TeamAccess() TeamAccessClient
 }
 

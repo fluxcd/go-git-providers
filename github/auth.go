@@ -30,8 +30,8 @@ import (
 )
 
 const (
-	// defaultDomain specifies the default domain used as the backend.
-	defaultDomain = "github.com"
+	// DefaultDomain specifies the default domain used as the backend.
+	DefaultDomain = "github.com"
 	// patUsername is the "username" for the basic auth authentication flow
 	// when using a personal access token as the "password". This string could
 	// be arbitrary, even unset, as it is not respected server-side. For conventions'
@@ -258,9 +258,9 @@ func NewClient(ctx context.Context, optFns ...ClientOption) (gitprovider.Client,
 	var gh *github.Client
 	var domain string
 
-	if opts.Domain == nil || *opts.Domain == defaultDomain {
+	if opts.Domain == nil || *opts.Domain == DefaultDomain {
 		// No domain or the default github.com used
-		domain = defaultDomain
+		domain = DefaultDomain
 		gh = github.NewClient(httpClient)
 	} else {
 		// GitHub Enterprise is used

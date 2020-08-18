@@ -15,7 +15,7 @@
 
 - **Consistency:** Using the same Client interface and high-level structs for multiple backends.
 - **Authentication:** Personal Access Tokens, OAuth2 Tokens, and unauthenticated.
-- **Pagination:** List calls always automatically return all available pages.
+- **Pagination:** List calls automatically return all available pages.
 - **Conditional Requests:** Asks the Git provider if cached data is up-to-date before requesting, to not burn quota unnecessarily.
 - **Reconciling:** Support reconciling desired state towards actual state, and know if any action was taken.
 - **Low-level access:** Access the underlying, provider-specific data easily, if needed, and support applying it to the server.

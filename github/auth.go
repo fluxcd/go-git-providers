@@ -152,8 +152,8 @@ func WithPreChainTransportHook(preRoundTripperFunc gitprovider.ChainableRoundTri
 	return buildCommonOption(gitprovider.CommonClientOptions{PreChainTransportHook: preRoundTripperFunc})
 }
 
-// WithPostChainTransportHook registers a ChainableRoundTripperFunc "before" the cache and authentication
-// transports in the chain. For more information, see NewClient, and gitprovider.CommonClientOptions.PreChainTransportHook.
+// WithPostChainTransportHook registers a ChainableRoundTripperFunc "after" the cache and authentication
+// transports in the chain. For more information, see NewClient, and gitprovider.CommonClientOptions.WithPostChainTransportHook.
 func WithPostChainTransportHook(postRoundTripperFunc gitprovider.ChainableRoundTripperFunc) ClientOption {
 	// Don't allow an empty value
 	if postRoundTripperFunc == nil {

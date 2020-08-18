@@ -123,66 +123,6 @@ func Test_makeOptions(t *testing.T) {
 			opts:         []commonClientOption{withPostChainTransportHook(dummyRoundTripper1), withPostChainTransportHook(dummyRoundTripper1)},
 			expectedErrs: []error{ErrInvalidClientOptions},
 		},
-		/*{
-			name: "WithDestructiveAPICalls",
-			opts: []ClientOption{WithDestructiveAPICalls(true)},
-			want: buildCommonOption(gitprovider.CommonClientOptions{EnableDestructiveAPICalls: gitprovider.BoolVar(true)}),
-		},
-		{
-			name: "WithPreChainTransportHook",
-			opts: []ClientOption{WithPreChainTransportHook(dummyRoundTripper1)},
-			want: buildCommonOption(gitprovider.CommonClientOptions{PreChainTransportHook: dummyRoundTripper1}),
-		},
-		{
-			name:         "WithPreChainTransportHook, nil",
-			opts:         []ClientOption{WithPreChainTransportHook(nil)},
-			expectedErrs: []error{gitprovider.ErrInvalidClientOptions},
-		},
-		{
-			name: "WithPostChainTransportHook",
-			opts: []ClientOption{WithPostChainTransportHook(dummyRoundTripper2)},
-			want: buildCommonOption(gitprovider.CommonClientOptions{PostChainTransportHook: dummyRoundTripper2}),
-		},
-		{
-			name:         "WithPostChainTransportHook, nil",
-			opts:         []ClientOption{WithPostChainTransportHook(nil)},
-			expectedErrs: []error{gitprovider.ErrInvalidClientOptions},
-		},
-		{
-			name: "WithOAuth2Token",
-			opts: []ClientOption{WithOAuth2Token("foo")},
-			want: &clientOptions{AuthTransport: oauth2Transport("foo")},
-		},
-		{
-			name:         "WithOAuth2Token, empty",
-			opts:         []ClientOption{WithOAuth2Token("")},
-			expectedErrs: []error{gitprovider.ErrInvalidClientOptions},
-		},
-		{
-			name: "WithPersonalAccessToken",
-			opts: []ClientOption{WithPersonalAccessToken("foo")},
-			want: &clientOptions{AuthTransport: patTransport("foo")},
-		},
-		{
-			name:         "WithPersonalAccessToken, empty",
-			opts:         []ClientOption{WithPersonalAccessToken("")},
-			expectedErrs: []error{gitprovider.ErrInvalidClientOptions},
-		},
-		{
-			name:         "WithPersonalAccessToken and WithOAuth2Token, exclusive",
-			opts:         []ClientOption{WithPersonalAccessToken("foo"), WithOAuth2Token("foo")},
-			expectedErrs: []error{gitprovider.ErrInvalidClientOptions},
-		},
-		{
-			name: "WithConditionalRequests",
-			opts: []ClientOption{WithConditionalRequests(true)},
-			want: &clientOptions{EnableConditionalRequests: gitprovider.BoolVar(true)},
-		},
-		{
-			name:         "WithConditionalRequests, exclusive",
-			opts:         []ClientOption{WithConditionalRequests(true), WithConditionalRequests(false)},
-			expectedErrs: []error{gitprovider.ErrInvalidClientOptions},
-		},*/
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

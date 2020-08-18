@@ -21,7 +21,7 @@
 - **Low-level access:** Access the underlying, provider-specific data easily, if needed, and support applying it to the server.
 - **Wrapped errors:** Data-rich, Go 1.14-errors are consistent across provider, including cases like rate limit, validation, not found, etc.
 - **Go modules:** The major version is bumped if breaking changes, or major library upgrades are made.
-- **Validation-first:** Both server and user data is validated before used.
+- **Validation-first:** Both server and user data is validated prior to manipulation.
 - **URL Parsing:** HTTPS user, organization and repository URLs can be parsed into machine-readable structs.
 - **Enums:** Consistent enums are used across providers for similar lists of values.
 - **Domain customization:** The user can specify their desired domain for the Git provider backend.

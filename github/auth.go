@@ -38,6 +38,12 @@ const (
 	patUsername = "git"
 )
 
+// ChainableRoundTripperFunc is a function that returns a higher-level "out" RoundTripper,
+// chained to call the "in" RoundTripper internally, with extra logic. This function must be able
+// to handle "in" being nil, and use the http.DefaultTransport default RoundTripper in that case.
+// "out" must never be nil.
+type ChainableRoundTripperFunc func(in http.RoundTripper) (out http.RoundTripper)
+
 // clientOptions is the struct that tracks data about what options have been set
 // It is private so that the user must use the With... functions.
 type clientOptions struct {
@@ -48,10 +54,11 @@ type clientOptions struct {
 	// authTransportFactory is a way to acquire a http.RoundTripper with auth credentials configured.
 	authTransportFactory authTransportFactory
 
-	// RoundTripperFactory is a factory to get a http.RoundTripper that is sitting between the *github.Client's
-	// internal *http.Client, and the *httpcache.Transport RoundTripper. It can be set
-	// for doing arbitrary modifications to http requests.
-	RoundTripperFactory RoundTripperFactory
+	// PreCacheRoundTripper is a function to get a custom RoundTripper that is given as the Transport
+	// to the *http.Client given to the *github.Client. The "in" RoundTripper given is *httpcache.Transport
+	// (if used), the authenticated RoundTripper, or nil. It can be set for doing arbitrary
+	// modifications to HTTP requests.
+	PreCacheRoundTripper ChainableRoundTripperFunc
 
 	// EnableDestructiveAPICalls is a flag to tell whether destructive API calls like
 	// deleting a repository and such is allowed. Default: false
@@ -106,17 +113,17 @@ func WithPersonalAccessToken(patToken string) ClientOption {
 
 // WithRoundTripper initializes a Client with a given authTransportFactory, used for acquiring the *http.Client later.
 // authTransportFactory must not be nil.
-func WithRoundTripper(roundTripper RoundTripperFactory) ClientOption {
+func WithRoundTripper(roundTripperFunc ChainableRoundTripperFunc) ClientOption {
 	return func(opts *clientOptions) error {
 		// Don't allow an empty value
-		if roundTripper == nil {
-			return fmt.Errorf("roundTripper cannot be nil: %w", gitprovider.ErrInvalidClientOptions)
+		if roundTripperFunc == nil {
+			return fmt.Errorf("roundTripperFunc cannot be nil: %w", gitprovider.ErrInvalidClientOptions)
 		}
-		// Make sure the user didn't specify the RoundTripperFactory twice
-		if opts.RoundTripperFactory != nil {
-			return fmt.Errorf("roundTripper already configured: %w", gitprovider.ErrInvalidClientOptions)
+		// Make sure the user didn't specify the PreCacheRoundTripper twice
+		if opts.PreCacheRoundTripper != nil {
+			return fmt.Errorf("roundTripperFunc already configured: %w", gitprovider.ErrInvalidClientOptions)
 		}
-		opts.RoundTripperFactory = roundTripper
+		opts.PreCacheRoundTripper = roundTripperFunc
 		return nil
 	}
 }
@@ -163,10 +170,6 @@ func WithConditionalRequests(conditionalRequests bool) ClientOption {
 		opts.EnableConditionalRequests = gitprovider.BoolVar(conditionalRequests)
 		return nil
 	}
-}
-
-type RoundTripperFactory interface {
-	Transport(rt http.RoundTripper) http.RoundTripper
 }
 
 // authTransportFactory is a way to acquire a http.RoundTripper with auth credentials configured.
@@ -294,11 +297,10 @@ func buildTransportChain(ctx context.Context, opts *clientOptions) (http.RoundTr
 	}
 
 	// If a custom roundtripper was set, pipe it through the transport too
-	if opts.RoundTripperFactory != nil {
-		// TODO: Document usage of a nil transport here
+	if opts.PreCacheRoundTripper != nil {
 		// TODO: Provide some kind of debug logging if/when the httpcache is used
 		// One can see if the request hit the cache using: resp.Header[httpcache.XFromCache]
-		customTransport := opts.RoundTripperFactory.Transport(transport)
+		customTransport := opts.PreCacheRoundTripper(transport)
 		if customTransport == nil {
 			// The lint failure here is a false positive, for some (unknown) reason
 			//nolint:goerr113

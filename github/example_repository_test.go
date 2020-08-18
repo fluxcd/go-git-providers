@@ -12,7 +12,7 @@ import (
 func ExampleOrgRepositoriesClient_Get() {
 	// Create a new client
 	ctx := context.Background()
-	c, err := github.NewClient(ctx)
+	c, err := github.NewClient()
 	checkErr(err)
 
 	// Parse the URL into an OrgRepositoryRef

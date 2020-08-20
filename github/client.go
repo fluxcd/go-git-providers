@@ -77,7 +77,7 @@ func (c *Client) ProviderID() gitprovider.ProviderID {
 // Raw returns the Go GitHub client (github.com/google/go-github/v32/github *Client)
 // used under the hood for accessing GitHub.
 func (c *Client) Raw() interface{} {
-	return c.c
+	return c.c.Client()
 }
 
 // Organizations returns the OrganizationsClient handling sets of organizations.

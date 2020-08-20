@@ -208,7 +208,7 @@ func makeOptions(opts ...ClientOption) (*clientOptions, error) {
 // Using WithOAuth2Token you can specify authentication
 // credentials, passing no such ClientOption will allow public read access only.
 //
-// Basic Auth is not supported because it is deprecated by GitHub, see
+// Password-based authentication is not supported because it is deprecated by GitHub, see
 // https://developer.github.com/changes/2020-02-14-deprecating-password-auth/
 //
 // GitHub Enterprise can be used if you specify the domain using WithDomain.

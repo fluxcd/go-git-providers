@@ -150,7 +150,7 @@ var _ = Describe("GitHub Provider", func() {
 
 		var err error
 		c, err = NewClient(
-			WithPersonalAccessToken(githubToken),
+			WithOAuth2Token(githubToken),
 			WithDestructiveAPICalls(true),
 			WithConditionalRequests(true),
 			WithPreChainTransportHook(customTransportFactory),

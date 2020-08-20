@@ -1,0 +1,11 @@
+# .goreleaser.yml
+project_name: go-git-providers
+
+# This is a library so we don't have any build targets, but having goreleaser automatically
+# generate release notes for us is nice.
+build:
+  skip: true
+
+# This automatically closes any milestone named the same as the tag
+milestones:
+- close: true

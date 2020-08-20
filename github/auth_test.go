@@ -163,21 +163,6 @@ func Test_makeOptions(t *testing.T) {
 			expectedErrs: []error{gitprovider.ErrInvalidClientOptions},
 		},
 		{
-			name: "WithPersonalAccessToken",
-			opts: []ClientOption{WithPersonalAccessToken("foo")},
-			want: &clientOptions{AuthTransport: patTransport("foo")},
-		},
-		{
-			name:         "WithPersonalAccessToken, empty",
-			opts:         []ClientOption{WithPersonalAccessToken("")},
-			expectedErrs: []error{gitprovider.ErrInvalidClientOptions},
-		},
-		{
-			name:         "WithPersonalAccessToken and WithOAuth2Token, exclusive",
-			opts:         []ClientOption{WithPersonalAccessToken("foo"), WithOAuth2Token("foo")},
-			expectedErrs: []error{gitprovider.ErrInvalidClientOptions},
-		},
-		{
 			name: "WithConditionalRequests",
 			opts: []ClientOption{WithConditionalRequests(true)},
 			want: &clientOptions{EnableConditionalRequests: gitprovider.BoolVar(true)},

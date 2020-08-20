@@ -30,11 +30,6 @@ import (
 const (
 	// DefaultDomain specifies the default domain used as the backend.
 	DefaultDomain = "github.com"
-	// patUsername is the "username" for the basic auth authentication flow
-	// when using a personal access token as the "password". This string could
-	// be arbitrary, even unset, as it is not respected server-side. For conventions'
-	// sake, we'll set this to "git".
-	patUsername = "git"
 )
 
 // ClientOption is the interface to implement for passing options to NewClient.
@@ -169,7 +164,6 @@ func WithPostChainTransportHook(postRoundTripperFunc gitprovider.ChainableRoundT
 
 // WithOAuth2Token initializes a Client which authenticates with GitHub through an OAuth2 token.
 // oauth2Token must not be an empty string.
-// WithOAuth2Token is mutually exclusive with WithPersonalAccessToken.
 func WithOAuth2Token(oauth2Token string) ClientOption {
 	// Don't allow an empty value
 	if len(oauth2Token) == 0 {
@@ -187,28 +181,6 @@ func oauth2Transport(oauth2Token string) gitprovider.ChainableRoundTripperFunc {
 		return &oauth2.Transport{
 			Base:   in,
 			Source: oauth2.ReuseTokenSource(nil, ts),
-		}
-	}
-}
-
-// WithPersonalAccessToken initializes a Client which authenticates with GitHub through a personal access token.
-// patToken must not be an empty string.
-// WithPersonalAccessToken is mutually exclusive with WithOAuth2Token.
-func WithPersonalAccessToken(patToken string) ClientOption {
-	// Don't allow an empty value
-	if len(patToken) == 0 {
-		return optionError(fmt.Errorf("patToken cannot be empty: %w", gitprovider.ErrInvalidClientOptions))
-	}
-
-	return &clientOptions{AuthTransport: patTransport(patToken)}
-}
-
-func patTransport(patToken string) gitprovider.ChainableRoundTripperFunc {
-	return func(in http.RoundTripper) http.RoundTripper {
-		return &github.BasicAuthTransport{
-			Username:  patUsername,
-			Password:  patToken,
-			Transport: in,
 		}
 	}
 }
@@ -233,7 +205,7 @@ func makeOptions(opts ...ClientOption) (*clientOptions, error) {
 
 // NewClient creates a new gitprovider.Client instance for GitHub API endpoints.
 //
-// Using WithOAuth2Token or WithPersonalAccessToken you can specify authentication
+// Using WithOAuth2Token you can specify authentication
 // credentials, passing no such ClientOption will allow public read access only.
 //
 // Basic Auth is not supported because it is deprecated by GitHub, see

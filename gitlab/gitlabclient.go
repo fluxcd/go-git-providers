@@ -22,7 +22,6 @@ import (
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/xanzy/go-gitlab"
-	"github.com/xanzy/go-gitlab/groups"
 )
 
 // gitlabClientImpl is a wrapper around *github.Client, which implements higher-level methods,
@@ -76,17 +75,26 @@ type gitlabClient interface {
 	// DANGEROUS COMMAND: In order to use this, you must set destructiveActions to true.
 	DeleteProject(ctx context.Context, projectName string) error
 
-	// // Deploy key methods
+	// Deploy key methods
 
-	// // ListProjectKeys is a wrapper for "GET /projects/{project}/deploy_keys".
-	// // This function handles pagination, HTTP error wrapping, and validates the server result.
-	// ListProjectKeys(ctx context.Context, projectName string) ([]*gitlab.Key, error)
-	// // CreateProjectKey is a wrapper for "POST /projects/{project}/deploy_keys".
-	// // This function handles HTTP error wrapping, and validates the server result.
-	// CreateProjectKey(ctx context.Context, projectName string, req *gitlab.Key) (*gitlab.Key, error)
-	// // DeleteKey is a wrapper for "DELETE /projects/{project}/deploy_keys/{key_id}".
-	// // This function handles HTTP error wrapping.
-	// DeleteProjectKey(ctx context.Context, projectName string, id int64) error
+	// ListKeys is a wrapper for "GET /projects/{project}/deploy_keys".
+	// This function handles pagination, HTTP error wrapping, and validates the server result.
+	ListKeys(ctx context.Context, projectName string) ([]*gitlab.DeployKey, error)
+	// CreateProjectKey is a wrapper for "POST /projects/{project}/deploy_keys".
+	// This function handles HTTP error wrapping, and validates the server result.
+	CreateKey(ctx context.Context, projectName string, req *gitlab.DeployKey) (*gitlab.DeployKey, error)
+	// DeleteKey is a wrapper for "DELETE /projects/{project}/deploy_keys/{key_id}".
+	// This function handles HTTP error wrapping.
+	DeleteKey(ctx context.Context, projectName string, keyID int) error
+
+	// Team related methods
+
+	// ShareGroup is a wrapper for ""
+	// This function handles HTTP error wrapping, and validates the server result.
+	ShareProject(ctx context.Context, projectName string, groupID, groupAccess int) error
+	// UnshareProject is a wrapper for ""
+	// This function handles HTTP error wrapping, and validates the server result.
+	UnshareProject(ctx context.Context, projectName string, groupID int) error
 }
 
 // gitlabClientImpl is a wrapper around *gitlab.Client, which implements higher-level methods,
@@ -119,11 +127,8 @@ func (c *gitlabClientImpl) GetGroup(ctx context.Context, groupName string) (*git
 
 func (c *gitlabClientImpl) ListGroups(ctx context.Context) ([]*gitlab.Group, error) {
 	apiObjs := []*gitlab.Group{}
-	opts := &groups.ListGroupsOptions{
-		AllAvailable: true,
-		TopLevelOnly: true,
-	}
-	err := allPages(opts, func() (*gitlab.Response, error) {
+	opts := &gitlab.ListGroupsOptions{}
+	err := allGroupPages(opts, func() (*gitlab.Response, error) {
 		// GET /groups
 		pageObjs, resp, listErr := c.c.Groups.ListGroups(opts, gitlab.WithContext(ctx))
 		apiObjs = append(apiObjs, pageObjs...)
@@ -143,11 +148,8 @@ func (c *gitlabClientImpl) ListGroups(ctx context.Context) ([]*gitlab.Group, err
 
 func (c *gitlabClientImpl) ListSubgroups(ctx context.Context, groupName string) ([]*gitlab.Group, error) {
 	var apiObjs []*gitlab.Group
-	opts := &groups.ListGroupsOptions{
-		AllAvailable: true,
-		TopLevelOnly: false,
-	}
-	err := allPages(opts, func() (*gitlab.Response, error) {
+	opts := &gitlab.ListSubgroupsOptions{}
+	err := allSubgroupPages(opts, func() (*gitlab.Response, error) {
 		// GET /groups
 		pageObjs, resp, listErr := c.c.Groups.ListSubgroups(groupName, opts, gitlab.WithContext(ctx))
 		apiObjs = append(apiObjs, pageObjs...)
@@ -168,7 +170,7 @@ func (c *gitlabClientImpl) ListSubgroups(ctx context.Context, groupName string) 
 func (c *gitlabClientImpl) ListGroupProjects(ctx context.Context, groupName string) ([]*gitlab.Project, error) {
 	var apiObjs []*gitlab.Project
 	opts := &gitlab.ListGroupProjectsOptions{}
-	err := allPages(&opts.ListOptions, func() (*gitlab.Response, error) {
+	err := allGroupProjectPages(opts, func() (*gitlab.Response, error) {
 		pageObjs, resp, listErr := c.c.Groups.ListGroupProjects(groupName, opts, gitlab.WithContext(ctx))
 		apiObjs = append(apiObjs, pageObjs...)
 		return resp, listErr
@@ -192,7 +194,7 @@ func validateProjectObjects(apiObjs []*gitlab.Project) ([]*gitlab.Project, error
 func (c *gitlabClientImpl) ListGroupMembers(ctx context.Context, groupName string) ([]*gitlab.GroupMember, error) {
 	var apiObjs []*gitlab.GroupMember
 	opts := &gitlab.ListGroupMembersOptions{}
-	err := allPages(opts, func() (*gitlab.Response, error) {
+	err := allGroupMemberPages(opts, func() (*gitlab.Response, error) {
 		// GET /groups/{group}/members
 		pageObjs, resp, listErr := c.c.Groups.ListGroupMembers(groupName, opts, gitlab.WithContext(ctx))
 		apiObjs = append(apiObjs, pageObjs...)
@@ -225,7 +227,7 @@ func validateProjectAPIResp(apiObj *gitlab.Project, err error) (*gitlab.Project,
 func (c *gitlabClientImpl) ListProjects(ctx context.Context) ([]*gitlab.Project, error) {
 	var apiObjs []*gitlab.Project
 	opts := &gitlab.ListProjectsOptions{}
-	err := allPages(opts, func() (*gitlab.Response, error) {
+	err := allProjectPages(opts, func() (*gitlab.Response, error) {
 		// GET /projects
 		pageObjs, resp, listErr := c.c.Projects.ListProjects(opts, gitlab.WithContext(ctx))
 		apiObjs = append(apiObjs, pageObjs...)
@@ -240,7 +242,7 @@ func (c *gitlabClientImpl) ListProjects(ctx context.Context) ([]*gitlab.Project,
 func (c *gitlabClientImpl) ListProjectUsers(ctx context.Context, projectName string) ([]*gitlab.ProjectUser, error) {
 	var apiObjs []*gitlab.ProjectUser
 	opts := &gitlab.ListProjectUserOptions{}
-	err := allPages(opts, func() (*gitlab.Response, error) {
+	err := allProjectUserPages(opts, func() (*gitlab.Response, error) {
 		// GET /projects/{project}/users
 		pageObjs, resp, listErr := c.c.Projects.ListProjectsUsers(projectName, opts, gitlab.WithContext(ctx))
 		apiObjs = append(apiObjs, pageObjs...)
@@ -255,7 +257,7 @@ func (c *gitlabClientImpl) ListProjectUsers(ctx context.Context, projectName str
 func (c *gitlabClientImpl) ListUserProjects(ctx context.Context, username string) ([]*gitlab.Project, error) {
 	var apiObjs []*gitlab.Project
 	opts := &gitlab.ListProjectsOptions{}
-	err := allPages(opts, func() (*gitlab.Response, error) {
+	err := allProjectPages(opts, func() (*gitlab.Response, error) {
 		// GET /projects/{project}/users
 		pageObjs, resp, listErr := c.c.Projects.ListUserProjects(username, opts, gitlab.WithContext(ctx))
 		apiObjs = append(apiObjs, pageObjs...)
@@ -287,4 +289,61 @@ func (c *gitlabClientImpl) DeleteProject(ctx context.Context, projectName string
 	// DELETE /projects/{project}
 	_, err := c.c.Projects.DeleteProject(projectName, gitlab.WithContext(ctx))
 	return err
+}
+
+func (c *gitlabClientImpl) ListKeys(ctx context.Context, projectName string) ([]*gitlab.DeployKey, error) {
+	apiObjs := []*gitlab.DeployKey{}
+	opts := &gitlab.ListProjectDeployKeysOptions{}
+	err := allDeployKeyPages(opts, func() (*gitlab.Response, error) {
+		// GET /projects/{project}/deploy_keys
+		pageObjs, resp, listErr := c.c.DeployKeys.ListProjectDeployKeys(projectName, opts)
+		apiObjs = append(apiObjs, pageObjs...)
+		return resp, listErr
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, apiObj := range apiObjs {
+		if err := validateDeployKeyAPI(apiObj); err != nil {
+			return nil, err
+		}
+	}
+	return apiObjs, nil
+}
+
+func (c *gitlabClientImpl) CreateKey(ctx context.Context, projectName string, req *gitlab.DeployKey) (*gitlab.DeployKey, error) {
+	opts := &gitlab.AddDeployKeyOptions{}
+	// POST /projects/{project}/deploy_keys
+	apiObj, _, err := c.c.DeployKeys.AddDeployKey(projectName, opts)
+	if err != nil {
+		return nil, handleHTTPError(err)
+	}
+	if err := validateDeployKeyAPI(apiObj); err != nil {
+		return nil, err
+	}
+	return apiObj, nil
+}
+
+func (c *gitlabClientImpl) DeleteKey(ctx context.Context, projectName string, keyID int) error {
+	// DELETE /projects/{project}/deploy_keys
+	_, err := c.c.DeployKeys.DeleteDeployKey(projectName, keyID)
+	return handleHTTPError(err)
+}
+
+func (c *gitlabClientImpl) ShareProject(ctx context.Context, projectName string, groupIDObj, groupAccessObj int) error {
+	groupAccess := gitlab.AccessLevel(gitlab.AccessLevelValue(groupAccessObj))
+	groupID := &groupIDObj
+	opt := &gitlab.ShareWithGroupOptions{
+		GroupID:     groupID,
+		GroupAccess: groupAccess,
+	}
+
+	_, err := c.c.Projects.ShareProjectWithGroup(projectName, opt)
+	return handleHTTPError(err)
+}
+
+func (c *gitlabClientImpl) UnshareProject(ctx context.Context, projectName string, groupID int) error {
+	_, err := c.c.Projects.DeleteSharedProjectFromGroup(projectName, groupID)
+	return handleHTTPError(err)
 }

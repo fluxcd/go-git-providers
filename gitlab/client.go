@@ -21,7 +21,7 @@ import (
 	"github.com/xanzy/go-gitlab"
 )
 
-// ProviderID is the provider ID for Gitlab.
+// ProviderID is the provider ID for GitLab.
 const ProviderID = gitprovider.ProviderID("gitlab")
 
 func newClient(c *gitlab.Client, domain string, sshDomain string, destructiveActions bool) *Client {
@@ -45,6 +45,10 @@ var _ gitprovider.Client = &Client{}
 // Client is an interface that allows talking to a Git provider.
 type Client struct {
 	*clientContext
+
+	groups        *OrganizationsClient
+	groupProjects *OrgRepositoriesClient
+	projects      *UserRepositoriesClient
 }
 
 // SupportedDomain returns the domain endpoint for this client, e.g. "gitlab.com" or
@@ -73,4 +77,19 @@ func (c *Client) ProviderID() gitprovider.ProviderID {
 // used under the hood for accessing GitLab.
 func (c *Client) Raw() interface{} {
 	return c.c.Client()
+}
+
+// Organizations returns the OrganizationsClient handling sets of organizations.
+func (c *Client) Organizations() gitprovider.OrganizationsClient {
+	return c.groups
+}
+
+// OrgRepositories returns the OrgRepositoriesClient handling sets of repositories in an organization.
+func (c *Client) OrgRepositories() gitprovider.OrgRepositoriesClient {
+	return c.groupProjects
+}
+
+// UserRepositories returns the UserRepositoriesClient handling sets of repositories for a user.
+func (c *Client) UserRepositories() gitprovider.UserRepositoriesClient {
+	return c.projects
 }

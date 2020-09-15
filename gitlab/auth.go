@@ -170,7 +170,7 @@ func NewClientFromPAT(personalAccessToken string, optFns ...ClientOption) (gitpr
 	if opts.EnableDestructiveAPICalls != nil {
 		destructiveActions = *opts.EnableDestructiveAPICalls
 	}
-
+	fmt.Println("client at this point: ", gl)
 	return newClient(gl, domain, sshDomain, destructiveActions), nil
 }
 

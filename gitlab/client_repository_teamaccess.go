@@ -42,9 +42,14 @@ func (c *TeamAccessClient) Get(ctx context.Context, groupName string) (gitprovid
 	project, err := c.c.GetProject(ctx, c.ref.GetIdentity())
 	for _, group := range project.SharedWithGroups {
 		if group.GroupName == groupName {
+			gitProviderPermission, err := getGitProviderPermission(group.GroupAccessLevel)
+			if err != nil {
+				return nil, err
+			}
+
 			return newTeamAccess(c, gitprovider.TeamAccessInfo{
 				Name:       groupName,
-				Permission: getPermissionFromMap(group.GroupAccessLevel),
+				Permission: gitProviderPermission,
 			}), nil
 		}
 	}
@@ -67,9 +72,14 @@ func (c *TeamAccessClient) List(ctx context.Context) ([]gitprovider.TeamAccess, 
 
 	result := []gitprovider.TeamAccess{}
 	for _, group := range project.SharedWithGroups {
+		gitProviderPermission, err := getGitProviderPermission(group.GroupAccessLevel)
+		if err != nil {
+			return nil, err
+		}
+
 		result = append(result, newTeamAccess(c, gitprovider.TeamAccessInfo{
 			Name:       group.GroupName,
-			Permission: getPermissionFromMap(group.GroupAccessLevel),
+			Permission: gitProviderPermission,
 		}))
 	}
 
@@ -90,7 +100,8 @@ func (c *TeamAccessClient) Create(ctx context.Context, req gitprovider.TeamAcces
 		return nil, err
 	}
 
-	if err := c.c.ShareProject(ctx, c.ref.GetIdentity(), group.ID, getPermissionLevel(req.Permission)); err != nil {
+	gitlabPermission, err := getGitlabPermission(*req.Permission)
+	if err := c.c.ShareProject(ctx, c.ref.GetIdentity(), group.ID, gitlabPermission); err != nil {
 		return nil, err
 	}
 

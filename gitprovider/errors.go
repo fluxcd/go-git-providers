@@ -62,6 +62,10 @@ var (
 	ErrDestructiveCallDisallowed = errors.New("destructive call was blocked, disallowed by client")
 	// ErrInvalidTransportChainReturn is returned if a ChainableRoundTripperFunc returns nil, which is invalid.
 	ErrInvalidTransportChainReturn = errors.New("the return value of a ChainableRoundTripperFunc must not be nil")
+
+	// ErrInvalidPermissionLevel is the error returned when there is no mapping
+	// from the given level to the gitprovider levels.
+	ErrInvalidPermissionLevel = errors.New("invalid permission level")
 )
 
 // HTTPError is an error that contains context about the HTTP request/response that failed.

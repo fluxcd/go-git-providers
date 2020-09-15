@@ -104,17 +104,22 @@ var permissionPriority = map[int]gitprovider.RepositoryPermission{
 	50: gitprovider.RepositoryPermissionAdmin,
 }
 
-func getPermissionFromMap(permissionLevel int) (permission *gitprovider.RepositoryPermission) {
-	permissionObj, _ := permissionPriority[permissionLevel]
-	permission = &permissionObj
-	return
+func getGitProviderPermission(permissionLevel int) (*gitprovider.RepositoryPermission, error) {
+	var permissionObj gitprovider.RepositoryPermission
+	var ok bool
+
+	if permissionObj, ok = permissionPriority[permissionLevel]; !ok {
+		return nil, gitprovider.ErrInvalidPermissionLevel
+	}
+	permission := &permissionObj
+	return permission, nil
 }
 
-func getPermissionLevel(permission *gitprovider.RepositoryPermission) int {
-	for key, val := range permissionPriority {
-		if &val == permission {
-			return key
+func getGitlabPermission(permission gitprovider.RepositoryPermission) (int, error) {
+	for k, v := range permissionPriority {
+		if v == permission {
+			return k, nil
 		}
 	}
-	return -1
+	return 0, gitprovider.ErrInvalidPermissionLevel
 }

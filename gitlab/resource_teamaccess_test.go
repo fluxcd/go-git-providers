@@ -23,82 +23,68 @@ import (
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
-func Test_getPermissionFromMap(t *testing.T) {
+func Test_getGitProviderPermission(t *testing.T) {
 	tests := []struct {
-		name        string
-		permissions map[int]gitprovider.RepositoryPermission
-		want        *gitprovider.RepositoryPermission
+		name       string
+		permission int
+		want       *gitprovider.RepositoryPermission
 	}{
 		{
-			name: "pull",
-			permissions: map[int]gitprovider.RepositoryPermission{
-				10: gitprovider.RepositoryPermissionPull,
-				20: gitprovider.RepositoryPermissionTriage,
-				30: gitprovider.RepositoryPermissionPush,
-				40: gitprovider.RepositoryPermissionMaintain,
-				50: gitprovider.RepositoryPermissionAdmin,
-			},
-			want: gitprovider.RepositoryPermissionVar(gitprovider.RepositoryPermissionPull),
+			name:       "pull",
+			permission: 10,
+			want:       gitprovider.RepositoryPermissionVar(gitprovider.RepositoryPermissionPull),
 		},
 		{
-			name: "push",
-			permissions: map[int]gitprovider.RepositoryPermission{
-				10: gitprovider.RepositoryPermissionPull,
-				20: gitprovider.RepositoryPermissionTriage,
-				30: gitprovider.RepositoryPermissionPush,
-				40: gitprovider.RepositoryPermissionMaintain,
-				50: gitprovider.RepositoryPermissionAdmin,
-			},
-			want: gitprovider.RepositoryPermissionVar(gitprovider.RepositoryPermissionPush),
+			name:       "push",
+			permission: 30,
+			want:       gitprovider.RepositoryPermissionVar(gitprovider.RepositoryPermissionPush),
 		},
 		{
-			name: "admin",
-			permissions: map[int]gitprovider.RepositoryPermission{
-				10: gitprovider.RepositoryPermissionPull,
-				20: gitprovider.RepositoryPermissionTriage,
-				30: gitprovider.RepositoryPermissionPush,
-				40: gitprovider.RepositoryPermissionMaintain,
-				50: gitprovider.RepositoryPermissionAdmin,
-			},
-			want: gitprovider.RepositoryPermissionVar(gitprovider.RepositoryPermissionAdmin),
+			name:       "admin",
+			permission: 50,
+			want:       gitprovider.RepositoryPermissionVar(gitprovider.RepositoryPermissionAdmin),
 		},
 		{
-			name: "none",
-			permissions: map[int]gitprovider.RepositoryPermission{
-				10: gitprovider.RepositoryPermissionPull,
-				20: gitprovider.RepositoryPermissionTriage,
-				30: gitprovider.RepositoryPermissionPush,
-				40: gitprovider.RepositoryPermissionMaintain,
-				50: gitprovider.RepositoryPermissionAdmin,
-			},
-			want: nil,
-		},
-		{
-			name: "false data",
-			permissions: map[int]gitprovider.RepositoryPermission{
-				10: gitprovider.RepositoryPermissionPull,
-				20: gitprovider.RepositoryPermissionTriage,
-				30: gitprovider.RepositoryPermissionPush,
-				40: gitprovider.RepositoryPermissionMaintain,
-				50: gitprovider.RepositoryPermissionAdmin,
-			},
-			want: nil,
-		},
-		{
-			name: "not all specified",
-			permissions: map[int]gitprovider.RepositoryPermission{
-				10: gitprovider.RepositoryPermissionPull,
-				20: gitprovider.RepositoryPermissionTriage,
-				30: gitprovider.RepositoryPermissionPush,
-				40: gitprovider.RepositoryPermissionMaintain,
-				50: gitprovider.RepositoryPermissionAdmin,
-			},
-			want: nil,
+			name:       "false data",
+			permission: -1,
+			want:       nil,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotPermission := getPermissionFromMap(tt.permissions)
+			gotPermission, _ := getGitProviderPermission(tt.permission)
+			if !reflect.DeepEqual(gotPermission, tt.want) {
+				t.Errorf("getPermissionFromMap() = %v, want %v", gotPermission, tt.want)
+			}
+		})
+	}
+}
+
+func Test_getGitlabPermission(t *testing.T) {
+	tests := []struct {
+		name       string
+		permission *gitprovider.RepositoryPermission
+		want       int
+	}{
+		{
+			name:       "pull",
+			permission: gitprovider.RepositoryPermissionVar(gitprovider.RepositoryPermissionPull),
+			want:       10,
+		},
+		{
+			name:       "push",
+			permission: gitprovider.RepositoryPermissionVar(gitprovider.RepositoryPermissionPush),
+			want:       30,
+		},
+		{
+			name:       "admin",
+			permission: gitprovider.RepositoryPermissionVar(gitprovider.RepositoryPermissionAdmin),
+			want:       50,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotPermission, _ := getGitlabPermission(*tt.permission)
 			if !reflect.DeepEqual(gotPermission, tt.want) {
 				t.Errorf("getPermissionFromMap() = %v, want %v", gotPermission, tt.want)
 			}

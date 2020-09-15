@@ -29,6 +29,15 @@ func newClient(c *gitlab.Client, domain string, sshDomain string, destructiveAct
 	ctx := &clientContext{glClient, domain, sshDomain, destructiveActions}
 	return &Client{
 		clientContext: ctx,
+		orgs: &OrganizationsClient{
+			clientContext: ctx,
+		},
+		orgRepos: &OrgRepositoriesClient{
+			clientContext: ctx,
+		},
+		userRepos: &UserRepositoriesClient{
+			clientContext: ctx,
+		},
 	}
 }
 
@@ -46,9 +55,9 @@ var _ gitprovider.Client = &Client{}
 type Client struct {
 	*clientContext
 
-	groups        *OrganizationsClient
-	groupProjects *OrgRepositoriesClient
-	projects      *UserRepositoriesClient
+	orgs      *OrganizationsClient
+	orgRepos  *OrgRepositoriesClient
+	userRepos *UserRepositoriesClient
 }
 
 // SupportedDomain returns the domain endpoint for this client, e.g. "gitlab.com" or
@@ -81,15 +90,15 @@ func (c *Client) Raw() interface{} {
 
 // Organizations returns the OrganizationsClient handling sets of organizations.
 func (c *Client) Organizations() gitprovider.OrganizationsClient {
-	return c.groups
+	return c.orgs
 }
 
 // OrgRepositories returns the OrgRepositoriesClient handling sets of repositories in an organization.
 func (c *Client) OrgRepositories() gitprovider.OrgRepositoriesClient {
-	return c.groupProjects
+	return c.orgRepos
 }
 
 // UserRepositories returns the UserRepositoriesClient handling sets of repositories for a user.
 func (c *Client) UserRepositories() gitprovider.UserRepositoriesClient {
-	return c.projects
+	return c.userRepos
 }

@@ -88,7 +88,7 @@ func (p *userProject) Update(ctx context.Context) error {
 //
 // The internal API object will be overridden with the received server data if actionTaken == true.
 func (p *userProject) Reconcile(ctx context.Context) (bool, error) {
-	apiObj, err := p.c.GetProject(ctx, p.ref.GetIdentity())
+	apiObj, err := p.c.GetUserProject(ctx, p.ref.GetIdentity())
 	if err != nil {
 		// Create if not found
 		if errors.Is(err, gitprovider.ErrNotFound) {
@@ -151,7 +151,7 @@ func (r *orgRepository) TeamAccess() gitprovider.TeamAccessClient {
 // validateRepositoryAPI validates the apiObj received from the server, to make sure that it is
 // valid for our use.
 func validateRepositoryAPI(apiObj *gitlab.Repository) error {
-	return validateAPIObject("GitHub.Repository", func(validator validation.Validator) {
+	return validateAPIObject("GitLab.Repository", func(validator validation.Validator) {
 		// Make sure name is set
 		if apiObj.Name == "" {
 			validator.Required("Name")

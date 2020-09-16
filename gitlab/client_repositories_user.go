@@ -40,7 +40,7 @@ func (c *UserRepositoriesClient) Get(ctx context.Context, ref gitprovider.UserRe
 		return nil, err
 	}
 	// GET /repos/{owner}/{repo}
-	apiObj, err := c.c.GetProject(ctx, ref.GetIdentity())
+	apiObj, err := c.c.GetUserProject(ctx, ref.GetIdentity())
 	if err != nil {
 		return nil, err
 	}

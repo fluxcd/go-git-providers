@@ -39,7 +39,7 @@ type TeamAccessClient struct {
 //
 // ErrNotFound is returned if the resource does not exist.
 func (c *TeamAccessClient) Get(ctx context.Context, groupName string) (gitprovider.TeamAccess, error) {
-	project, err := c.c.GetProject(ctx, c.ref.GetIdentity())
+	project, err := c.c.GetGroupProject(ctx, groupName, c.ref.GetIdentity())
 	for _, group := range project.SharedWithGroups {
 		if group.GroupName == groupName {
 			gitProviderPermission, err := getGitProviderPermission(group.GroupAccessLevel)
@@ -65,7 +65,7 @@ func (c *TeamAccessClient) Get(ctx context.Context, groupName string) (gitprovid
 // List returns all available team access lists, using multiple paginated requests if needed.
 func (c *TeamAccessClient) List(ctx context.Context) ([]gitprovider.TeamAccess, error) {
 	// List all teams, using pagination. This does not contain information about the members
-	project, err := c.c.GetProject(ctx, c.ref.GetIdentity())
+	project, err := c.c.GetUserProject(ctx, c.ref.GetIdentity())
 	if err != nil {
 		return nil, err
 	}

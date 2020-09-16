@@ -18,9 +18,11 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	gogitlab "github.com/xanzy/go-gitlab"
+	"golang.org/x/oauth2"
 )
 
 const (
@@ -52,6 +54,13 @@ func (opts *clientOptions) ApplyToGitlabClientOptions(target *clientOptions) err
 		return err
 	}
 
+	if opts.AuthTransport != nil {
+		// Make sure the user didn't specify the AuthTransport twice
+		if target.AuthTransport != nil {
+			return fmt.Errorf("option AuthTransport already configured: %w", gitprovider.ErrInvalidClientOptions)
+		}
+		target.AuthTransport = opts.AuthTransport
+	}
 	return nil
 }
 
@@ -128,6 +137,29 @@ func WithPostChainTransportHook(postRoundTripperFunc gitprovider.ChainableRoundT
 	return buildCommonOption(gitprovider.CommonClientOptions{PostChainTransportHook: postRoundTripperFunc})
 }
 
+// WithOAuth2Token initializes a Client which authenticates with GitLab through an OAuth2 token.
+// oauth2Token must not be an empty string.
+func WithOAuth2Token(oauth2Token string) ClientOption {
+	// Don't allow an empty value
+	if len(oauth2Token) == 0 {
+		return optionError(fmt.Errorf("oauth2Token cannot be empty: %w", gitprovider.ErrInvalidClientOptions))
+	}
+
+	return &clientOptions{AuthTransport: oauth2Transport(oauth2Token)}
+}
+
+func oauth2Transport(oauth2Token string) gitprovider.ChainableRoundTripperFunc {
+	return func(in http.RoundTripper) http.RoundTripper {
+		// Create a TokenSource of the given access token
+		ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: oauth2Token})
+		// Create a Transport, with "in" as the underlying transport, and the given TokenSource
+		return &oauth2.Transport{
+			Base:   in,
+			Source: oauth2.ReuseTokenSource(nil, ts),
+		}
+	}
+}
+
 // makeOptions assembles a clientOptions struct from ClientOption mutator functions.
 func makeOptions(opts ...ClientOption) (*clientOptions, error) {
 	o := &clientOptions{}
@@ -170,7 +202,6 @@ func NewClientFromPAT(personalAccessToken string, optFns ...ClientOption) (gitpr
 	if opts.EnableDestructiveAPICalls != nil {
 		destructiveActions = *opts.EnableDestructiveAPICalls
 	}
-	fmt.Println("client at this point: ", gl)
 	return newClient(gl, domain, sshDomain, destructiveActions), nil
 }
 

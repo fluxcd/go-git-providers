@@ -43,9 +43,6 @@ type gitlabClient interface {
 	// ListSubgroups is a wrapper for "GET /groups/{group}/subgroups".
 	// This function handles pagination, HTTP error wrapping, and validates the server result.
 	ListSubgroups(ctx context.Context, groupName string) ([]*gitlab.Group, error)
-	// ListGroupProjects is a wrapper for "GET /groups/{group}/projects".
-	// This function handles pagination, HTTP error wrapping, and validates the server result.
-	ListGroupProjects(ctx context.Context, groupName string) ([]*gitlab.Project, error)
 	// ListGroupMembers is a wrapper for "GET /groups/{group}/members".
 	// This function handles pagination, HTTP error wrapping, and validates the server result.
 	ListGroupMembers(ctx context.Context, groupName string) ([]*gitlab.GroupMember, error)
@@ -54,16 +51,19 @@ type gitlabClient interface {
 
 	// GetProject is a wrapper for "GET /projects/{project}".
 	// This function handles HTTP error wrapping, and validates the server result.
-	GetProject(ctx context.Context, projectName string) (*gitlab.Project, error)
-	// GetProjects is a wrapper for "GET /projects".
+	GetGroupProject(ctx context.Context, groupName string, projectName string) (*gitlab.Project, error)
+	// ListGroupProjects is a wrapper for "GET /groups/{group}/projects".
 	// This function handles pagination, HTTP error wrapping, and validates the server result.
-	ListProjects(ctx context.Context) ([]*gitlab.Project, error)
-	// ListProjectUsers is a wrapper for "GET /projects/{project}/users".
-	// This function handles pagination, HTTP error wrapping, and validates the server result.
-	ListProjectUsers(ctx context.Context, projectName string) ([]*gitlab.ProjectUser, error)
+	ListGroupProjects(ctx context.Context, groupName string) ([]*gitlab.Project, error)
+	// GetProject is a wrapper for "GET /projects/{project}".
+	// This function handles HTTP error wrapping, and validates the server result.
+	GetUserProject(ctx context.Context, projectName string) (*gitlab.Project, error)
 	// ListUserProjects is a wrapper for "GET /users/{username}/projects".
 	// This function handles pagination, HTTP error wrapping, and validates the server result.
 	ListUserProjects(ctx context.Context, username string) ([]*gitlab.Project, error)
+	// ListProjectUsers is a wrapper for "GET /projects/{project}/users".
+	// This function handles pagination, HTTP error wrapping, and validates the server result.
+	ListProjectUsers(ctx context.Context, projectName string) ([]*gitlab.ProjectUser, error)
 	// CreateProject is a wrapper for "POST /projects"
 	// This function handles HTTP error wrapping, and validates the server result.
 	CreateProject(ctx context.Context, req *gitlab.Project) (*gitlab.Project, error)
@@ -167,6 +167,12 @@ func (c *gitlabClientImpl) ListSubgroups(ctx context.Context, groupName string) 
 	return apiObjs, nil
 }
 
+func (c *gitlabClientImpl) GetGroupProject(ctx context.Context, groupName string, projectName string) (*gitlab.Project, error) {
+	opts := &gitlab.GetProjectOptions{}
+	apiObj, _, err := c.c.Projects.GetProject(fmt.Sprintf("%s/%s", groupName, projectName), opts, gitlab.WithContext(ctx))
+	return validateProjectAPIResp(apiObj, err)
+}
+
 func (c *gitlabClientImpl) ListGroupProjects(ctx context.Context, groupName string) ([]*gitlab.Project, error) {
 	var apiObjs []*gitlab.Project
 	opts := &gitlab.ListGroupProjectsOptions{}
@@ -206,7 +212,7 @@ func (c *gitlabClientImpl) ListGroupMembers(ctx context.Context, groupName strin
 	return apiObjs, nil
 }
 
-func (c *gitlabClientImpl) GetProject(ctx context.Context, projectName string) (*gitlab.Project, error) {
+func (c *gitlabClientImpl) GetUserProject(ctx context.Context, projectName string) (*gitlab.Project, error) {
 	opts := &gitlab.GetProjectOptions{}
 	apiObj, _, err := c.c.Projects.GetProject(projectName, opts, gitlab.WithContext(ctx))
 	return validateProjectAPIResp(apiObj, err)

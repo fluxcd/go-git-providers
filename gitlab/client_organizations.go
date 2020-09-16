@@ -56,7 +56,11 @@ func (c *OrganizationsClient) List(ctx context.Context) ([]gitprovider.Organizat
 
 	groups := make([]gitprovider.Organization, 0, len(apiObjs))
 	for _, apiObj := range apiObjs {
-		groups = append(groups, newOrganization(c.clientContext, apiObj, gitprovider.OrganizationRef{}))
+		ref := gitprovider.OrganizationRef{
+			Domain:       apiObj.WebURL,
+			Organization: apiObj.FullName,
+		}
+		groups = append(groups, newOrganization(c.clientContext, apiObj, ref))
 	}
 
 	return groups, nil

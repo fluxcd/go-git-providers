@@ -41,7 +41,7 @@ func (c *OrgRepositoriesClient) Get(ctx context.Context, ref gitprovider.OrgRepo
 		return nil, err
 	}
 	// GET /groups/{group}/projects
-	apiObj, err := c.c.GetProject(ctx, ref.GetIdentity())
+	apiObj, err := c.c.GetGroupProject(ctx, ref.OrganizationRef.Organization, ref.RepositoryName)
 	if err != nil {
 		return nil, err
 	}

@@ -19,6 +19,7 @@ package gitlab
 import (
 	"context"
 	"errors"
+	"fmt"
 	"reflect"
 
 	"github.com/xanzy/go-gitlab"
@@ -32,6 +33,7 @@ func newUserProject(ctx *clientContext, apiObj *gogitlab.Project, ref gitprovide
 	return &userProject{
 		clientContext: ctx,
 		p:             *apiObj,
+		ref:           ref,
 		deployKeys: &DeployKeyClient{
 			clientContext: ctx,
 			ref:           ref,
@@ -76,7 +78,13 @@ func (p *userProject) DeployKeys() gitprovider.DeployKeyClient {
 
 // The internal API object will be overridden with the received server data.
 func (p *userProject) Update(ctx context.Context) error {
-	return gitprovider.ErrNoProviderSupport
+	// PATCH /repos/{owner}/{repo}
+	apiObj, err := p.c.UpdateProject(ctx, &p.p)
+	if err != nil {
+		return err
+	}
+	p.p = *apiObj
+	return nil
 }
 
 // Reconcile makes sure the desired state in this object (called "req" here) becomes
@@ -123,7 +131,13 @@ func (p *userProject) Reconcile(ctx context.Context) (bool, error) {
 //
 // ErrNotFound is returned if the resource doesn't exist anymore.
 func (p *userProject) Delete(ctx context.Context) error {
-	return p.c.DeleteProject(ctx, p.ref.GetIdentity())
+	var projectID string
+	if p.p.Namespace != nil {
+		projectID = fmt.Sprintf("%s/%s", p.p.Namespace.Name, p.p.Name)
+	} else {
+		projectID = p.p.Name
+	}
+	return p.c.DeleteProject(ctx, projectID)
 }
 
 func newGroupProject(ctx *clientContext, apiObj *gitlab.Project, ref gitprovider.RepositoryRef) *orgRepository {
@@ -183,12 +197,9 @@ func repositoryInfoToAPIObj(repo *gitprovider.RepositoryInfo, apiObj *gitlab.Pro
 	if repo.DefaultBranch != nil {
 		apiObj.DefaultBranch = *repo.DefaultBranch
 	}
-	// if repo.Visibility != nil {
-	// 	apiObj.Visibility = repo.Visibility
-	// }
-}
-
-func applyRepoCreateOptions(apiObj *gitlab.Project, opts gitprovider.RepositoryCreateOptions) {
+	if repo.Visibility != nil {
+		apiObj.Visibility = gitlabVisibilityMap[*repo.Visibility]
+	}
 }
 
 // This function copies over the fields that are part of create/update requests of a project
@@ -217,4 +228,10 @@ type gitlabProjectSpec struct {
 
 func (s *gitlabProjectSpec) Equals(other *gitlabProjectSpec) bool {
 	return reflect.DeepEqual(s, other)
+}
+
+var gitlabVisibilityMap = map[gitprovider.RepositoryVisibility]gitlab.VisibilityValue{
+	gitprovider.RepositoryVisibilityInternal: gitlab.InternalVisibility,
+	gitprovider.RepositoryVisibilityPrivate:  gitlab.PrivateVisibility,
+	gitprovider.RepositoryVisibilityPublic:   gitlab.PublicVisibility,
 }

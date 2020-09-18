@@ -70,6 +70,20 @@ func (c *OrganizationsClient) List(ctx context.Context) ([]gitprovider.Organizat
 // The OrganizationRef may point to any existing sub-organization.
 //
 // Children returns all available organizations, using multiple paginated requests if needed.
-func (c *OrganizationsClient) Children(_ context.Context, _ gitprovider.OrganizationRef) ([]gitprovider.Organization, error) {
-	return nil, gitprovider.ErrNoProviderSupport
+func (c *OrganizationsClient) Children(ctx context.Context, ref gitprovider.OrganizationRef) ([]gitprovider.Organization, error) {
+	apiObjs, err := c.c.ListSubgroups(ctx, ref.Organization)
+	if err != nil {
+		return nil, err
+	}
+
+	subgroups := make([]gitprovider.Organization, 0, len(apiObjs))
+	for _, apiObj := range apiObjs {
+		ref := gitprovider.OrganizationRef{
+			Domain:       apiObj.WebURL,
+			Organization: apiObj.FullName,
+		}
+		subgroups = append(subgroups, newOrganization(c.clientContext, apiObj, ref))
+	}
+
+	return subgroups, nil
 }

@@ -1,11 +1,18 @@
 package gitlab
 
 import (
+	"errors"
 	"fmt"
+	"net/http"
+	"strings"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/fluxcd/go-git-providers/validation"
 	"github.com/xanzy/go-gitlab"
+)
+
+const (
+	alreadyExistsMagicString = "name: [has already been taken]"
 )
 
 // allPages runs fn for each page, expecting a HTTP request to be made and returned during that call.
@@ -191,6 +198,36 @@ func validateIdentityFields(ref gitprovider.IdentityRef, expectedDomain string) 
 // However, it _always_ keeps the original error too, and just wraps it in a MultiError
 // The consumer must use errors.Is and errors.As to check for equality and get data out of it.
 func handleHTTPError(err error) error {
-
+	// Short-circuit quickly if possible, allow always piping through this function
+	if err == nil {
+		return nil
+	}
+	fmt.Println("error in handle HTTPError: ", err)
+	glErrorResponse := &gitlab.ErrorResponse{}
+	if errors.As(err, &glErrorResponse) {
+		httpErr := gitprovider.HTTPError{
+			Response:     glErrorResponse.Response,
+			ErrorMessage: glErrorResponse.Error(),
+			Message:      glErrorResponse.Message,
+		}
+		// Check for invalid credentials, and return a typed error in that case
+		if glErrorResponse.Response.StatusCode == http.StatusForbidden ||
+			glErrorResponse.Response.StatusCode == http.StatusUnauthorized {
+			return validation.NewMultiError(err,
+				&gitprovider.InvalidCredentialsError{HTTPError: httpErr},
+			)
+		}
+		// Check for 404 Not Found
+		if glErrorResponse.Response.StatusCode == http.StatusNotFound {
+			return validation.NewMultiError(err, gitprovider.ErrNotFound)
+		}
+		// Check for already exists errors
+		if strings.Contains(glErrorResponse.Message, alreadyExistsMagicString) {
+			return validation.NewMultiError(err, gitprovider.ErrAlreadyExists)
+		}
+		// Otherwise, return a generic *HTTPError
+		return validation.NewMultiError(err, &httpErr)
+	}
+	// Do nothing, just pipe through the unknown err
 	return err
 }

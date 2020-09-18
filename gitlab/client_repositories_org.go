@@ -115,6 +115,9 @@ func (c *OrgRepositoriesClient) Reconcile(ctx context.Context, ref gitprovider.O
 		return nil, false, err
 	}
 	// Run generic reconciliation
+	if *actual.Get().DefaultBranch == "" {
+		*actual.Get().DefaultBranch = "master"
+	}
 	actionTaken, err := reconcileRepository(ctx, actual, req)
 	return actual, actionTaken, err
 }
@@ -126,16 +129,11 @@ func createProject(ctx context.Context, c gitlabClient, ref gitprovider.Reposito
 		return nil, err
 	}
 
-	// Assemble the options struct based on the given options
-	o, err := gitprovider.MakeRepositoryCreateOptions(opts...)
-	if err != nil {
-		return nil, err
-	}
-
 	// Convert to the API object and apply the options
 	data := repositoryToAPI(&req, ref)
-	applyRepoCreateOptions(&data, o)
-
+	data.Namespace = &gitlab.ProjectNamespace{
+		Name: groupName,
+	}
 	return c.CreateProject(ctx, &data)
 }
 

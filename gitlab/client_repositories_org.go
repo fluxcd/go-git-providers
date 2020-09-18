@@ -131,8 +131,10 @@ func createProject(ctx context.Context, c gitlabClient, ref gitprovider.Reposito
 
 	// Convert to the API object and apply the options
 	data := repositoryToAPI(&req, ref)
-	data.Namespace = &gitlab.ProjectNamespace{
-		Name: groupName,
+	if len(groupName) > 0 {
+		data.Namespace = &gitlab.ProjectNamespace{
+			Name: groupName,
+		}
 	}
 	return c.CreateProject(ctx, &data)
 }

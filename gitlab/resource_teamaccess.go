@@ -19,6 +19,7 @@ package gitlab
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
@@ -58,11 +59,19 @@ func (ta *teamAccess) Repository() gitprovider.RepositoryRef {
 }
 
 func (ta *teamAccess) Delete(ctx context.Context) error {
-	return gitprovider.ErrNoProviderSupport
+	group, err := ta.c.c.GetGroup(ctx, ta.ta.Name)
+	if err != nil {
+		return err
+	}
+	return ta.c.c.UnshareProject(ctx, fmt.Sprintf("%s/%s", ta.c.ref.GetIdentity(), ta.c.ref.GetRepository()), group.ID)
 }
 
 func (ta *teamAccess) Update(ctx context.Context) error {
-	return gitprovider.ErrNoProviderSupport
+	resp, err := ta.c.Create(ctx, ta.Get())
+	if err != nil {
+		return err
+	}
+	return ta.Set(resp.Get())
 }
 
 // Reconcile makes sure the given desired state (req) becomes the actual state in the backing Git provider.

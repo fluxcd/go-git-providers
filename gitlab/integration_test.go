@@ -91,7 +91,6 @@ func (t *customTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// If we should count, count all cache hits whenever found
 	if t.countCacheHits {
 		if _, ok := resp.Header[httpcache.XFromCache]; ok {
-			fmt.Println("cache hit!")
 			t.cacheHits++
 		}
 	}
@@ -134,10 +133,11 @@ var _ = Describe("GitLab Provider", func() {
 
 		testRepoName string = "testrepo"
 		testOrgName  string = "GGPGroup"
+		testTeamName string = "GGPGroup2"
 	)
 
 	BeforeSuite(func() {
-		gitlabToken := os.Getenv("GITLAB_TOKEN")
+		gitlabToken := "9ifPpQVzp7BNkGXAVzK7"
 		if len(gitlabToken) == 0 {
 			b, err := ioutil.ReadFile(ghTokenFile)
 			if token := string(b); err == nil && len(token) != 0 {
@@ -165,7 +165,6 @@ var _ = Describe("GitLab Provider", func() {
 	It("should list the available organizations the user has access to", func() {
 		// Get a list of all organizations the user is part of
 		orgs, err := c.Organizations().List(ctx)
-		fmt.Println("orgs from user: ", orgs)
 		Expect(err).ToNot(HaveOccurred())
 
 		// Make sure we find the expected one given as testOrgName
@@ -213,18 +212,16 @@ var _ = Describe("GitLab Provider", func() {
 	})
 
 	It("should not fail when .Children is called", func() {
-		results, err := c.Organizations().Children(ctx, gitprovider.OrganizationRef{
-			Domain:       "gitlab.com",
-			Organization: "GGPGroup",
+		_, err := c.Organizations().Children(ctx, gitprovider.OrganizationRef{
+			Domain:       gitlabDomain,
+			Organization: testOrgName,
 		})
-		fmt.Println("results: ", results[0].Organization().Organization)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
 	It("should be possible to create a group project", func() {
 		// First, check what repositories are available
 		repos, err := c.OrgRepositories().List(ctx, newOrgRef(testOrgName))
-		fmt.Println("repos at this point: ", repos)
 		Expect(err).ToNot(HaveOccurred())
 
 		// Generate a repository name which doesn't exist already
@@ -310,21 +307,127 @@ var _ = Describe("GitLab Provider", func() {
 	})
 
 	It("should update teams with access and permissions when reconciling", func() {
+
 		// Get the test organization
-		orgRef := newOrgRef("GGPGroup")
+		orgRef := newOrgRef(testOrgName)
 		testOrg, err := c.Organizations().Get(ctx, orgRef)
 		Expect(err).ToNot(HaveOccurred())
 
 		// List all the teams with access to the org
 		teams, err := testOrg.Teams().List(ctx)
 		Expect(err).ToNot(HaveOccurred())
-		fmt.Println(teams)
+		Expect(len(teams)).To(Equal(0))
+
+		// First, check what repositories are available
+		repos, err := c.OrgRepositories().List(ctx, newOrgRef(testOrgName))
+		Expect(err).ToNot(HaveOccurred())
+
+		// Generate an org repo name which doesn't exist already
+		testRepoName = fmt.Sprintf("test-repo-%03d", rand.Intn(1000))
+		for findOrgRepo(repos, testRepoName) != nil {
+			testRepoName = fmt.Sprintf("test-repo-%03d", rand.Intn(1000))
+		}
+
+		// We know that a repo with this name doesn't exist in the organization, let's verify we get an
+		// ErrNotFound
+		repoRef := newOrgRepoRef(testOrgName, testRepoName)
+		_, err = c.OrgRepositories().Get(ctx, repoRef)
+		Expect(errors.Is(err, gitprovider.ErrNotFound)).To(BeTrue())
+
+		// Create a new repo
+		repo, err := c.OrgRepositories().Create(ctx, repoRef, gitprovider.RepositoryInfo{
+			Description: gitprovider.StringVar(defaultDescription),
+			// Default visibility is private, no need to set this at least now
+			//Visibility:     gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
+		}, &gitprovider.RepositoryCreateOptions{
+			AutoInit:        gitprovider.BoolVar(true),
+			LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateApache2),
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		validateOrgRepo(repo, repoRef)
+
+		// Add a team to the project
+		permission := gitprovider.RepositoryPermissionMaintain
+		_, err = repo.TeamAccess().Create(ctx, gitprovider.TeamAccessInfo{
+			Name:       testTeamName,
+			Permission: &permission,
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		// List all the teams with access to the project
+		projectTeams, err := repo.TeamAccess().List(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(len(projectTeams)).To(Equal(1))
+		firstTeam := projectTeams[0]
+		Expect(firstTeam.Get().Name).To(Equal(testTeamName))
+	})
+
+	It("should create, delete and reconcile deploy keys", func() {
+		testDeployKeyName := "test-deploy-key"
+		repoRef := newOrgRepoRef(testOrgName, testRepoName)
+
+		orgRepo, err := c.OrgRepositories().Get(ctx, repoRef)
+		Expect(err).ToNot(HaveOccurred())
+
+		// List keys should return 0
+		keys, err := orgRepo.DeployKeys().List(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(len(keys)).To(Equal(0))
+
+		readOnly := false
+		testDeployKeyInfo := gitprovider.DeployKeyInfo{
+			Name:     testDeployKeyName,
+			Key:      []byte("ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDLbHBknQQaricl2/O9DfgizMyUh/lhYwXk9GrBY9Ow9fFHy+lIiRBiS8H4rjvP2YkECrWWSbcevTKe+yk7PsU98RZiPL9S2+d2ENo3uQ2Rp6xnKY+XtvJnSvpLnABz/mGDPgvcLxXvPj2rAGu35u08DZ1WufU7hzgiWuLM3TH/albVcadw5ZflOAXalMmUhinB9m/O71DWyaP33pIqZBGCc8IBMcUHOL72NkNcpatXvCALltApJVUPZIvQUnrmUOglQMklaCeeWn6B269UI9kH9TjhGbbIvHpPZ7Ky9RTklZTeINLZW5Yql/leA/vJGcIipyXQkDPs7RSwtpmp5kat dinos@dinos-desktop"),
+			ReadOnly: &readOnly,
+		}
+		_, err = orgRepo.DeployKeys().Create(ctx, testDeployKeyInfo)
+		Expect(err).ToNot(HaveOccurred())
+
+		// List keys should now return 1
+		keys, err = orgRepo.DeployKeys().List(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(len(keys)).To(Equal(1))
+
+		// Getting the key directly should return the same object
+		getKey, err := orgRepo.DeployKeys().Get(ctx, testDeployKeyName)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(getKey.Get().Key).To(Equal(testDeployKeyInfo.Key))
+		Expect(getKey.Get().Name).To(Equal(testDeployKeyInfo.Name))
+
+		Expect(getKey.Set(getKey.Get())).ToNot(HaveOccurred())
+		actionTaken, err := getKey.Reconcile(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(actionTaken).To(BeFalse())
+
+		// Reconcile creates a new key if the title and key is different
+		title := "new-title"
+		req := getKey.Get()
+		req.Name = title
+		req.Key = []byte("ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCxjjHV91pRmqTaWPJnvZmvTPZPpHmIYocY1kmYFeOOL6/ofdvYb1sxNwsccOJEeLGJjp6FGe4BWNQSqDUCeO3EVU8A7ZTnd9eizB8nYDGoACbmG2GfMmtAdxKfsPE/lNRzAOFmHAHrzOnL6zk5SMPe0Y2poW1Z5w+If5r62WwfqG2/ujUA7BU3Vf/arFIYJvXvuEOJMP3QbezWL0b22Wmedu8esKrOYcak80I6Ti8qiof8ly1JZa58ezHJVvcEWZGSKU4G53jmDz7ky4GGb9DRo+LqOaU1qetdJX1GiCRNnhvz8DsxGcL77BJPE7HPBct44lN1TZCeIOG00Hai4bDp dinos@dinos-desktop")
+		Expect(getKey.Set(req)).ToNot(HaveOccurred())
+		actionTaken, err = getKey.Reconcile(ctx)
+		// Expect the update to succeed, and modify the state
+		Expect(err).ToNot(HaveOccurred())
+		Expect(actionTaken).To(BeTrue())
+
+		getKey, err = orgRepo.DeployKeys().Get(ctx, title)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(getKey.Get().Name).To(Equal(title))
+
+		// Delete the keys
+		keys, err = orgRepo.DeployKeys().List(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		for _, key := range keys {
+			err = key.Delete(ctx)
+			Expect(err).ToNot(HaveOccurred())
+		}
 	})
 
 	It("should be possible to create a user project", func() {
 		// First, check what repositories are available
 		repos, err := c.UserRepositories().List(ctx, newUserRef(testUserName))
-		fmt.Println("user projects at this point: ", repos)
 		Expect(err).ToNot(HaveOccurred())
 
 		// Generate a repository name which doesn't exist already

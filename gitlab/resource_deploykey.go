@@ -30,16 +30,18 @@ import (
 
 func newDeployKey(c *DeployKeyClient, key *gitlab.DeployKey) *deployKey {
 	return &deployKey{
-		k: *key,
-		c: c,
+		k:       *key,
+		c:       c,
+		canpush: key.CanPush,
 	}
 }
 
 var _ gitprovider.DeployKey = &deployKey{}
 
 type deployKey struct {
-	k gitlab.DeployKey
-	c *DeployKeyClient
+	k       gitlab.DeployKey
+	c       *DeployKeyClient
+	canpush *bool
 }
 
 func (dk *deployKey) Get() gitprovider.DeployKeyInfo {
@@ -89,7 +91,7 @@ func (dk *deployKey) Delete(ctx context.Context) error {
 		return fmt.Errorf("didn't expect ID to be 0: %w", gitprovider.ErrUnexpectedEvent)
 	}
 
-	return dk.c.c.DeleteKey(ctx, dk.c.ref.GetIdentity(), dk.k.ID)
+	return dk.c.c.DeleteKey(ctx, fmt.Sprintf("%s/%s", dk.c.ref.GetIdentity(), dk.c.ref.GetRepository()), dk.k.ID)
 }
 
 // Reconcile makes sure the desired state in this object (called "req" here) becomes
@@ -126,7 +128,7 @@ func (dk *deployKey) Reconcile(ctx context.Context) (bool, error) {
 
 func (dk *deployKey) createIntoSelf(ctx context.Context) error {
 	// POST /repos/{owner}/{repo}/keys
-	apiObj, err := dk.c.c.CreateKey(ctx, dk.c.ref.GetIdentity(), &dk.k)
+	apiObj, err := dk.c.c.CreateKey(ctx, fmt.Sprintf("%s/%s", dk.c.ref.GetIdentity(), dk.c.ref.GetRepository()), &dk.k)
 	if err != nil {
 		return err
 	}

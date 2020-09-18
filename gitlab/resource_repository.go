@@ -95,7 +95,7 @@ func (p *userProject) Update(ctx context.Context) error {
 //
 // The internal API object will be overridden with the received server data if actionTaken == true.
 func (p *userProject) Reconcile(ctx context.Context) (bool, error) {
-	apiObj, err := p.c.GetUserProject(ctx, p.ref.GetRepository())
+	apiObj, err := p.c.GetUserProject(ctx, fmt.Sprintf("%s/%s", p.ref.GetIdentity(), p.ref.GetRepository()))
 	if err != nil {
 		// Create if not found
 		if errors.Is(err, gitprovider.ErrNotFound) {
@@ -117,6 +117,9 @@ func (p *userProject) Reconcile(ctx context.Context) (bool, error) {
 	// Use wrappers here to extract the "spec" part of the object for comparison
 	desiredSpec := newGitlabProjectSpec(&p.p)
 	actualSpec := newGitlabProjectSpec(apiObj)
+	if actualSpec.DefaultBranch == "" {
+		actualSpec.DefaultBranch = "master"
+	}
 
 	// If desired state already is the actual state, do nothing
 	if desiredSpec.Equals(actualSpec) {
@@ -130,12 +133,7 @@ func (p *userProject) Reconcile(ctx context.Context) (bool, error) {
 //
 // ErrNotFound is returned if the resource doesn't exist anymore.
 func (p *userProject) Delete(ctx context.Context) error {
-	var projectID string
-	if p.p.Namespace != nil {
-		projectID = fmt.Sprintf("%s/%s", p.p.Namespace.Name, p.p.Name)
-	} else {
-		projectID = p.p.Name
-	}
+	projectID := fmt.Sprintf("%s/%s", p.ref.GetIdentity(), p.ref.GetRepository())
 	return p.c.DeleteProject(ctx, projectID)
 }
 
@@ -174,10 +172,6 @@ func (r *orgRepository) Reconcile(ctx context.Context) (bool, error) {
 	if err != nil {
 		// Create if not found
 		if errors.Is(err, gitprovider.ErrNotFound) {
-			// orgName := ""
-			// if orgRef, ok := p.ref.(gitprovider.OrgRepositoryRef); ok {
-			// 	orgName = orgRef.Organization
-			// }
 			project, err := r.c.CreateProject(ctx, &r.p)
 			if err != nil {
 				return true, err

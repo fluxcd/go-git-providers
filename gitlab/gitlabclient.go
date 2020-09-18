@@ -342,7 +342,11 @@ func (c *gitlabClientImpl) ListKeys(ctx context.Context, projectName string) ([]
 }
 
 func (c *gitlabClientImpl) CreateKey(ctx context.Context, projectName string, req *gitlab.DeployKey) (*gitlab.DeployKey, error) {
-	opts := &gitlab.AddDeployKeyOptions{}
+	opts := &gitlab.AddDeployKeyOptions{
+		Title:   &req.Title,
+		Key:     &req.Key,
+		CanPush: req.CanPush,
+	}
 	// POST /projects/{project}/deploy_keys
 	apiObj, _, err := c.c.DeployKeys.AddDeployKey(projectName, opts)
 	if err != nil {

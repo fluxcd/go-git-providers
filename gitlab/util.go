@@ -202,7 +202,6 @@ func handleHTTPError(err error) error {
 	if err == nil {
 		return nil
 	}
-	fmt.Println("error in handle HTTPError: ", err)
 	glErrorResponse := &gitlab.ErrorResponse{}
 	if errors.As(err, &glErrorResponse) {
 		httpErr := gitprovider.HTTPError{

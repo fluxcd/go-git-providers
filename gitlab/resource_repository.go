@@ -260,7 +260,6 @@ type gitlabProjectSpec struct {
 }
 
 func (s *gitlabProjectSpec) Equals(other *gitlabProjectSpec) bool {
-	fmt.Println(cmp.Diff(s, other))
 	return cmp.Equal(s, other)
 }
 

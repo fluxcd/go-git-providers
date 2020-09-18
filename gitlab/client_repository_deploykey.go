@@ -19,6 +19,7 @@ package gitlab
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/xanzy/go-gitlab"
@@ -36,18 +37,18 @@ type DeployKeyClient struct {
 // Get returns the repository at the given path.
 //
 // ErrNotFound is returned if the resource does not exist.
-func (c *DeployKeyClient) Get(ctx context.Context, name string) (gitprovider.DeployKey, error) {
-	return c.get(ctx, name)
+func (c *DeployKeyClient) Get(ctx context.Context, deployKeyName string) (gitprovider.DeployKey, error) {
+	return c.get(ctx, deployKeyName)
 }
 
-func (c *DeployKeyClient) get(ctx context.Context, name string) (*deployKey, error) {
+func (c *DeployKeyClient) get(ctx context.Context, deployKeyName string) (*deployKey, error) {
 	deployKeys, err := c.list(ctx)
 	if err != nil {
 		return nil, err
 	}
 	// Loop through deploy keys once we find one with the right name
 	for _, dk := range deployKeys {
-		if dk.k.Title == name {
+		if dk.k.Title == deployKeyName {
 			return dk, nil
 		}
 	}
@@ -73,7 +74,7 @@ func (c *DeployKeyClient) List(ctx context.Context) ([]gitprovider.DeployKey, er
 
 func (c *DeployKeyClient) list(ctx context.Context) ([]*deployKey, error) {
 	// GET /repos/{owner}/{repo}/keys
-	apiObjs, err := c.c.ListKeys(ctx, c.ref.GetIdentity())
+	apiObjs, err := c.c.ListKeys(ctx, fmt.Sprintf("%s/%s", c.ref.GetIdentity(), c.ref.GetRepository()))
 	if err != nil {
 		return nil, err
 	}
@@ -143,6 +144,6 @@ func createDeployKey(ctx context.Context, c gitlabClient, ref gitprovider.Reposi
 	if err := gitprovider.ValidateAndDefaultInfo(&req); err != nil {
 		return nil, err
 	}
-	// POST /repos/{owner}/{repo}/keys
-	return c.CreateKey(ctx, ref.GetIdentity(), deployKeyToAPI(&req))
+
+	return c.CreateKey(ctx, fmt.Sprintf("%s/%s", ref.GetIdentity(), ref.GetRepository()), deployKeyToAPI(&req))
 }

@@ -67,33 +67,19 @@ func (c *TeamsClient) Get(ctx context.Context, teamName string) (gitprovider.Tea
 // List returns all available organizations, using multiple paginated requests if needed.
 func (c *TeamsClient) List(ctx context.Context) ([]gitprovider.Team, error) {
 
-	apiObjs, err := c.c.ListGroups(ctx)
+	subgroups, err := c.c.ListSubgroups(ctx, c.ref.Organization)
 	if err != nil {
 		return nil, err
 	}
 
-	teams := make([]gitprovider.Team, 0, len(apiObjs))
-	for _, apiObj := range apiObjs {
-		members, err := c.c.ListGroupMembers(ctx, apiObj.Name)
+	teams := make([]gitprovider.Team, 0, len(subgroups))
+	for _, subgroup := range subgroups {
+		team, err := c.Get(ctx, subgroup.Name)
 		if err != nil {
 			return nil, err
 		}
 
-		logins := make([]string, 0, len(apiObjs))
-		for _, member := range members {
-			// Login is validated to be non-nil in ListOrgTeamMembers
-			logins = append(logins, member.Username)
-		}
-
-		newTeam := &team{
-			users: members,
-			info: gitprovider.TeamInfo{
-				Name:    apiObj.Name,
-				Members: logins,
-			},
-			ref: c.ref,
-		}
-		teams = append(teams, newTeam)
+		teams = append(teams, team)
 	}
 
 	return teams, nil

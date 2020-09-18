@@ -248,6 +248,48 @@ var _ = Describe("GitHub Provider", func() {
 		getSpec := newGithubRepositorySpec(getRepo.APIObject().(*github.Repository))
 		postSpec := newGithubRepositorySpec(repo.APIObject().(*github.Repository))
 		Expect(getSpec.Equals(postSpec)).To(BeTrue())
+
+		// User repo case
+		// Generate a repository name which doesn't exist already
+		testRepoName = fmt.Sprintf("test-repo-%03d", rand.Intn(1000))
+		for findRepo(repos, testRepoName) != nil {
+			testRepoName = fmt.Sprintf("test-repo-%03d", rand.Intn(1000))
+		}
+
+		// We know that a repo with this name doesn't exist in the organization, let's verify we get an
+		// ErrNotFound
+		userLogin := os.Getenv("GITHUB_TEST_USER")
+		if len(userLogin) == 0 {
+			Fail("please provide a $GITHUB_TEST_USER to run the user repository integration tests")
+		}
+		Expect(err).ToNot(HaveOccurred())
+
+		desc := "GGP integration test user repo"
+		userRepoRef := newUserRepoRef(githubDomain, userLogin, testRepoName)
+		userRepoInfo := gitprovider.RepositoryInfo{
+			Description: &desc,
+			Visibility: gitprovider.RepositoryVisibilityPrivate,
+		}
+
+		// Check that the repository doesn't exist
+		_, err = c.UserRepositories().Get(ctx, userRepoRef)
+		Expect(errors.Is(err, gitprovider.ErrNotFound)).To(BeTrue())
+
+		// Create it
+		userRepo, err := c.UserRepositories().Create(ctx, userRepoRef, userRepoInfo, &gitprovider.RepositoryCreateOptions{
+			AutoInit:        gitprovider.BoolVar(true),
+			LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateApache2),
+		})
+		Expect(err).ToNot(HaveOccurred())
+		Expect(userRepo.APIObject().(*github.Repository).Private).To(Equal(true))
+		validateRepo(userRepo, userRepoRef)
+
+		getUserRepo, err := c.UserRepositories().Get(ctx, userRepoRef)
+		Expect(err).ToNot(HaveOccurred())
+		// Expect the two responses (one from POST and one from GET to have equal "spec")
+		getSpec := newGithubRepositorySpec(getUserRepo.APIObject().(*github.Repository))
+		postSpec := newGithubRepositorySpec(userRepo.APIObject().(*github.Repository))
+		Expect(getSpec.Equals(postSpec)).To(BeTrue())
 	})
 
 	It("should error at creation time if the repo already does exist", func() {
@@ -331,6 +373,20 @@ func newOrgRepoRef(organizationName, repoName string) gitprovider.OrgRepositoryR
 	return gitprovider.OrgRepositoryRef{
 		OrganizationRef: newOrgRef(organizationName),
 		RepositoryName:  repoName,
+	}
+}
+
+func newUserRef(domain, userLogin string) {
+	return UserRef: gitprovider.UserRef{
+		Domain:    githubDomain,
+		UserLogin: userLogin,
+	}
+}
+
+func newUserRepoRef(domain, userLogin, repoName string) {
+	return gitprovider.UserRepositoryRef{
+		UserRef: newUserRef(domain, userLogin),
+		RepositoryName: repoName,
 	}
 }
 

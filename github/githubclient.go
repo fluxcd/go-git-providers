@@ -249,6 +249,10 @@ func (c *githubClientImpl) ListUserRepos(ctx context.Context, username string) (
 func (c *githubClientImpl) CreateRepo(ctx context.Context, orgName string, req *github.Repository) (*github.Repository, error) {
 	// POST /user/repos (if orgName == "")
 	// POST /orgs/{org}/repos (if orgName != "")
+	setPrivate := true
+	if *req.Visibility == "private" {
+		req.Private = &setPrivate
+	}
 	apiObj, _, err := c.c.Repositories.Create(ctx, orgName, req)
 	return validateRepositoryAPIResp(apiObj, err)
 }

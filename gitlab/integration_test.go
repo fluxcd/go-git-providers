@@ -44,6 +44,7 @@ const (
 	defaultDescription = "Foo description"
 	// TODO: This will change
 	defaultBranch = "master"
+	testUserName  = "dinosk"
 )
 
 var (
@@ -136,7 +137,7 @@ var _ = Describe("GitLab Provider", func() {
 	)
 
 	BeforeSuite(func() {
-		gitlabToken := "9ifPpQVzp7BNkGXAVzK7"
+		gitlabToken := os.Getenv("GITLAB_TOKEN")
 		if len(gitlabToken) == 0 {
 			b, err := ioutil.ReadFile(ghTokenFile)
 			if token := string(b); err == nil && len(token) != 0 {
@@ -170,8 +171,6 @@ var _ = Describe("GitLab Provider", func() {
 		// Make sure we find the expected one given as testOrgName
 		var listedOrg, getOrg gitprovider.Organization
 		for _, org := range orgs {
-			fmt.Println("Organization: ", org.Organization().Organization)
-			fmt.Printf("Equal to %s?: %v\n", testOrgName, org.Organization().Organization == testOrgName)
 			if org.Organization().Organization == testOrgName {
 				listedOrg = org
 				break
@@ -222,7 +221,7 @@ var _ = Describe("GitLab Provider", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	It("should be possible to create a repository", func() {
+	It("should be possible to create a group project", func() {
 		// First, check what repositories are available
 		repos, err := c.OrgRepositories().List(ctx, newOrgRef(testOrgName))
 		fmt.Println("repos at this point: ", repos)
@@ -230,7 +229,7 @@ var _ = Describe("GitLab Provider", func() {
 
 		// Generate a repository name which doesn't exist already
 		testRepoName = fmt.Sprintf("test-repo-%03d", rand.Intn(1000))
-		for findRepo(repos, testRepoName) != nil {
+		for findOrgRepo(repos, testRepoName) != nil {
 			testRepoName = fmt.Sprintf("test-repo-%03d", rand.Intn(1000))
 		}
 
@@ -251,9 +250,48 @@ var _ = Describe("GitLab Provider", func() {
 		})
 		Expect(err).ToNot(HaveOccurred())
 
-		validateRepo(repo, repoRef)
+		validateOrgRepo(repo, repoRef)
 
 		getRepo, err := c.OrgRepositories().Get(ctx, repoRef)
+		Expect(err).ToNot(HaveOccurred())
+		// Expect the two responses (one from POST and one from GET to have equal "spec")
+		getSpec := newGitlabProjectSpec(getRepo.APIObject().(*gitlab.Project))
+		postSpec := newGitlabProjectSpec(repo.APIObject().(*gitlab.Project))
+		Expect(getSpec.Equals(postSpec)).To(BeTrue())
+	})
+
+	It("should be possible to create a user project", func() {
+		// First, check what repositories are available
+		repos, err := c.UserRepositories().List(ctx, newUserRef(testUserName))
+		fmt.Println("user projects at this point: ", repos)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Generate a repository name which doesn't exist already
+		testRepoName = fmt.Sprintf("test-repo-%03d", rand.Intn(1000))
+		for findUserRepo(repos, testRepoName) != nil {
+			testRepoName = fmt.Sprintf("test-repo-%03d", rand.Intn(1000))
+		}
+
+		// We know that a repo with this name doesn't exist in the organization, let's verify we get an
+		// ErrNotFound
+		repoRef := newUserRepoRef(testUserName, testRepoName)
+		_, err = c.UserRepositories().Get(ctx, repoRef)
+		Expect(errors.Is(err, gitprovider.ErrNotFound)).To(BeTrue())
+
+		// Create a new repo
+		repo, err := c.UserRepositories().Create(ctx, repoRef, gitprovider.RepositoryInfo{
+			Description: gitprovider.StringVar(defaultDescription),
+			// Default visibility is private, no need to set this at least now
+			//Visibility:     gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
+		}, &gitprovider.RepositoryCreateOptions{
+			AutoInit:        gitprovider.BoolVar(true),
+			LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateApache2),
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		validateUserRepo(repo, repoRef)
+
+		getRepo, err := c.UserRepositories().Get(ctx, repoRef)
 		Expect(err).ToNot(HaveOccurred())
 		// Expect the two responses (one from POST and one from GET to have equal "spec")
 		getSpec := newGitlabProjectSpec(getRepo.APIObject().(*gitlab.Project))
@@ -307,15 +345,7 @@ var _ = Describe("GitLab Provider", func() {
 		// Expect the create to succeed, and have modified the state. Also validate the newRepo data
 		Expect(err).ToNot(HaveOccurred())
 		Expect(actionTaken).To(BeTrue())
-		validateRepo(newRepo, repoRef)
-
-		// Reconcile by setting an "internal" field and updating it
-		r := newRepo.APIObject().(*gitlab.Repository)
-		r.HTTPURL = "test-url"
-		actionTaken, err = newRepo.Reconcile(ctx)
-		// Expect the update to succeed, and modify the state
-		Expect(err).ToNot(HaveOccurred())
-		Expect(actionTaken).To(BeTrue())
+		validateOrgRepo(newRepo, repoRef)
 	})
 
 	AfterSuite(func() {
@@ -348,7 +378,21 @@ func newOrgRepoRef(organizationName, repoName string) gitprovider.OrgRepositoryR
 	}
 }
 
-func findRepo(repos []gitprovider.OrgRepository, name string) gitprovider.OrgRepository {
+func newUserRef(userLogin string) gitprovider.UserRef {
+	return gitprovider.UserRef{
+		Domain:    gitlabDomain,
+		UserLogin: userLogin,
+	}
+}
+
+func newUserRepoRef(userLogin, repoName string) gitprovider.UserRepositoryRef {
+	return gitprovider.UserRepositoryRef{
+		UserRef:        newUserRef(userLogin),
+		RepositoryName: repoName,
+	}
+}
+
+func findOrgRepo(repos []gitprovider.OrgRepository, name string) gitprovider.OrgRepository {
 	if name == "" {
 		return nil
 	}
@@ -360,7 +404,19 @@ func findRepo(repos []gitprovider.OrgRepository, name string) gitprovider.OrgRep
 	return nil
 }
 
-func validateRepo(repo gitprovider.OrgRepository, expectedRepoRef gitprovider.RepositoryRef) {
+func findUserRepo(repos []gitprovider.UserRepository, name string) gitprovider.UserRepository {
+	if name == "" {
+		return nil
+	}
+	for _, repo := range repos {
+		if repo.Repository().GetRepository() == name {
+			return repo
+		}
+	}
+	return nil
+}
+
+func validateOrgRepo(repo gitprovider.OrgRepository, expectedRepoRef gitprovider.RepositoryRef) {
 	info := repo.Get()
 	// Expect certain fields to be set
 	Expect(repo.Repository()).To(Equal(expectedRepoRef))
@@ -371,6 +427,22 @@ func validateRepo(repo gitprovider.OrgRepository, expectedRepoRef gitprovider.Re
 	internal := repo.APIObject().(*gitlab.Project)
 	Expect(repo.Repository().GetRepository()).To(Equal(internal.Name))
 	Expect(repo.Repository().GetIdentity()).To(Equal("GGPGroup"))
+	Expect(*info.Description).To(Equal(internal.Description))
+	Expect(string(*info.Visibility)).To(Equal(string(internal.Visibility)))
+	Expect(*info.DefaultBranch).To(Equal(internal.DefaultBranch))
+}
+
+func validateUserRepo(repo gitprovider.UserRepository, expectedRepoRef gitprovider.RepositoryRef) {
+	info := repo.Get()
+	// Expect certain fields to be set
+	Expect(repo.Repository()).To(Equal(expectedRepoRef))
+	Expect(*info.Description).To(Equal(defaultDescription))
+	Expect(*info.Visibility).To(Equal(gitprovider.RepositoryVisibilityPrivate))
+	Expect(*info.DefaultBranch).To(Equal(""))
+	// Expect high-level fields to match their underlying data
+	internal := repo.APIObject().(*gitlab.Project)
+	Expect(repo.Repository().GetRepository()).To(Equal(internal.Name))
+	Expect(repo.Repository().GetIdentity()).To(Equal(testUserName))
 	Expect(*info.Description).To(Equal(internal.Description))
 	Expect(string(*info.Visibility)).To(Equal(string(internal.Visibility)))
 	Expect(*info.DefaultBranch).To(Equal(internal.DefaultBranch))

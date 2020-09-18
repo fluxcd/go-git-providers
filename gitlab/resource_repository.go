@@ -20,9 +20,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"reflect"
 
-	"github.com/xanzy/go-gitlab"
+	"github.com/google/go-cmp/cmp"
 	gogitlab "github.com/xanzy/go-gitlab"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
@@ -96,7 +95,7 @@ func (p *userProject) Update(ctx context.Context) error {
 //
 // The internal API object will be overridden with the received server data if actionTaken == true.
 func (p *userProject) Reconcile(ctx context.Context) (bool, error) {
-	apiObj, err := p.c.GetUserProject(ctx, p.ref.GetIdentity())
+	apiObj, err := p.c.GetUserProject(ctx, p.ref.GetRepository())
 	if err != nil {
 		// Create if not found
 		if errors.Is(err, gitprovider.ErrNotFound) {
@@ -140,7 +139,7 @@ func (p *userProject) Delete(ctx context.Context) error {
 	return p.c.DeleteProject(ctx, projectID)
 }
 
-func newGroupProject(ctx *clientContext, apiObj *gitlab.Project, ref gitprovider.RepositoryRef) *orgRepository {
+func newGroupProject(ctx *clientContext, apiObj *gogitlab.Project, ref gitprovider.RepositoryRef) *orgRepository {
 	return &orgRepository{
 		userProject: *newUserProject(ctx, apiObj, ref),
 		teamAccess: &TeamAccessClient{
@@ -162,10 +161,53 @@ func (r *orgRepository) TeamAccess() gitprovider.TeamAccessClient {
 	return r.teamAccess
 }
 
+// Reconcile makes sure the desired state in this object (called "req" here) becomes
+// the actual state in the backing Git provider.
+//
+// If req doesn't exist under the hood, it is created (actionTaken == true).
+// If req doesn't equal the actual state, the resource will be updated (actionTaken == true).
+// If req is already the actual state, this is a no-op (actionTaken == false).
+//
+// The internal API object will be overridden with the received server data if actionTaken == true.
+func (r *orgRepository) Reconcile(ctx context.Context) (bool, error) {
+	apiObj, err := r.c.GetGroupProject(ctx, r.ref.GetIdentity(), r.ref.GetRepository())
+	if err != nil {
+		// Create if not found
+		if errors.Is(err, gitprovider.ErrNotFound) {
+			// orgName := ""
+			// if orgRef, ok := p.ref.(gitprovider.OrgRepositoryRef); ok {
+			// 	orgName = orgRef.Organization
+			// }
+			project, err := r.c.CreateProject(ctx, &r.p)
+			if err != nil {
+				return true, err
+			}
+			r.p = *project
+			return true, nil
+		}
+
+		return false, err
+	}
+
+	// Use wrappers here to extract the "spec" part of the object for comparison
+	desiredSpec := newGitlabProjectSpec(&r.p)
+	actualSpec := newGitlabProjectSpec(apiObj)
+	if actualSpec.DefaultBranch == "" {
+		actualSpec.DefaultBranch = "master"
+	}
+
+	// If desired state already is the actual state, do nothing
+	if desiredSpec.Equals(actualSpec) {
+		return false, nil
+	}
+	// Otherwise, make the desired state the actual state
+	return true, r.Update(ctx)
+}
+
 // validateRepositoryAPI validates the apiObj received from the server, to make sure that it is
 // valid for our use.
-func validateRepositoryAPI(apiObj *gitlab.Repository) error {
-	return validateAPIObject("GitLab.Repository", func(validator validation.Validator) {
+func validateRepositoryAPI(apiObj *gogitlab.Project) error {
+	return validateAPIObject("GitLab.Project", func(validator validation.Validator) {
 		// Make sure name is set
 		if apiObj.Name == "" {
 			validator.Required("Name")
@@ -173,7 +215,7 @@ func validateRepositoryAPI(apiObj *gitlab.Repository) error {
 	})
 }
 
-func repositoryFromAPI(apiObj *gitlab.Project) gitprovider.RepositoryInfo {
+func repositoryFromAPI(apiObj *gogitlab.Project) gitprovider.RepositoryInfo {
 	repo := gitprovider.RepositoryInfo{
 		Description:   &apiObj.Description,
 		DefaultBranch: &apiObj.DefaultBranch,
@@ -182,15 +224,15 @@ func repositoryFromAPI(apiObj *gitlab.Project) gitprovider.RepositoryInfo {
 	return repo
 }
 
-func repositoryToAPI(repo *gitprovider.RepositoryInfo, ref gitprovider.RepositoryRef) gitlab.Project {
-	apiObj := gitlab.Project{
+func repositoryToAPI(repo *gitprovider.RepositoryInfo, ref gitprovider.RepositoryRef) gogitlab.Project {
+	apiObj := gogitlab.Project{
 		Name: *gitprovider.StringVar(ref.GetRepository()),
 	}
 	repositoryInfoToAPIObj(repo, &apiObj)
 	return apiObj
 }
 
-func repositoryInfoToAPIObj(repo *gitprovider.RepositoryInfo, apiObj *gitlab.Project) {
+func repositoryInfoToAPIObj(repo *gitprovider.RepositoryInfo, apiObj *gogitlab.Project) {
 	if repo.Description != nil {
 		apiObj.Description = *repo.Description
 	}
@@ -204,34 +246,32 @@ func repositoryInfoToAPIObj(repo *gitprovider.RepositoryInfo, apiObj *gitlab.Pro
 
 // This function copies over the fields that are part of create/update requests of a project
 // i.e. the desired spec of the repository. This allows us to separate "spec" from "status" fields.
-func newGitlabProjectSpec(project *gitlab.Project) *gitlabProjectSpec {
+func newGitlabProjectSpec(project *gogitlab.Project) *gitlabProjectSpec {
 	return &gitlabProjectSpec{
-		&gitlab.Project{
+		&gogitlab.Project{
 			// Generic
 			Name:        project.Name,
+			Namespace:   project.Namespace,
 			Description: project.Description,
 			Visibility:  project.Visibility,
-			Archived:    project.Archived,
 
 			// Update-specific parameters
 			DefaultBranch: project.DefaultBranch,
-
-			// Generic
-			ApprovalsBeforeMerge: project.ApprovalsBeforeMerge,
 		},
 	}
 }
 
 type gitlabProjectSpec struct {
-	*gitlab.Project
+	*gogitlab.Project
 }
 
 func (s *gitlabProjectSpec) Equals(other *gitlabProjectSpec) bool {
-	return reflect.DeepEqual(s, other)
+	fmt.Println(cmp.Diff(s, other))
+	return cmp.Equal(s, other)
 }
 
-var gitlabVisibilityMap = map[gitprovider.RepositoryVisibility]gitlab.VisibilityValue{
-	gitprovider.RepositoryVisibilityInternal: gitlab.InternalVisibility,
-	gitprovider.RepositoryVisibilityPrivate:  gitlab.PrivateVisibility,
-	gitprovider.RepositoryVisibilityPublic:   gitlab.PublicVisibility,
+var gitlabVisibilityMap = map[gitprovider.RepositoryVisibility]gogitlab.VisibilityValue{
+	gitprovider.RepositoryVisibilityInternal: gogitlab.InternalVisibility,
+	gitprovider.RepositoryVisibilityPrivate:  gogitlab.PrivateVisibility,
+	gitprovider.RepositoryVisibilityPublic:   gogitlab.PublicVisibility,
 }

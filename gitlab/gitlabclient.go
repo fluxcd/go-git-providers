@@ -278,7 +278,8 @@ func (c *gitlabClientImpl) ListUserProjects(ctx context.Context, username string
 
 func (c *gitlabClientImpl) CreateProject(ctx context.Context, req *gitlab.Project) (*gitlab.Project, error) {
 	var namespaceID int
-	if req.Namespace != nil {
+	// If the project doesn't belong to a user set its namespace ID
+	if req.Namespace != nil && req.Namespace.Kind != "user" {
 		group, err := c.GetGroup(ctx, req.Namespace.Name)
 		if err != nil {
 			return nil, err
@@ -300,20 +301,12 @@ func (c *gitlabClientImpl) CreateProject(ctx context.Context, req *gitlab.Projec
 }
 
 func (c *gitlabClientImpl) UpdateProject(ctx context.Context, req *gitlab.Project) (*gitlab.Project, error) {
-	var projectID string
 	opts := &gitlab.EditProjectOptions{
-		Name: &req.Name,
-		Path: &req.Path,
-		// DefaultBranch: &req.DefaultBranch,
+		Name:        &req.Name,
 		Description: &req.Description,
 		Visibility:  &req.Visibility,
 	}
-	if req.Namespace != nil {
-		projectID = fmt.Sprintf("%s/%s", req.Namespace.Name, req.Name)
-	} else {
-		projectID = req.Name
-	}
-	apiObj, _, err := c.c.Projects.EditProject(projectID, opts, gitlab.WithContext(ctx))
+	apiObj, _, err := c.c.Projects.EditProject(req.ID, opts, gitlab.WithContext(ctx))
 	return validateProjectAPIResp(apiObj, err)
 }
 

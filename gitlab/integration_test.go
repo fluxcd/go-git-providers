@@ -260,52 +260,13 @@ var _ = Describe("GitLab Provider", func() {
 		Expect(getSpec.Equals(postSpec)).To(BeTrue())
 	})
 
-	It("should be possible to create a user project", func() {
-		// First, check what repositories are available
-		repos, err := c.UserRepositories().List(ctx, newUserRef(testUserName))
-		fmt.Println("user projects at this point: ", repos)
-		Expect(err).ToNot(HaveOccurred())
-
-		// Generate a repository name which doesn't exist already
-		testRepoName = fmt.Sprintf("test-repo-%03d", rand.Intn(1000))
-		for findUserRepo(repos, testRepoName) != nil {
-			testRepoName = fmt.Sprintf("test-repo-%03d", rand.Intn(1000))
-		}
-
-		// We know that a repo with this name doesn't exist in the organization, let's verify we get an
-		// ErrNotFound
-		repoRef := newUserRepoRef(testUserName, testRepoName)
-		_, err = c.UserRepositories().Get(ctx, repoRef)
-		Expect(errors.Is(err, gitprovider.ErrNotFound)).To(BeTrue())
-
-		// Create a new repo
-		repo, err := c.UserRepositories().Create(ctx, repoRef, gitprovider.RepositoryInfo{
-			Description: gitprovider.StringVar(defaultDescription),
-			// Default visibility is private, no need to set this at least now
-			//Visibility:     gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
-		}, &gitprovider.RepositoryCreateOptions{
-			AutoInit:        gitprovider.BoolVar(true),
-			LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateApache2),
-		})
-		Expect(err).ToNot(HaveOccurred())
-
-		validateUserRepo(repo, repoRef)
-
-		getRepo, err := c.UserRepositories().Get(ctx, repoRef)
-		Expect(err).ToNot(HaveOccurred())
-		// Expect the two responses (one from POST and one from GET to have equal "spec")
-		getSpec := newGitlabProjectSpec(getRepo.APIObject().(*gitlab.Project))
-		postSpec := newGitlabProjectSpec(repo.APIObject().(*gitlab.Project))
-		Expect(getSpec.Equals(postSpec)).To(BeTrue())
-	})
-
-	It("should error at creation time if the repo already does exist", func() {
+	It("should error at creation time if the org repo already does exist", func() {
 		repoRef := newOrgRepoRef(testOrgName, testRepoName)
 		_, err := c.OrgRepositories().Create(ctx, repoRef, gitprovider.RepositoryInfo{})
 		Expect(errors.Is(err, gitprovider.ErrAlreadyExists)).To(BeTrue())
 	})
 
-	It("should update if the repository already exists when reconciling", func() {
+	It("should update if the org repo already exists when reconciling", func() {
 		repoRef := newOrgRepoRef(testOrgName, testRepoName)
 		// No-op reconcile
 		resp, actionTaken, err := c.OrgRepositories().Reconcile(ctx, repoRef, gitprovider.RepositoryInfo{
@@ -346,6 +307,95 @@ var _ = Describe("GitLab Provider", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(actionTaken).To(BeTrue())
 		validateOrgRepo(newRepo, repoRef)
+	})
+
+	It("should be possible to create a user project", func() {
+		// First, check what repositories are available
+		repos, err := c.UserRepositories().List(ctx, newUserRef(testUserName))
+		fmt.Println("user projects at this point: ", repos)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Generate a repository name which doesn't exist already
+		testRepoName = fmt.Sprintf("test-repo-%03d", rand.Intn(1000))
+		for findUserRepo(repos, testRepoName) != nil {
+			testRepoName = fmt.Sprintf("test-repo-%03d", rand.Intn(1000))
+		}
+
+		// We know that a repo with this name doesn't exist in the organization, let's verify we get an
+		// ErrNotFound
+		repoRef := newUserRepoRef(testUserName, testRepoName)
+		_, err = c.UserRepositories().Get(ctx, repoRef)
+		Expect(errors.Is(err, gitprovider.ErrNotFound)).To(BeTrue())
+
+		// Create a new repo
+		repo, err := c.UserRepositories().Create(ctx, repoRef, gitprovider.RepositoryInfo{
+			Description: gitprovider.StringVar(defaultDescription),
+			// Default visibility is private, no need to set this at least now
+			//Visibility:     gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
+		}, &gitprovider.RepositoryCreateOptions{
+			AutoInit:        gitprovider.BoolVar(true),
+			LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateApache2),
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		validateUserRepo(repo, repoRef)
+
+		getRepo, err := c.UserRepositories().Get(ctx, repoRef)
+		Expect(err).ToNot(HaveOccurred())
+		// Expect the two responses (one from POST and one from GET to have equal "spec")
+		getSpec := newGitlabProjectSpec(getRepo.APIObject().(*gitlab.Project))
+		postSpec := newGitlabProjectSpec(repo.APIObject().(*gitlab.Project))
+		Expect(getSpec.Equals(postSpec)).To(BeTrue())
+	})
+
+	It("should error at creation time if the user repo already does exist", func() {
+		repoRef := newUserRepoRef(testUserName, testRepoName)
+		_, err := c.UserRepositories().Create(ctx, repoRef, gitprovider.RepositoryInfo{})
+		Expect(errors.Is(err, gitprovider.ErrAlreadyExists)).To(BeTrue())
+	})
+
+	It("should update if the user repo already exists when reconciling", func() {
+		repoRef := newUserRepoRef(testUserName, testRepoName)
+		// No-op reconcile
+		resp, actionTaken, err := c.UserRepositories().Reconcile(ctx, repoRef, gitprovider.RepositoryInfo{
+			Description:   gitprovider.StringVar(defaultDescription),
+			DefaultBranch: gitprovider.StringVar(defaultBranch),
+			Visibility:    gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
+		})
+		Expect(err).ToNot(HaveOccurred())
+		Expect(actionTaken).To(BeFalse())
+		// no-op set & reconcile
+		Expect(resp.Set(resp.Get())).ToNot(HaveOccurred())
+		actionTaken, err = resp.Reconcile(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(actionTaken).To(BeFalse())
+
+		// Update reconcile
+		newDesc := "New description"
+		req := resp.Get()
+		req.Description = gitprovider.StringVar(newDesc)
+		Expect(resp.Set(req)).ToNot(HaveOccurred())
+		actionTaken, err = resp.Reconcile(ctx)
+		// Expect the update to succeed, and modify the state
+		Expect(err).ToNot(HaveOccurred())
+		Expect(actionTaken).To(BeTrue())
+		Expect(*resp.Get().Description).To(Equal(newDesc))
+
+		// Delete the repository and later re-create
+		Expect(resp.Delete(ctx)).ToNot(HaveOccurred())
+
+		time.Sleep(10 * time.Second)
+		// Reconcile and create
+		newRepo, actionTaken, err := c.UserRepositories().Reconcile(ctx, repoRef, gitprovider.RepositoryInfo{
+			Description: gitprovider.StringVar(defaultDescription),
+		}, &gitprovider.RepositoryCreateOptions{
+			AutoInit:        gitprovider.BoolVar(true),
+			LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateMIT),
+		})
+		// Expect the create to succeed, and have modified the state. Also validate the newRepo data
+		Expect(err).ToNot(HaveOccurred())
+		Expect(actionTaken).To(BeTrue())
+		validateUserRepo(newRepo, repoRef)
 	})
 
 	AfterSuite(func() {

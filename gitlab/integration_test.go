@@ -309,6 +309,18 @@ var _ = Describe("GitLab Provider", func() {
 		validateOrgRepo(newRepo, repoRef)
 	})
 
+	It("should update teams with access and permissions when reconciling", func() {
+		// Get the test organization
+		orgRef := newOrgRef("GGPGroup")
+		testOrg, err := c.Organizations().Get(ctx, orgRef)
+		Expect(err).ToNot(HaveOccurred())
+
+		// List all the teams with access to the org
+		teams, err := testOrg.Teams().List(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		fmt.Println(teams)
+	})
+
 	It("should be possible to create a user project", func() {
 		// First, check what repositories are available
 		repos, err := c.UserRepositories().List(ctx, newUserRef(testUserName))

@@ -19,6 +19,7 @@ package gitlab
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/xanzy/go-gitlab"
@@ -169,7 +170,7 @@ func (c *gitlabClientImpl) ListSubgroups(ctx context.Context, groupName string) 
 
 func (c *gitlabClientImpl) GetGroupProject(ctx context.Context, groupName string, projectName string) (*gitlab.Project, error) {
 	opts := &gitlab.GetProjectOptions{}
-	apiObj, _, err := c.c.Projects.GetProject(fmt.Sprintf("%s/%s", groupName, projectName), opts, gitlab.WithContext(ctx))
+	apiObj, _, err := c.c.Projects.GetProject(fmt.Sprintf("%s/%s", strings.ToLower(groupName), projectName), opts, gitlab.WithContext(ctx))
 	return validateProjectAPIResp(apiObj, err)
 }
 
@@ -221,7 +222,7 @@ func (c *gitlabClientImpl) GetUserProject(ctx context.Context, projectName strin
 func validateProjectAPIResp(apiObj *gitlab.Project, err error) (*gitlab.Project, error) {
 	// If the response contained an error, return
 	if err != nil {
-		return nil, err
+		return nil, handleHTTPError(err)
 	}
 	// Make sure apiObj is valid
 	if err := validateProjectAPI(apiObj); err != nil {
@@ -276,14 +277,43 @@ func (c *gitlabClientImpl) ListUserProjects(ctx context.Context, username string
 }
 
 func (c *gitlabClientImpl) CreateProject(ctx context.Context, req *gitlab.Project) (*gitlab.Project, error) {
-	opts := &gitlab.CreateProjectOptions{}
+	var namespaceID int
+	if req.Namespace != nil {
+		group, err := c.GetGroup(ctx, req.Namespace.Name)
+		if err != nil {
+			return nil, err
+		}
+		namespaceID = group.ID
+	}
+	opts := &gitlab.CreateProjectOptions{
+		Name:          &req.Name,
+		DefaultBranch: &req.DefaultBranch,
+		Description:   &req.Description,
+		Visibility:    &req.Visibility,
+	}
+	if namespaceID != 0 {
+		opts.NamespaceID = &namespaceID
+	}
+
 	apiObj, _, err := c.c.Projects.CreateProject(opts, gitlab.WithContext(ctx))
 	return validateProjectAPIResp(apiObj, err)
 }
 
 func (c *gitlabClientImpl) UpdateProject(ctx context.Context, req *gitlab.Project) (*gitlab.Project, error) {
-	opts := &gitlab.EditProjectOptions{}
-	apiObj, _, err := c.c.Projects.EditProject(req.ID, opts, gitlab.WithContext(ctx))
+	var projectID string
+	opts := &gitlab.EditProjectOptions{
+		Name: &req.Name,
+		Path: &req.Path,
+		// DefaultBranch: &req.DefaultBranch,
+		Description: &req.Description,
+		Visibility:  &req.Visibility,
+	}
+	if req.Namespace != nil {
+		projectID = fmt.Sprintf("%s/%s", req.Namespace.Name, req.Name)
+	} else {
+		projectID = req.Name
+	}
+	apiObj, _, err := c.c.Projects.EditProject(projectID, opts, gitlab.WithContext(ctx))
 	return validateProjectAPIResp(apiObj, err)
 }
 

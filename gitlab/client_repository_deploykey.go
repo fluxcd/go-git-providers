@@ -74,7 +74,7 @@ func (c *DeployKeyClient) List(ctx context.Context) ([]gitprovider.DeployKey, er
 
 func (c *DeployKeyClient) list(ctx context.Context) ([]*deployKey, error) {
 	// GET /repos/{owner}/{repo}/keys
-	apiObjs, err := c.c.ListKeys(ctx, fmt.Sprintf("%s/%s", c.ref.GetIdentity(), c.ref.GetRepository()))
+	apiObjs, err := c.c.ListKeys(ctx, getRepoPath(c.ref))
 	if err != nil {
 		return nil, err
 	}

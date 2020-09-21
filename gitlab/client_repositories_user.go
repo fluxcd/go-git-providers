@@ -19,7 +19,6 @@ package gitlab
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
@@ -41,7 +40,7 @@ func (c *UserRepositoriesClient) Get(ctx context.Context, ref gitprovider.UserRe
 		return nil, err
 	}
 	// GET /repos/{owner}/{repo}
-	apiObj, err := c.c.GetUserProject(ctx, fmt.Sprintf("%s/%s", ref.GetIdentity(), ref.GetRepository()))
+	apiObj, err := c.c.GetUserProject(ctx, getRepoPath(ref))
 	if err != nil {
 		return nil, err
 	}

@@ -13,7 +13,12 @@ import (
 
 const (
 	alreadyExistsMagicString = "name: [has already been taken]"
+	alreadySharedWithGroup   = "already shared with this group"
 )
+
+func getRepoPath(ref gitprovider.RepositoryRef) string {
+	return fmt.Sprintf("%s/%s", ref.GetIdentity(), ref.GetRepository())
+}
 
 // allPages runs fn for each page, expecting a HTTP request to be made and returned during that call.
 // allPages expects that the data is saved in fn to an outer variable.

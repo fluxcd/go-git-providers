@@ -19,7 +19,6 @@ package gitlab
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
@@ -39,22 +38,26 @@ type TeamAccessClient struct {
 // Teams are sub-groups in GitLab.
 //
 // ErrNotFound is returned if the resource does not exist.
-func (c *TeamAccessClient) Get(ctx context.Context, groupName string) (gitprovider.TeamAccess, error) {
-	project, err := c.c.GetGroupProject(ctx, groupName, c.ref.GetIdentity())
+func (c *TeamAccessClient) Get(ctx context.Context, teamName string) (gitprovider.TeamAccess, error) {
+	// project, err := c.c.GetGroupProject(ctx, groupName, c.ref.GetRepository())
+	project, err := c.c.GetGroupProject(ctx, c.ref.GetIdentity(), c.ref.GetRepository())
+	if err != nil {
+		return nil, err
+	}
+
 	for _, group := range project.SharedWithGroups {
-		if group.GroupName == groupName {
+		if group.GroupName == teamName {
 			gitProviderPermission, err := getGitProviderPermission(group.GroupAccessLevel)
 			if err != nil {
 				return nil, err
 			}
 
 			return newTeamAccess(c, gitprovider.TeamAccessInfo{
-				Name:       groupName,
+				Name:       teamName,
 				Permission: gitProviderPermission,
 			}), nil
 		}
 	}
-	// permissionMap, err := c.c.GetTeamPermissions(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), name)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +69,7 @@ func (c *TeamAccessClient) Get(ctx context.Context, groupName string) (gitprovid
 // List returns all available team access lists, using multiple paginated requests if needed.
 func (c *TeamAccessClient) List(ctx context.Context) ([]gitprovider.TeamAccess, error) {
 	// List all teams, using pagination. This does not contain information about the members
-	project, err := c.c.GetUserProject(ctx, fmt.Sprintf("%s/%s", c.ref.GetIdentity(), c.ref.GetRepository()))
+	project, err := c.c.GetUserProject(ctx, getRepoPath(c.ref))
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +105,7 @@ func (c *TeamAccessClient) Create(ctx context.Context, req gitprovider.TeamAcces
 	}
 
 	gitlabPermission, err := getGitlabPermission(*req.Permission)
-	if err := c.c.ShareProject(ctx, fmt.Sprintf("%s/%s", c.ref.GetIdentity(), c.ref.GetRepository()), group.ID, gitlabPermission); err != nil {
+	if err := c.c.ShareProject(ctx, getRepoPath(c.ref), group.ID, gitlabPermission); err != nil {
 		return nil, err
 	}
 

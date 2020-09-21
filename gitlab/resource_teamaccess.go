@@ -19,7 +19,7 @@ package gitlab
 import (
 	"context"
 	"errors"
-	"fmt"
+	"strings"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
@@ -63,12 +63,27 @@ func (ta *teamAccess) Delete(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	return ta.c.c.UnshareProject(ctx, fmt.Sprintf("%s/%s", ta.c.ref.GetIdentity(), ta.c.ref.GetRepository()), group.ID)
+	return ta.c.c.UnshareProject(ctx, getRepoPath(ta.c.ref), group.ID)
 }
 
 func (ta *teamAccess) Update(ctx context.Context) error {
 	resp, err := ta.c.Create(ctx, ta.Get())
 	if err != nil {
+		if strings.Contains(err.Error(), alreadySharedWithGroup) {
+			group, err := ta.c.c.GetGroup(ctx, ta.Get().Name)
+			if err != nil {
+				return err
+			}
+			err = ta.c.c.UnshareProject(ctx, getRepoPath(ta.c.ref), group.ID)
+			if err != nil {
+				return err
+			}
+			err = ta.Update(ctx)
+			if err != nil {
+				return err
+			}
+			return nil
+		}
 		return err
 	}
 	return ta.Set(resp.Get())

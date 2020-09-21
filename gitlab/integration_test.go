@@ -131,13 +131,16 @@ var _ = Describe("GitLab Provider", func() {
 		ctx context.Context = context.Background()
 		c   gitprovider.Client
 
-		testRepoName string = "testrepo"
-		testOrgName  string = "GGPGroup"
-		testTeamName string = "GGPGroup2"
+		testSharedOrgRepoName string = "testsharedorgrepo"
+		testOrgRepoName       string = "testorgrepo"
+		testRepoName          string = "testrepo"
+		testOrgName           string = "GGPGroup"
+		testSubgroupName      string = "ggpsub"
+		testTeamName          string = "GGPGroup2"
 	)
 
 	BeforeSuite(func() {
-		gitlabToken := "9ifPpQVzp7BNkGXAVzK7"
+		gitlabToken := os.Getenv("GITLAB_TOKEN")
 		if len(gitlabToken) == 0 {
 			b, err := ioutil.ReadFile(ghTokenFile)
 			if token := string(b); err == nil && len(token) != 0 {
@@ -225,14 +228,14 @@ var _ = Describe("GitLab Provider", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		// Generate a repository name which doesn't exist already
-		testRepoName = fmt.Sprintf("test-repo-%03d", rand.Intn(1000))
-		for findOrgRepo(repos, testRepoName) != nil {
-			testRepoName = fmt.Sprintf("test-repo-%03d", rand.Intn(1000))
+		testOrgRepoName = fmt.Sprintf("test-org-repo-%03d", rand.Intn(1000))
+		for findOrgRepo(repos, testOrgRepoName) != nil {
+			testOrgRepoName = fmt.Sprintf("test-org-repo-%03d", rand.Intn(1000))
 		}
 
 		// We know that a repo with this name doesn't exist in the organization, let's verify we get an
 		// ErrNotFound
-		repoRef := newOrgRepoRef(testOrgName, testRepoName)
+		repoRef := newOrgRepoRef(testOrgName, testOrgRepoName)
 		_, err = c.OrgRepositories().Get(ctx, repoRef)
 		Expect(errors.Is(err, gitprovider.ErrNotFound)).To(BeTrue())
 
@@ -258,13 +261,13 @@ var _ = Describe("GitLab Provider", func() {
 	})
 
 	It("should error at creation time if the org repo already does exist", func() {
-		repoRef := newOrgRepoRef(testOrgName, testRepoName)
+		repoRef := newOrgRepoRef(testOrgName, testOrgRepoName)
 		_, err := c.OrgRepositories().Create(ctx, repoRef, gitprovider.RepositoryInfo{})
 		Expect(errors.Is(err, gitprovider.ErrAlreadyExists)).To(BeTrue())
 	})
 
 	It("should update if the org repo already exists when reconciling", func() {
-		repoRef := newOrgRepoRef(testOrgName, testRepoName)
+		repoRef := newOrgRepoRef(testOrgName, testOrgRepoName)
 		// No-op reconcile
 		resp, actionTaken, err := c.OrgRepositories().Reconcile(ctx, repoRef, gitprovider.RepositoryInfo{
 			Description:   gitprovider.StringVar(defaultDescription),
@@ -314,23 +317,24 @@ var _ = Describe("GitLab Provider", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		// List all the teams with access to the org
+		// There should be 1 existing subgroup already
 		teams, err := testOrg.Teams().List(ctx)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(len(teams)).To(Equal(0))
+		Expect(len(teams)).To(Equal(1))
 
 		// First, check what repositories are available
 		repos, err := c.OrgRepositories().List(ctx, newOrgRef(testOrgName))
 		Expect(err).ToNot(HaveOccurred())
 
 		// Generate an org repo name which doesn't exist already
-		testRepoName = fmt.Sprintf("test-repo-%03d", rand.Intn(1000))
-		for findOrgRepo(repos, testRepoName) != nil {
-			testRepoName = fmt.Sprintf("test-repo-%03d", rand.Intn(1000))
+		testSharedOrgRepoName = fmt.Sprintf("test-shared-org-repo-%03d", rand.Intn(1000))
+		for findOrgRepo(repos, testSharedOrgRepoName) != nil {
+			testSharedOrgRepoName = fmt.Sprintf("test-shared-org-repo-%03d", rand.Intn(1000))
 		}
 
 		// We know that a repo with this name doesn't exist in the organization, let's verify we get an
 		// ErrNotFound
-		repoRef := newOrgRepoRef(testOrgName, testRepoName)
+		repoRef := newOrgRepoRef(testOrgName, testSharedOrgRepoName)
 		_, err = c.OrgRepositories().Get(ctx, repoRef)
 		Expect(errors.Is(err, gitprovider.ErrNotFound)).To(BeTrue())
 
@@ -347,6 +351,11 @@ var _ = Describe("GitLab Provider", func() {
 
 		validateOrgRepo(repo, repoRef)
 
+		// No groups should have access to the repo at this point
+		projectTeams, err := repo.TeamAccess().List(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(len(projectTeams)).To(Equal(0))
+
 		// Add a team to the project
 		permission := gitprovider.RepositoryPermissionMaintain
 		_, err = repo.TeamAccess().Create(ctx, gitprovider.TeamAccessInfo{
@@ -356,16 +365,48 @@ var _ = Describe("GitLab Provider", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		// List all the teams with access to the project
-		projectTeams, err := repo.TeamAccess().List(ctx)
+		// Only
+		projectTeams, err = repo.TeamAccess().List(ctx)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(len(projectTeams)).To(Equal(1))
 		firstTeam := projectTeams[0]
 		Expect(firstTeam.Get().Name).To(Equal(testTeamName))
+
+		// Update the permission level and update
+		ta, err := repo.TeamAccess().Get(ctx, testTeamName)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Set permission level to Push and call Reconcile
+		pushPermission := gitprovider.RepositoryPermissionPush
+		pushTeamAccess := ta
+		pushTeamAccessInfo := pushTeamAccess.Get()
+		pushTeamAccessInfo.Permission = &pushPermission
+		ta.Set(pushTeamAccessInfo)
+		actionTaken, err := ta.Reconcile(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(actionTaken).To(Equal(true))
+
+		// Get the team access info again and verify it has been updated
+		updatedTA, err := repo.TeamAccess().Get(ctx, testTeamName)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(*updatedTA.Get().Permission).To(Equal(gitprovider.RepositoryPermissionPush))
+
+		// What happens if a group project is shared with a subgroup
+		_, err = repo.TeamAccess().Create(ctx, gitprovider.TeamAccessInfo{
+			Name:       fmt.Sprintf("%s/%s", testOrgName, testSubgroupName),
+			Permission: &pushPermission,
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		// See that the subgroup is listed
+		projectTeams, err = repo.TeamAccess().List(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(len(projectTeams)).To(Equal(2))
 	})
 
 	It("should create, delete and reconcile deploy keys", func() {
 		testDeployKeyName := "test-deploy-key"
-		repoRef := newOrgRepoRef(testOrgName, testRepoName)
+		repoRef := newOrgRepoRef(testOrgName, testSharedOrgRepoName)
 
 		orgRepo, err := c.OrgRepositories().Get(ctx, repoRef)
 		Expect(err).ToNot(HaveOccurred())
@@ -378,7 +419,7 @@ var _ = Describe("GitLab Provider", func() {
 		readOnly := false
 		testDeployKeyInfo := gitprovider.DeployKeyInfo{
 			Name:     testDeployKeyName,
-			Key:      []byte("ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDLbHBknQQaricl2/O9DfgizMyUh/lhYwXk9GrBY9Ow9fFHy+lIiRBiS8H4rjvP2YkECrWWSbcevTKe+yk7PsU98RZiPL9S2+d2ENo3uQ2Rp6xnKY+XtvJnSvpLnABz/mGDPgvcLxXvPj2rAGu35u08DZ1WufU7hzgiWuLM3TH/albVcadw5ZflOAXalMmUhinB9m/O71DWyaP33pIqZBGCc8IBMcUHOL72NkNcpatXvCALltApJVUPZIvQUnrmUOglQMklaCeeWn6B269UI9kH9TjhGbbIvHpPZ7Ky9RTklZTeINLZW5Yql/leA/vJGcIipyXQkDPs7RSwtpmp5kat dinos@dinos-desktop"),
+			Key:      []byte("ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDLbHBknQQaasdl2/O9DfgizMyUh/lhYwXk9GrBY9Ow9fFHy+lIiRBiS8H4rjvP2YkECrWWSbcevTKe+yk7PsU98RZiPL9S2+d2ENo3uQ2Rp6xnKY+XtvJnSvpLnABz/mGDPgvcLxXvPj2rAGu35u08DZ1WufU7hzgiWuLM3TH/albVcadw5ZflOAXalMmUhinB9m/O71DWyaP33pIqZBGCc8IBMcUHOL72NkNcpatXvCALltApJVUPZIvQUnrmUOglQMklaCeeWn6B269UI9kH9TjhGbbIvHpPZ7Ky9RTklZTeINLZW5Yql/leA/vJGcIipyXQkDPs7RSwtpmp5kat dinos@dinos-desktop"),
 			ReadOnly: &readOnly,
 		}
 		_, err = orgRepo.DeployKeys().Create(ctx, testDeployKeyInfo)
@@ -405,7 +446,7 @@ var _ = Describe("GitLab Provider", func() {
 		title := "new-title"
 		req := getKey.Get()
 		req.Name = title
-		req.Key = []byte("ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCxjjHV91pRmqTaWPJnvZmvTPZPpHmIYocY1kmYFeOOL6/ofdvYb1sxNwsccOJEeLGJjp6FGe4BWNQSqDUCeO3EVU8A7ZTnd9eizB8nYDGoACbmG2GfMmtAdxKfsPE/lNRzAOFmHAHrzOnL6zk5SMPe0Y2poW1Z5w+If5r62WwfqG2/ujUA7BU3Vf/arFIYJvXvuEOJMP3QbezWL0b22Wmedu8esKrOYcak80I6Ti8qiof8ly1JZa58ezHJVvcEWZGSKU4G53jmDz7ky4GGb9DRo+LqOaU1qetdJX1GiCRNnhvz8DsxGcL77BJPE7HPBct44lN1TZCeIOG00Hai4bDp dinos@dinos-desktop")
+		req.Key = []byte("ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCasdHV91pRmqTaWPJnvZmvTPZPpHmIYocY1kmYFeOOL6/ofdvYb1sxNwsccOJEeLGJjp6FGe4BWNQSqDUCeO3EVU8A7ZTnd9eizB8nYDGoACbmG2GfMmtAdxKfsPE/lNRzAOFmHAHrzOnL6zk5SMPe0Y2poW1Z5w+If5r62WwfqG2/ujUA7BU3Vf/arFIYJvXvuEOJMP3QbezWL0b22Wmedu8esKrOYcak80I6Ti8qiof8ly1JZa58ezHJVvcEWZGSKU4G53jmDz7ky4GGb9DRo+LqOaU1qetdJX1GiCRNnhvz8DsxGcL77BJPE7HPBct44lN1TZCeIOG00Hai4bDp dinos@dinos-desktop")
 		Expect(getKey.Set(req)).ToNot(HaveOccurred())
 		actionTaken, err = getKey.Reconcile(ctx)
 		// Expect the update to succeed, and modify the state
@@ -519,8 +560,29 @@ var _ = Describe("GitLab Provider", func() {
 			return
 		}
 		// Delete the test repo used
-		repoRef := newOrgRepoRef(testOrgName, testRepoName)
-		repo, err := c.OrgRepositories().Get(ctx, repoRef)
+		fmt.Println("Deleting the user repo: ", testRepoName)
+		repoRef := newUserRepoRef(testUserName, testRepoName)
+		repo, err := c.UserRepositories().Get(ctx, repoRef)
+		if errors.Is(err, gitprovider.ErrNotFound) {
+			return
+		}
+		Expect(err).ToNot(HaveOccurred())
+		Expect(repo.Delete(ctx)).ToNot(HaveOccurred())
+
+		// Delete the test org repo used
+		fmt.Println("Deleting the org repo: ", testOrgRepoName)
+		orgRepoRef := newOrgRepoRef(testOrgName, testOrgRepoName)
+		repo, err = c.OrgRepositories().Get(ctx, orgRepoRef)
+		if errors.Is(err, gitprovider.ErrNotFound) {
+			return
+		}
+		Expect(err).ToNot(HaveOccurred())
+		Expect(repo.Delete(ctx)).ToNot(HaveOccurred())
+
+		// Delete the test shared org repo used
+		fmt.Println("Deleting the shared org repo: ", testSharedOrgRepoName)
+		sharedOrgRepoRef := newOrgRepoRef(testOrgName, testSharedOrgRepoName)
+		repo, err = c.OrgRepositories().Get(ctx, sharedOrgRepoRef)
 		if errors.Is(err, gitprovider.ErrNotFound) {
 			return
 		}

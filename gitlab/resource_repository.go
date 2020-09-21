@@ -19,7 +19,6 @@ package gitlab
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/google/go-cmp/cmp"
 	gogitlab "github.com/xanzy/go-gitlab"
@@ -95,7 +94,7 @@ func (p *userProject) Update(ctx context.Context) error {
 //
 // The internal API object will be overridden with the received server data if actionTaken == true.
 func (p *userProject) Reconcile(ctx context.Context) (bool, error) {
-	apiObj, err := p.c.GetUserProject(ctx, fmt.Sprintf("%s/%s", p.ref.GetIdentity(), p.ref.GetRepository()))
+	apiObj, err := p.c.GetUserProject(ctx, getRepoPath(p.ref))
 	if err != nil {
 		// Create if not found
 		if errors.Is(err, gitprovider.ErrNotFound) {
@@ -133,8 +132,7 @@ func (p *userProject) Reconcile(ctx context.Context) (bool, error) {
 //
 // ErrNotFound is returned if the resource doesn't exist anymore.
 func (p *userProject) Delete(ctx context.Context) error {
-	projectID := fmt.Sprintf("%s/%s", p.ref.GetIdentity(), p.ref.GetRepository())
-	return p.c.DeleteProject(ctx, projectID)
+	return p.c.DeleteProject(ctx, getRepoPath(p.ref))
 }
 
 func newGroupProject(ctx *clientContext, apiObj *gogitlab.Project, ref gitprovider.RepositoryRef) *orgRepository {

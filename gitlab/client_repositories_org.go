@@ -114,10 +114,6 @@ func (c *OrgRepositoriesClient) Reconcile(ctx context.Context, ref gitprovider.O
 		// Unexpected path, Get should succeed or return NotFound
 		return nil, false, err
 	}
-	// Run generic reconciliation
-	if *actual.Get().DefaultBranch == "" {
-		*actual.Get().DefaultBranch = "master"
-	}
 	actionTaken, err := reconcileRepository(ctx, actual, req)
 	return actual, actionTaken, err
 }

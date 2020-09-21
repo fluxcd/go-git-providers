@@ -180,16 +180,17 @@ func deployKeyInfoToAPIObj(info *gitprovider.DeployKeyInfo, apiObj *gitlab.Deplo
 // i.e. the desired spec of the deploy key. This allows us to separate "spec" from "status" fields.
 func newGitlabKeySpec(key *gitlab.DeployKey) *gitlabKeySpec {
 	return &gitlabKeySpec{
-		&gitlab.Key{
+		&gitlab.DeployKey{
 			// Create-specific parameters
-			Title: key.Title,
-			Key:   key.Key,
+			Title:   key.Title,
+			Key:     key.Key,
+			CanPush: key.CanPush,
 		},
 	}
 }
 
 type gitlabKeySpec struct {
-	*gitlab.Key
+	*gitlab.DeployKey
 }
 
 func (s *gitlabKeySpec) Equals(other *gitlabKeySpec) bool {

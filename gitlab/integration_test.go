@@ -156,7 +156,7 @@ var _ = Describe("GitLab Provider", func() {
 		var err error
 		c, err = NewClientFromPAT(
 			gitlabToken,
-			WithOAuth2Token(gitlabToken),
+			WithDomain(gitlabDomain),
 			WithDestructiveAPICalls(true),
 			WithConditionalRequests(true),
 			WithPreChainTransportHook(customTransportFactory),

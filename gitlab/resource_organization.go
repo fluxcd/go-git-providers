@@ -73,5 +73,8 @@ func organizationFromAPI(apiObj *gitlab.Group) gitprovider.OrganizationInfo {
 // valid for our use.
 func validateGroupAPI(apiObj *gitlab.Group) error {
 	return validateAPIObject("GitLab.Group", func(validator validation.Validator) {
+		if apiObj.Path == "" {
+			validator.Required("Path")
+		}
 	})
 }

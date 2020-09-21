@@ -43,7 +43,7 @@ const (
 
 	defaultDescription = "Foo description"
 	// TODO: This will change
-	defaultBranch = "master"
+	defaultBranch = masterBranchName
 	testUserName  = "dinosk"
 )
 
@@ -649,7 +649,7 @@ func validateOrgRepo(repo gitprovider.OrgRepository, expectedRepoRef gitprovider
 	Expect(repo.Repository()).To(Equal(expectedRepoRef))
 	Expect(*info.Description).To(Equal(defaultDescription))
 	Expect(*info.Visibility).To(Equal(gitprovider.RepositoryVisibilityPrivate))
-	Expect(*info.DefaultBranch).To(Equal(""))
+	Expect(*info.DefaultBranch).To(Equal(masterBranchName))
 	// Expect high-level fields to match their underlying data
 	internal := repo.APIObject().(*gitlab.Project)
 	Expect(repo.Repository().GetRepository()).To(Equal(internal.Name))
@@ -665,7 +665,7 @@ func validateUserRepo(repo gitprovider.UserRepository, expectedRepoRef gitprovid
 	Expect(repo.Repository()).To(Equal(expectedRepoRef))
 	Expect(*info.Description).To(Equal(defaultDescription))
 	Expect(*info.Visibility).To(Equal(gitprovider.RepositoryVisibilityPrivate))
-	Expect(*info.DefaultBranch).To(Equal(""))
+	Expect(*info.DefaultBranch).To(Equal(masterBranchName))
 	// Expect high-level fields to match their underlying data
 	internal := repo.APIObject().(*gitlab.Project)
 	Expect(repo.Repository().GetRepository()).To(Equal(internal.Name))

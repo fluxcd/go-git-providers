@@ -14,6 +14,7 @@ import (
 const (
 	alreadyExistsMagicString = "name: [has already been taken]"
 	alreadySharedWithGroup   = "already shared with this group"
+	masterBranchName         = "master"
 )
 
 func getRepoPath(ref gitprovider.RepositoryRef) string {
@@ -169,6 +170,10 @@ func validateProjectAPI(apiObj *gitlab.Project) error {
 		if apiObj.Visibility != "" {
 			v := gitprovider.RepositoryVisibility(apiObj.Visibility)
 			validator.Append(gitprovider.ValidateRepositoryVisibility(v), v, "Visibility")
+		}
+		// Set default branch to master if unset
+		if apiObj.DefaultBranch == "" {
+			apiObj.DefaultBranch = masterBranchName
 		}
 	})
 }

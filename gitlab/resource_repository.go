@@ -24,7 +24,6 @@ import (
 	gogitlab "github.com/xanzy/go-gitlab"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/fluxcd/go-git-providers/validation"
 )
 
 func newUserProject(ctx *clientContext, apiObj *gogitlab.Project, ref gitprovider.RepositoryRef) *userProject {
@@ -116,9 +115,6 @@ func (p *userProject) Reconcile(ctx context.Context) (bool, error) {
 	// Use wrappers here to extract the "spec" part of the object for comparison
 	desiredSpec := newGitlabProjectSpec(&p.p)
 	actualSpec := newGitlabProjectSpec(apiObj)
-	if actualSpec.DefaultBranch == "" {
-		actualSpec.DefaultBranch = "master"
-	}
 
 	// If desired state already is the actual state, do nothing
 	if desiredSpec.Equals(actualSpec) {
@@ -184,9 +180,6 @@ func (r *orgRepository) Reconcile(ctx context.Context) (bool, error) {
 	// Use wrappers here to extract the "spec" part of the object for comparison
 	desiredSpec := newGitlabProjectSpec(&r.p)
 	actualSpec := newGitlabProjectSpec(apiObj)
-	if actualSpec.DefaultBranch == "" {
-		actualSpec.DefaultBranch = "master"
-	}
 
 	// If desired state already is the actual state, do nothing
 	if desiredSpec.Equals(actualSpec) {
@@ -194,17 +187,6 @@ func (r *orgRepository) Reconcile(ctx context.Context) (bool, error) {
 	}
 	// Otherwise, make the desired state the actual state
 	return true, r.Update(ctx)
-}
-
-// validateRepositoryAPI validates the apiObj received from the server, to make sure that it is
-// valid for our use.
-func validateRepositoryAPI(apiObj *gogitlab.Project) error {
-	return validateAPIObject("GitLab.Project", func(validator validation.Validator) {
-		// Make sure name is set
-		if apiObj.Name == "" {
-			validator.Required("Name")
-		}
-	})
 }
 
 func repositoryFromAPI(apiObj *gogitlab.Project) gitprovider.RepositoryInfo {
@@ -261,6 +243,7 @@ func (s *gitlabProjectSpec) Equals(other *gitlabProjectSpec) bool {
 	return cmp.Equal(s, other)
 }
 
+//nolint:gochecknoglobals,gomnd
 var gitlabVisibilityMap = map[gitprovider.RepositoryVisibility]gogitlab.VisibilityValue{
 	gitprovider.RepositoryVisibilityInternal: gogitlab.InternalVisibility,
 	gitprovider.RepositoryVisibilityPrivate:  gogitlab.PrivateVisibility,

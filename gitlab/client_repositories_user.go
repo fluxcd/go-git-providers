@@ -118,10 +118,6 @@ func (c *UserRepositoriesClient) Reconcile(ctx context.Context, ref gitprovider.
 		return nil, false, err
 	}
 
-	// Run generic reconciliation
-	if *actual.Get().DefaultBranch == "" {
-		*actual.Get().DefaultBranch = "master"
-	}
 	actionTaken, err := reconcileRepository(ctx, actual, req)
 	return actual, actionTaken, err
 }

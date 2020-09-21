@@ -34,7 +34,6 @@ import (
 	"github.com/xanzy/go-gitlab"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/fluxcd/go-git-providers/gitprovider/cache"
 )
 
 const (
@@ -159,8 +158,8 @@ var _ = Describe("GitLab Provider", func() {
 			gitlabToken,
 			WithOAuth2Token(gitlabToken),
 			WithDestructiveAPICalls(true),
+			WithConditionalRequests(true),
 			WithPreChainTransportHook(customTransportFactory),
-			WithPostChainTransportHook(cache.NewHTTPCacheTransport),
 		)
 		Expect(err).ToNot(HaveOccurred())
 	})

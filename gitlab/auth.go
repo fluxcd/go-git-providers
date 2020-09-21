@@ -21,6 +21,7 @@ import (
 	"net/http"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
+	"github.com/fluxcd/go-git-providers/gitprovider/cache"
 	gogitlab "github.com/xanzy/go-gitlab"
 	"golang.org/x/oauth2"
 )
@@ -44,6 +45,9 @@ type clientOptions struct {
 
 	// AuthTransport is a ChainableRoundTripperFunc adding authentication credentials to the transport chain.
 	AuthTransport gitprovider.ChainableRoundTripperFunc
+
+	// EnableConditionalRequests will be set if conditional requests should be used.
+	EnableConditionalRequests *bool
 }
 
 // ApplyToGitlabClientOptions implements ClientOption, and applies the set fields of opts
@@ -61,6 +65,14 @@ func (opts *clientOptions) ApplyToGitlabClientOptions(target *clientOptions) err
 		}
 		target.AuthTransport = opts.AuthTransport
 	}
+
+	if opts.EnableConditionalRequests != nil {
+		// Make sure the user didn't specify the EnableConditionalRequests twice
+		if target.EnableConditionalRequests != nil {
+			return fmt.Errorf("option EnableConditionalRequests already configured: %w", gitprovider.ErrInvalidClientOptions)
+		}
+		target.EnableConditionalRequests = opts.EnableConditionalRequests
+	}
 	return nil
 }
 
@@ -72,6 +84,11 @@ func (opts *clientOptions) getTransportChain() (chain []gitprovider.ChainableRou
 	}
 	if opts.AuthTransport != nil {
 		chain = append(chain, opts.AuthTransport)
+	}
+	if opts.EnableConditionalRequests != nil && *opts.EnableConditionalRequests {
+		// TODO: Provide some kind of debug logging if/when the httpcache is used
+		// One can see if the request hit the cache using: resp.Header[httpcache.XFromCache]
+		chain = append(chain, cache.NewHTTPCacheTransport)
 	}
 	if opts.PreChainTransportHook != nil {
 		chain = append(chain, opts.PreChainTransportHook)
@@ -158,6 +175,13 @@ func oauth2Transport(oauth2Token string) gitprovider.ChainableRoundTripperFunc {
 			Source: oauth2.ReuseTokenSource(nil, ts),
 		}
 	}
+}
+
+// WithConditionalRequests instructs the client to use Conditional Requests to GitHub, asking GitHub
+// whether a resource has changed (without burning your quota), and using an in-memory cached "database"
+// if so. See: https://developer.github.com/v3/#conditional-requests for more information.
+func WithConditionalRequests(conditionalRequests bool) ClientOption {
+	return &clientOptions{EnableConditionalRequests: &conditionalRequests}
 }
 
 // makeOptions assembles a clientOptions struct from ClientOption mutator functions.

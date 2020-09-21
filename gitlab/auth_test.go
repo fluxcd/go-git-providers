@@ -151,6 +151,26 @@ func Test_makeOptions(t *testing.T) {
 			opts:         []ClientOption{WithPostChainTransportHook(nil)},
 			expectedErrs: []error{gitprovider.ErrInvalidClientOptions},
 		},
+		{
+			name: "WithOAuth2Token",
+			opts: []ClientOption{WithOAuth2Token("foo")},
+			want: &clientOptions{AuthTransport: oauth2Transport("foo")},
+		},
+		{
+			name:         "WithOAuth2Token, empty",
+			opts:         []ClientOption{WithOAuth2Token("")},
+			expectedErrs: []error{gitprovider.ErrInvalidClientOptions},
+		},
+		{
+			name: "WithConditionalRequests",
+			opts: []ClientOption{WithConditionalRequests(true)},
+			want: &clientOptions{EnableConditionalRequests: gitprovider.BoolVar(true)},
+		},
+		{
+			name:         "WithConditionalRequests, exclusive",
+			opts:         []ClientOption{WithConditionalRequests(true), WithConditionalRequests(false)},
+			expectedErrs: []error{gitprovider.ErrInvalidClientOptions},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

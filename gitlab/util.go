@@ -29,7 +29,7 @@ func allGroupPages(opts *gitlab.ListGroupsOptions, fn func() (*gitlab.Response, 
 	for {
 		resp, err := fn()
 		if err != nil {
-			return err
+			return handleHTTPError(err)
 		}
 		if resp.NextPage == 0 {
 			return nil

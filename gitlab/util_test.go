@@ -95,23 +95,23 @@ func Test_allGroupPages(t *testing.T) {
 			},
 			expectedCalls: 2,
 		},
-		// {
-		// 	name: "four pages, error at second",
-		// 	opts: &gitlab.ListGroupsOptions{},
-		// 	fn: func(i int) (*gitlab.Response, error) {
-		// 		switch i {
-		// 		case 1:
-		// 			return &gitlab.Response{NextPage: 2}, nil
-		// 		case 2:
-		// 			return nil, newGLError()
-		// 		case 3:
-		// 			return &gitlab.Response{NextPage: 4}, nil
-		// 		}
-		// 		return &gitlab.Response{NextPage: 0}, nil
-		// 	},
-		// 	expectedCalls: 2,
-		// 	expectedErrs:  []error{&validation.MultiError{}, gitprovider.ErrNotFound, newGLError()},
-		// },
+		{
+			name: "four pages, error at second",
+			opts: &gitlab.ListGroupsOptions{},
+			fn: func(i int) (*gitlab.Response, error) {
+				switch i {
+				case 1:
+					return &gitlab.Response{NextPage: 2}, nil
+				case 2:
+					return nil, newGLError()
+				case 3:
+					return &gitlab.Response{NextPage: 4}, nil
+				}
+				return &gitlab.Response{NextPage: 0}, nil
+			},
+			expectedCalls: 2,
+			expectedErrs:  []error{&validation.MultiError{}, gitprovider.ErrNotFound, newGLError()},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

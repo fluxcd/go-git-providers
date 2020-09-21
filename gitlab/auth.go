@@ -195,8 +195,8 @@ func makeOptions(opts ...ClientOption) (*clientOptions, error) {
 	return o, nil
 }
 
-// NewClientFromPAT creates a new gitlab.Client instance for GitLab API endpoints.
-func NewClientFromPAT(personalAccessToken string, optFns ...ClientOption) (gitprovider.Client, error) {
+// NewClient creates a new gitlab.Client instance for GitLab API endpoints.
+func NewClient(token string, tokenType string, optFns ...ClientOption) (gitprovider.Client, error) {
 	var gl *gogitlab.Client
 	var domain, sshDomain string
 
@@ -212,99 +212,35 @@ func NewClientFromPAT(personalAccessToken string, optFns ...ClientOption) (gitpr
 		return nil, err
 	}
 
-	if opts.Domain == nil || *opts.Domain == DefaultDomain {
-		// No domain set or the default gitlab.com used
-		domain = DefaultDomain
-		gl, err = gogitlab.NewClient(personalAccessToken, gogitlab.WithHTTPClient(httpClient))
-		if err != nil {
-			return nil, err
+	if tokenType == "oauth2" {
+		if opts.Domain == nil || *opts.Domain == DefaultDomain {
+			// No domain set or the default gitlab.com used
+			domain = DefaultDomain
+			gl, err = gogitlab.NewOAuthClient(token, gogitlab.WithHTTPClient(httpClient))
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			domain = *opts.Domain
+			gl, err = gogitlab.NewOAuthClient(token, gogitlab.WithHTTPClient(httpClient), gogitlab.WithBaseURL(domain))
+			if err != nil {
+				return nil, err
+			}
 		}
 	} else {
-		domain = *opts.Domain
-		gl, err = gogitlab.NewClient(personalAccessToken, gogitlab.WithHTTPClient(httpClient), gogitlab.WithBaseURL(domain))
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// By default, turn destructive actions off. But allow overrides.
-	destructiveActions := false
-	if opts.EnableDestructiveAPICalls != nil {
-		destructiveActions = *opts.EnableDestructiveAPICalls
-	}
-	return newClient(gl, domain, sshDomain, destructiveActions), nil
-}
-
-// NewClientFromUsernamePassword creates a new gitlab.Client instance for GitLab API endpoints.
-func NewClientFromUsernamePassword(username string, password string, optFns ...ClientOption) (gitprovider.Client, error) {
-	var gl *gogitlab.Client
-	var domain, sshDomain string
-
-	// Complete the options struct
-	opts, err := makeOptions(optFns...)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create a *http.Client using the transport chain
-	httpClient, err := gitprovider.BuildClientFromTransportChain(opts.getTransportChain())
-	if err != nil {
-		return nil, err
-	}
-
-	if opts.Domain == nil || *opts.Domain == DefaultDomain {
-		// No domain set or the default gitlab.com used
-		domain = DefaultDomain
-		gl, err = gogitlab.NewBasicAuthClient(username, password, gogitlab.WithHTTPClient(httpClient))
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		domain = *opts.Domain
-		gl, err = gogitlab.NewBasicAuthClient(username, password, gogitlab.WithHTTPClient(httpClient), gogitlab.WithBaseURL(domain))
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// By default, turn destructive actions off. But allow overrides.
-	destructiveActions := false
-	if opts.EnableDestructiveAPICalls != nil {
-		destructiveActions = *opts.EnableDestructiveAPICalls
-	}
-
-	return newClient(gl, domain, sshDomain, destructiveActions), nil
-}
-
-// NewClientFromOAuthToken creates a new gitlab.Client instance for GitLab API endpoints.
-func NewClientFromOAuthToken(oauthAccessToken string, optFns ...ClientOption) (gitprovider.Client, error) {
-	var gl *gogitlab.Client
-	var domain, sshDomain string
-
-	// Complete the options struct
-	opts, err := makeOptions(optFns...)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create a *http.Client using the transport chain
-	httpClient, err := gitprovider.BuildClientFromTransportChain(opts.getTransportChain())
-	if err != nil {
-		return nil, err
-	}
-
-	if opts.Domain == nil || *opts.Domain == DefaultDomain {
-		// No domain set or the default gitlab.com used
-		domain = DefaultDomain
-		gl, err = gogitlab.NewOAuthClient(oauthAccessToken, gogitlab.WithHTTPClient(httpClient))
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		domain = *opts.Domain
-		gl, err = gogitlab.NewOAuthClient(oauthAccessToken, gogitlab.WithHTTPClient(httpClient), gogitlab.WithBaseURL(domain))
-		if err != nil {
-			return nil, err
+		if opts.Domain == nil || *opts.Domain == DefaultDomain {
+			// No domain set or the default gitlab.com used
+			domain = DefaultDomain
+			gl, err = gogitlab.NewClient(token, gogitlab.WithHTTPClient(httpClient))
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			domain = *opts.Domain
+			gl, err = gogitlab.NewClient(token, gogitlab.WithHTTPClient(httpClient), gogitlab.WithBaseURL(domain))
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 

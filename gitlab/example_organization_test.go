@@ -22,7 +22,7 @@ func checkErr(err error) {
 func TestExampleOrganizationsClient_Get(t *testing.T) {
 	// Create a new client
 	ctx := context.Background()
-	c, err := gitlab.NewClientFromPAT(os.Getenv("GITLAB_TOKEN"))
+	c, err := gitlab.NewClient(os.Getenv("GITLAB_TOKEN"), "")
 	checkErr(err)
 
 	// Get public information about the fluxcd organization

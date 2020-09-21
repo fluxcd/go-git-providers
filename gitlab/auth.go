@@ -219,6 +219,12 @@ func NewClientFromPAT(personalAccessToken string, optFns ...ClientOption) (gitpr
 		if err != nil {
 			return nil, err
 		}
+	} else {
+		domain = *opts.Domain
+		gl, err = gogitlab.NewClient(personalAccessToken, gogitlab.WithHTTPClient(httpClient), gogitlab.WithBaseURL(domain))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// By default, turn destructive actions off. But allow overrides.
@@ -250,6 +256,12 @@ func NewClientFromUsernamePassword(username string, password string, optFns ...C
 		// No domain set or the default gitlab.com used
 		domain = DefaultDomain
 		gl, err = gogitlab.NewBasicAuthClient(username, password, gogitlab.WithHTTPClient(httpClient))
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		domain = *opts.Domain
+		gl, err = gogitlab.NewBasicAuthClient(username, password, gogitlab.WithHTTPClient(httpClient), gogitlab.WithBaseURL(domain))
 		if err != nil {
 			return nil, err
 		}
@@ -285,6 +297,12 @@ func NewClientFromOAuthToken(oauthAccessToken string, optFns ...ClientOption) (g
 		// No domain set or the default gitlab.com used
 		domain = DefaultDomain
 		gl, err = gogitlab.NewOAuthClient(oauthAccessToken, gogitlab.WithHTTPClient(httpClient))
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		domain = *opts.Domain
+		gl, err = gogitlab.NewOAuthClient(oauthAccessToken, gogitlab.WithHTTPClient(httpClient), gogitlab.WithBaseURL(domain))
 		if err != nil {
 			return nil, err
 		}

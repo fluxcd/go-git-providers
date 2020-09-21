@@ -243,7 +243,7 @@ func (s *gitlabProjectSpec) Equals(other *gitlabProjectSpec) bool {
 	return cmp.Equal(s, other)
 }
 
-//nolint:gochecknoglobals,gomnd
+//nolint
 var gitlabVisibilityMap = map[gitprovider.RepositoryVisibility]gogitlab.VisibilityValue{
 	gitprovider.RepositoryVisibilityInternal: gogitlab.InternalVisibility,
 	gitprovider.RepositoryVisibilityPrivate:  gogitlab.PrivateVisibility,

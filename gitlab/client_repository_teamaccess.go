@@ -61,7 +61,7 @@ func (c *TeamAccessClient) Get(ctx context.Context, teamName string) (gitprovide
 	if err != nil {
 		return nil, err
 	}
-	return nil, nil
+	return nil, gitprovider.ErrNotFound
 }
 
 // List lists the team access control list for this repository.

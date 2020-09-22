@@ -19,6 +19,7 @@ package gitlab
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
@@ -80,9 +81,13 @@ func (c *TeamAccessClient) List(ctx context.Context) ([]gitprovider.TeamAccess, 
 		if err != nil {
 			return nil, err
 		}
-
+		fullGroupObj, err := c.c.GetGroup(ctx, group.GroupID)
+		if err != nil {
+			return nil, err
+		}
+		// Append group by its full name with white spaces trimmed, so that it can be found in the reconciliation
 		result = append(result, newTeamAccess(c, gitprovider.TeamAccessInfo{
-			Name:       group.GroupName,
+			Name:       strings.Replace(fullGroupObj.FullName, " ", "", -1),
 			Permission: gitProviderPermission,
 		}))
 	}

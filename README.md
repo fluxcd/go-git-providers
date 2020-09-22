@@ -174,8 +174,10 @@ See the following (automatically tested) examples:
 
 ## Maintainers
 
+In alphabetical order:
+
+- Mike Beaumont, [@michaelbeaumont](https://github.com/michaelbeaumont)
 - Stefan Prodan, [@stefanprodan](https://github.com/stefanprodan)
-- Lucas Käldström, [@luxas](https://github.com/luxas)
 
 ## Getting Help
 

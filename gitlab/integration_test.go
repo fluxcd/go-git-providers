@@ -37,13 +37,14 @@ import (
 )
 
 const (
-	ghTokenFile  = "/tmp/gitlab-token"
+	ghTokenFile = "/tmp/gitlab-token"
+
+	// Include scheme if custom, e.g.:
+	// gitlabDomain = "https://gitlab.acme.org/"
 	gitlabDomain = "gitlab.com"
 
 	defaultDescription = "Foo description"
-	// TODO: This will change
-	defaultBranch = masterBranchName
-	testUserName  = "dinosk"
+	defaultBranch      = masterBranchName
 )
 
 var (
@@ -130,12 +131,16 @@ var _ = Describe("GitLab Provider", func() {
 		ctx context.Context = context.Background()
 		c   gitprovider.Client
 
+		// Should exist in environment
+		testOrgName      string = "GGPGroup"
+		testSubgroupName string = "ggpsub"
+		testTeamName     string = "GGPGroup2"
+		testUserName     string = "dinosk"
+
+		// placeholders, will be randomized and created.
 		testSharedOrgRepoName string = "testsharedorgrepo"
 		testOrgRepoName       string = "testorgrepo"
 		testRepoName          string = "testrepo"
-		testOrgName           string = "GGPGroup"
-		testSubgroupName      string = "ggpsub"
-		testTeamName          string = "GGPGroup2"
 	)
 
 	BeforeSuite(func() {
@@ -156,12 +161,45 @@ var _ = Describe("GitLab Provider", func() {
 		var err error
 		c, err = NewClient(
 			gitlabToken, "",
+			WithDomain(gitlabDomain),
 			WithDestructiveAPICalls(true),
 			WithConditionalRequests(true),
 			WithPreChainTransportHook(customTransportFactory),
 		)
 		Expect(err).ToNot(HaveOccurred())
 	})
+
+	validateOrgRepo := func(repo gitprovider.OrgRepository, expectedRepoRef gitprovider.RepositoryRef) {
+		info := repo.Get()
+		// Expect certain fields to be set
+		Expect(repo.Repository()).To(Equal(expectedRepoRef))
+		Expect(*info.Description).To(Equal(defaultDescription))
+		Expect(*info.Visibility).To(Equal(gitprovider.RepositoryVisibilityPrivate))
+		Expect(*info.DefaultBranch).To(Equal(masterBranchName))
+		// Expect high-level fields to match their underlying data
+		internal := repo.APIObject().(*gitlab.Project)
+		Expect(repo.Repository().GetRepository()).To(Equal(internal.Name))
+		Expect(repo.Repository().GetIdentity()).To(Equal(testOrgName))
+		Expect(*info.Description).To(Equal(internal.Description))
+		Expect(string(*info.Visibility)).To(Equal(string(internal.Visibility)))
+		Expect(*info.DefaultBranch).To(Equal(internal.DefaultBranch))
+	}
+
+	validateUserRepo := func(repo gitprovider.UserRepository, expectedRepoRef gitprovider.RepositoryRef) {
+		info := repo.Get()
+		// Expect certain fields to be set
+		Expect(repo.Repository()).To(Equal(expectedRepoRef))
+		Expect(*info.Description).To(Equal(defaultDescription))
+		Expect(*info.Visibility).To(Equal(gitprovider.RepositoryVisibilityPrivate))
+		Expect(*info.DefaultBranch).To(Equal(masterBranchName))
+		// Expect high-level fields to match their underlying data
+		internal := repo.APIObject().(*gitlab.Project)
+		Expect(repo.Repository().GetRepository()).To(Equal(internal.Name))
+		Expect(repo.Repository().GetIdentity()).To(Equal(testUserName))
+		Expect(*info.Description).To(Equal(internal.Description))
+		Expect(string(*info.Visibility)).To(Equal(string(internal.Visibility)))
+		Expect(*info.DefaultBranch).To(Equal(internal.DefaultBranch))
+	}
 
 	It("should list the available organizations the user has access to", func() {
 		// Get a list of all organizations the user is part of
@@ -639,36 +677,4 @@ func findUserRepo(repos []gitprovider.UserRepository, name string) gitprovider.U
 		}
 	}
 	return nil
-}
-
-func validateOrgRepo(repo gitprovider.OrgRepository, expectedRepoRef gitprovider.RepositoryRef) {
-	info := repo.Get()
-	// Expect certain fields to be set
-	Expect(repo.Repository()).To(Equal(expectedRepoRef))
-	Expect(*info.Description).To(Equal(defaultDescription))
-	Expect(*info.Visibility).To(Equal(gitprovider.RepositoryVisibilityPrivate))
-	Expect(*info.DefaultBranch).To(Equal(masterBranchName))
-	// Expect high-level fields to match their underlying data
-	internal := repo.APIObject().(*gitlab.Project)
-	Expect(repo.Repository().GetRepository()).To(Equal(internal.Name))
-	Expect(repo.Repository().GetIdentity()).To(Equal("GGPGroup"))
-	Expect(*info.Description).To(Equal(internal.Description))
-	Expect(string(*info.Visibility)).To(Equal(string(internal.Visibility)))
-	Expect(*info.DefaultBranch).To(Equal(internal.DefaultBranch))
-}
-
-func validateUserRepo(repo gitprovider.UserRepository, expectedRepoRef gitprovider.RepositoryRef) {
-	info := repo.Get()
-	// Expect certain fields to be set
-	Expect(repo.Repository()).To(Equal(expectedRepoRef))
-	Expect(*info.Description).To(Equal(defaultDescription))
-	Expect(*info.Visibility).To(Equal(gitprovider.RepositoryVisibilityPrivate))
-	Expect(*info.DefaultBranch).To(Equal(masterBranchName))
-	// Expect high-level fields to match their underlying data
-	internal := repo.APIObject().(*gitlab.Project)
-	Expect(repo.Repository().GetRepository()).To(Equal(internal.Name))
-	Expect(repo.Repository().GetIdentity()).To(Equal(testUserName))
-	Expect(*info.Description).To(Equal(internal.Description))
-	Expect(string(*info.Visibility)).To(Equal(string(internal.Visibility)))
-	Expect(*info.DefaultBranch).To(Equal(internal.DefaultBranch))
 }

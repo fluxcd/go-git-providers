@@ -37,7 +37,7 @@ type gitlabClient interface {
 
 	// GetGroup is a wrapper for "GET /groups/{group}".
 	// This function HTTP error wrapping, and validates the server result.
-	GetGroup(ctx context.Context, groupName string) (*gitlab.Group, error)
+	GetGroup(ctx context.Context, groupID interface{}) (*gitlab.Group, error)
 	// ListGroups is a wrapper for "GET /groups".
 	// This function handles pagination, HTTP error wrapping, and validates the server result.
 	ListGroups(ctx context.Context) ([]*gitlab.Group, error)
@@ -114,8 +114,8 @@ func (c *gitlabClientImpl) Client() *gitlab.Client {
 	return c.c
 }
 
-func (c *gitlabClientImpl) GetGroup(ctx context.Context, groupName string) (*gitlab.Group, error) {
-	apiObj, _, err := c.c.Groups.GetGroup(groupName, gitlab.WithContext(ctx))
+func (c *gitlabClientImpl) GetGroup(ctx context.Context, groupID interface{}) (*gitlab.Group, error) {
+	apiObj, _, err := c.c.Groups.GetGroup(groupID, gitlab.WithContext(ctx))
 	if err != nil {
 		return nil, err
 	}

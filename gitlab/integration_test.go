@@ -144,7 +144,8 @@ var _ = Describe("GitLab Provider", func() {
 	)
 
 	BeforeSuite(func() {
-		gitlabToken := os.Getenv("GITLAB_TOKEN")
+		// gitlabToken := os.Getenv("GITLAB_TOKEN")
+		gitlabToken := "9ifPpQVzp7BNkGXAVzK7"
 		if len(gitlabToken) == 0 {
 			b, err := ioutil.ReadFile(ghTokenFile)
 			if token := string(b); err == nil && len(token) != 0 {
@@ -438,6 +439,14 @@ var _ = Describe("GitLab Provider", func() {
 		projectTeams, err = repo.TeamAccess().List(ctx)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(len(projectTeams)).To(Equal(2))
+		subgroupAdded := false
+		for _, projectTeam := range projectTeams {
+			if projectTeam.Get().Name == fmt.Sprintf("%s/%s", testOrgName, testSubgroupName) {
+				subgroupAdded = true
+				break
+			}
+		}
+		Expect(subgroupAdded).To(Equal(true))
 	})
 
 	It("should create, delete and reconcile deploy keys", func() {

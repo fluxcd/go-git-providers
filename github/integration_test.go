@@ -132,7 +132,7 @@ var _ = Describe("GitHub Provider", func() {
 		testOrgRepoName string
 		testUserRepoName string
 		testOrgName  string = "fluxcd-testing"
-		testUser     string = "fluxcd"
+		testUser     string = "fluxcd-gitprovider-bot"
 	)
 
 	BeforeSuite(func() {

@@ -129,8 +129,10 @@ var _ = Describe("GitHub Provider", func() {
 		ctx context.Context = context.Background()
 		c   gitprovider.Client
 
-		testRepoName string
+		testOrgRepoName string
+		testUserRepoName string
 		testOrgName  string = "fluxcd-testing"
+		testUser     string = "fluxcd"
 	)
 
 	BeforeSuite(func() {
@@ -146,6 +148,10 @@ var _ = Describe("GitHub Provider", func() {
 
 		if orgName := os.Getenv("GIT_PROVIDER_ORGANIZATION"); len(orgName) != 0 {
 			testOrgName = orgName
+		}
+
+		if gitProviderUser := os.Getenv("GIT_PROVIDER_USER"); len(gitProviderUser) != 0 {
+			testUser = gitProviderUser
 		}
 
 		var err error
@@ -213,20 +219,20 @@ var _ = Describe("GitHub Provider", func() {
 		Expect(errors.Is(err, gitprovider.ErrNoProviderSupport)).To(BeTrue())
 	})
 
-	It("should be possible to create a repository", func() {
+	It("should be possible to create an org repository", func() {
 		// First, check what repositories are available
 		repos, err := c.OrgRepositories().List(ctx, newOrgRef(testOrgName))
 		Expect(err).ToNot(HaveOccurred())
 
 		// Generate a repository name which doesn't exist already
-		testRepoName = fmt.Sprintf("test-repo-%03d", rand.Intn(1000))
-		for findRepo(repos, testRepoName) != nil {
-			testRepoName = fmt.Sprintf("test-repo-%03d", rand.Intn(1000))
+		testOrgRepoName = fmt.Sprintf("test-repo-%03d", rand.Intn(1000))
+		for findOrgRepo(repos, testOrgRepoName) != nil {
+			testOrgRepoName = fmt.Sprintf("test-repo-%03d", rand.Intn(1000))
 		}
 
 		// We know that a repo with this name doesn't exist in the organization, let's verify we get an
 		// ErrNotFound
-		repoRef := newOrgRepoRef(testOrgName, testRepoName)
+		repoRef := newOrgRepoRef(testOrgName, testOrgRepoName)
 		_, err = c.OrgRepositories().Get(ctx, repoRef)
 		Expect(errors.Is(err, gitprovider.ErrNotFound)).To(BeTrue())
 
@@ -250,14 +256,58 @@ var _ = Describe("GitHub Provider", func() {
 		Expect(getSpec.Equals(postSpec)).To(BeTrue())
 	})
 
+	It("should be possible to create a user repository", func() {
+		// First, check what repositories are available
+		repos, err := c.UserRepositories().List(ctx, newUserRef(testUser))
+		Expect(err).ToNot(HaveOccurred())
+
+		// Generate a repository name which doesn't exist already
+		testUserRepoName = fmt.Sprintf("test-repo-%03d", rand.Intn(1000))
+		for findUserRepo(repos, testUserRepoName) != nil {
+			testUserRepoName = fmt.Sprintf("test-repo-%03d", rand.Intn(1000))
+		}
+		Expect(err).ToNot(HaveOccurred())
+
+		desc := "GGP integration test user repo"
+		userRepoRef := newUserRepoRef(testUser, testUserRepoName)
+		userRepoInfo := gitprovider.RepositoryInfo{
+			Description: &desc,
+			Visibility:  gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
+		}
+
+		// Check that the repository doesn't exist
+		_, err = c.UserRepositories().Get(ctx, userRepoRef)
+		Expect(errors.Is(err, gitprovider.ErrNotFound)).To(BeTrue())
+
+		// Create it
+		userRepo, err := c.UserRepositories().Create(ctx, userRepoRef, userRepoInfo, &gitprovider.RepositoryCreateOptions{
+			AutoInit:        gitprovider.BoolVar(true),
+			LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateApache2),
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		// Should not be able to see the repo publicly
+		anonClient, err := NewClient()
+		Expect(err).ToNot(HaveOccurred())
+		_, err = anonClient.UserRepositories().Get(ctx, userRepoRef)
+		Expect(errors.Is(err, gitprovider.ErrNotFound)).To(BeTrue())
+
+		getUserRepo, err := c.UserRepositories().Get(ctx, userRepoRef)
+		Expect(err).ToNot(HaveOccurred())
+		// Expect the two responses (one from POST and one from GET to have equal "spec")
+		getSpec := newGithubRepositorySpec(getUserRepo.APIObject().(*github.Repository))
+		postSpec := newGithubRepositorySpec(userRepo.APIObject().(*github.Repository))
+		Expect(getSpec.Equals(postSpec)).To(BeTrue())
+	})
+
 	It("should error at creation time if the repo already does exist", func() {
-		repoRef := newOrgRepoRef(testOrgName, testRepoName)
+		repoRef := newOrgRepoRef(testOrgName, testOrgRepoName)
 		_, err := c.OrgRepositories().Create(ctx, repoRef, gitprovider.RepositoryInfo{})
 		Expect(errors.Is(err, gitprovider.ErrAlreadyExists)).To(BeTrue())
 	})
 
 	It("should update if the repository already exists when reconciling", func() {
-		repoRef := newOrgRepoRef(testOrgName, testRepoName)
+		repoRef := newOrgRepoRef(testOrgName, testOrgRepoName)
 		// No-op reconcile
 		resp, actionTaken, err := c.OrgRepositories().Reconcile(ctx, repoRef, gitprovider.RepositoryInfo{
 			Description:   gitprovider.StringVar(defaultDescription),
@@ -312,11 +362,15 @@ var _ = Describe("GitHub Provider", func() {
 		if c == nil {
 			return
 		}
-		// Delete the test repo used
-		repoRef := newOrgRepoRef(testOrgName, testRepoName)
-		repo, err := c.OrgRepositories().Get(ctx, repoRef)
+		// Delete the org test repo used
+		orgRepo, err := c.OrgRepositories().Get(ctx, newOrgRepoRef(testOrgName, testOrgRepoName))
 		Expect(err).ToNot(HaveOccurred())
-		Expect(repo.Delete(ctx)).ToNot(HaveOccurred())
+		Expect(orgRepo.Delete(ctx)).ToNot(HaveOccurred())
+
+		// Delete the user test repo used
+		userRepo, err := c.UserRepositories().Get(ctx, newUserRepoRef(testUser, testUserRepoName))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(userRepo.Delete(ctx)).ToNot(HaveOccurred())
 	})
 })
 
@@ -334,7 +388,33 @@ func newOrgRepoRef(organizationName, repoName string) gitprovider.OrgRepositoryR
 	}
 }
 
-func findRepo(repos []gitprovider.OrgRepository, name string) gitprovider.OrgRepository {
+func newUserRef(userLogin string) gitprovider.UserRef {
+	return gitprovider.UserRef{
+		Domain:    githubDomain,
+		UserLogin: userLogin,
+	}
+}
+
+func newUserRepoRef(userLogin, repoName string) gitprovider.UserRepositoryRef {
+	return gitprovider.UserRepositoryRef{
+		UserRef:        newUserRef(userLogin),
+		RepositoryName: repoName,
+	}
+}
+
+func findUserRepo(repos []gitprovider.UserRepository, name string) gitprovider.UserRepository {
+	if name == "" {
+		return nil
+	}
+	for _, repo := range repos {
+		if repo.Repository().GetRepository() == name {
+			return repo
+		}
+	}
+	return nil
+}
+
+func findOrgRepo(repos []gitprovider.OrgRepository, name string) gitprovider.OrgRepository {
 	if name == "" {
 		return nil
 	}

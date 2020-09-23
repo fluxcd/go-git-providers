@@ -129,10 +129,10 @@ var _ = Describe("GitHub Provider", func() {
 		ctx context.Context = context.Background()
 		c   gitprovider.Client
 
-		testOrgRepoName string
+		testOrgRepoName  string
 		testUserRepoName string
-		testOrgName  string = "fluxcd-testing"
-		testUser     string = "fluxcd"
+		testOrgName      string = "fluxcd-testing"
+		testUser         string = "fluxcd-gitprovider-bot"
 	)
 
 	BeforeSuite(func() {

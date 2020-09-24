@@ -273,6 +273,8 @@ var _ = Describe("GitLab Provider", func() {
 		// We know that a repo with this name doesn't exist in the organization, let's verify we get an
 		// ErrNotFound
 		repoRef := newOrgRepoRef(testOrgName, testOrgRepoName)
+		sshURL := repoRef.GetCloneURL(gitprovider.TransportTypeSSH)
+		Expect(sshURL).NotTo(Equal(""))
 		_, err = c.OrgRepositories().Get(ctx, repoRef)
 		Expect(errors.Is(err, gitprovider.ErrNotFound)).To(BeTrue())
 

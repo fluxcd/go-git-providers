@@ -161,3 +161,9 @@ func ValidateLicenseTemplate(t LicenseTemplate) error {
 func LicenseTemplateVar(t LicenseTemplate) *LicenseTemplate {
 	return &t
 }
+
+type TokenPermission string
+
+const (
+	TokenPermissionFullRepo = TokenPermission("full_repo")
+)

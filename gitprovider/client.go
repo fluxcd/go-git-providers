@@ -33,6 +33,10 @@ type Client interface {
 	// This field is set at client creation time, and can't be changed.
 	ProviderID() ProviderID
 
+	// HasTokenPermission returns a boolean indicating whether the supplied token has the requested
+	// permission. Permissions should be coarse-grained and applicable to *all* providers.
+	HasTokenPermission(ctx context.Context, permission TokenPermission) (bool, error)
+
 	// Raw returns the Go client used under the hood to access the Git provider.
 	Raw() interface{}
 }

@@ -17,6 +17,9 @@ limitations under the License.
 package github
 
 import (
+	"context"
+	"strings"
+
 	"github.com/google/go-github/v32/github"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
@@ -93,4 +96,30 @@ func (c *Client) OrgRepositories() gitprovider.OrgRepositoriesClient {
 // UserRepositories returns the UserRepositoriesClient handling sets of repositories for a user.
 func (c *Client) UserRepositories() gitprovider.UserRepositoriesClient {
 	return c.userRepos
+}
+
+//nolint:gochecknoglobals
+var permissionsToScopes = map[gitprovider.TokenPermission]string{
+	gitprovider.TokenPermissionFullRepo: "repo",
+}
+
+func (c *Client) HasTokenPermission(ctx context.Context, permission gitprovider.TokenPermission) (bool, error) {
+	// The X-OAuth-Scopes header is returned for any API calls, using Meta here to keep things simple.
+	_, res, err := c.c.Client().APIMeta(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	scopes := res.Header.Get("X-OAuth-Scopes")
+	if scopes == "" {
+		return false, gitprovider.ErrMissingHeader
+	}
+
+	for _, scope := range strings.Split(scopes, ",") {
+		if permissionsToScopes[permission] == scope {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }

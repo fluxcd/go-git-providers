@@ -66,6 +66,8 @@ var (
 	// ErrInvalidPermissionLevel is the error returned when there is no mapping
 	// from the given level to the gitprovider levels.
 	ErrInvalidPermissionLevel = errors.New("invalid permission level")
+	// ErrMissingHeader is returned when an expected header is missing from the HTTP response.
+	ErrMissingHeader = errors.New("header is missing")
 )
 
 // HTTPError is an error that contains context about the HTTP request/response that failed.

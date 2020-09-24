@@ -447,6 +447,16 @@ var _ = Describe("GitLab Provider", func() {
 			}
 		}
 		Expect(subgroupAdded).To(Equal(true))
+
+		// Assert that reconciling on subgroups works
+		teamInfo := gitprovider.TeamAccessInfo{
+			Name:       "GGPGroup/ggpsub",
+			Permission: &pushPermission,
+		}
+
+		ta, actionTaken, err = repo.TeamAccess().Reconcile(ctx, teamInfo)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(actionTaken).To(Equal(false))
 	})
 
 	It("should create, delete and reconcile deploy keys", func() {

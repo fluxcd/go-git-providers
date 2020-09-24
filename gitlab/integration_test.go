@@ -41,10 +41,10 @@ const (
 
 	// Include scheme if custom, e.g.:
 	// gitlabDomain = "https://gitlab.acme.org/"
-	gitlabDomain = "gitlab.com"
+	gitlabDomain = "https://gitlab.dev.wkp.weave.works"
 
 	defaultDescription = "Foo description"
-	defaultBranch      = masterBranchName
+	defaultBranch      = "master"
 )
 
 var (
@@ -144,8 +144,7 @@ var _ = Describe("GitLab Provider", func() {
 	)
 
 	BeforeSuite(func() {
-		// gitlabToken := os.Getenv("GITLAB_TOKEN")
-		gitlabToken := "9ifPpQVzp7BNkGXAVzK7"
+		gitlabToken := os.Getenv("GITLAB_TOKEN")
 		if len(gitlabToken) == 0 {
 			b, err := ioutil.ReadFile(ghTokenFile)
 			if token := string(b); err == nil && len(token) != 0 {
@@ -447,6 +446,16 @@ var _ = Describe("GitLab Provider", func() {
 			}
 		}
 		Expect(subgroupAdded).To(Equal(true))
+
+		// Assert that reconciling on subgroups works
+		teamInfo := gitprovider.TeamAccessInfo{
+			Name:       "GGPGroup/ggpsub",
+			Permission: &pushPermission,
+		}
+
+		ta, actionTaken, err = repo.TeamAccess().Reconcile(ctx, teamInfo)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(actionTaken).To(Equal(false))
 	})
 
 	It("should create, delete and reconcile deploy keys", func() {

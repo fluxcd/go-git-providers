@@ -40,14 +40,19 @@ type TeamAccessClient struct {
 //
 // ErrNotFound is returned if the resource does not exist.
 func (c *TeamAccessClient) Get(ctx context.Context, teamName string) (gitprovider.TeamAccess, error) {
-	// project, err := c.c.GetGroupProject(ctx, groupName, c.ref.GetRepository())
+	// Get the project ID of the team, required for when team is a subgroup
+	teamObj, err := c.c.GetGroup(ctx, teamName)
+	if err != nil {
+		return nil, err
+	}
+
 	project, err := c.c.GetGroupProject(ctx, c.ref.GetIdentity(), c.ref.GetRepository())
 	if err != nil {
 		return nil, err
 	}
 
 	for _, group := range project.SharedWithGroups {
-		if group.GroupName == teamName {
+		if group.GroupID == teamObj.ID {
 			gitProviderPermission, err := getGitProviderPermission(group.GroupAccessLevel)
 			if err != nil {
 				return nil, err

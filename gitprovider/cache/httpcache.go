@@ -60,11 +60,10 @@ func (r *cacheRoundtripper) RoundTrip(req *http.Request) (*http.Response, error)
 	cacheKey := cacheKey(req)
 	cacheable := (req.Method == "GET" || req.Method == "HEAD") && req.Header.Get("range") == ""
 
-	// If the object isn't a GET or HEAD request reset the whole cache.
-	// Very broad, but tricky to figure out which GET responses will be
-	// changed by a DELETE/POST somewhere.
+	// If the object isn't a GET or HEAD request, also invalidate the cache of the GET URL
+	// as this action will modify the underlying resource (e.g. DELETE/POST/PATCH)
 	if !cacheable {
-		r.Transport = httpcache.NewMemoryCacheTransport()
+		r.Transport.Cache.Delete(req.URL.String())
 	}
 	// Call the underlying roundtrip
 	resp, err := r.Transport.RoundTrip(req)

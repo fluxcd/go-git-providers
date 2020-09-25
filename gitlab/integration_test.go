@@ -132,10 +132,10 @@ var _ = Describe("GitLab Provider", func() {
 		c   gitprovider.Client
 
 		// Should exist in environment
-		testOrgName      string = "GGPGroup"
-		testSubgroupName string = "ggpsub"
-		testTeamName     string = "GGPGroup2"
-		testUserName     string = "dinosk"
+		testOrgName      string = "fluxcd-testing"
+		testSubgroupName string = "fluxcd-testing-sub-group"
+		testTeamName     string = "fluxcd-testing-2"
+		testUserName     string = "fluxcd-gitprovider-bot"
 
 		// placeholders, will be randomized and created.
 		testSharedOrgRepoName string = "testsharedorgrepo"
@@ -356,7 +356,7 @@ var _ = Describe("GitLab Provider", func() {
 		// There should be 1 existing subgroup already
 		teams, err := testOrg.Teams().List(ctx)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(len(teams)).To(Equal(1))
+		Expect(len(teams)).To(Equal(1), "The 1 team wasn't there...")
 
 		// First, check what repositories are available
 		repos, err := c.OrgRepositories().List(ctx, newOrgRef(testOrgName))
@@ -404,7 +404,7 @@ var _ = Describe("GitLab Provider", func() {
 		// Only
 		projectTeams, err = repo.TeamAccess().List(ctx)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(len(projectTeams)).To(Equal(1))
+		Expect(len(projectTeams)).To(Equal(1), "Project teams didn't equal 1")
 		firstTeam := projectTeams[0]
 		Expect(firstTeam.Get().Name).To(Equal(testTeamName))
 

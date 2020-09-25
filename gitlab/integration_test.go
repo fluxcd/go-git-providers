@@ -450,7 +450,7 @@ var _ = Describe("GitLab Provider", func() {
 
 		// Assert that reconciling on subgroups works
 		teamInfo := gitprovider.TeamAccessInfo{
-			Name:       "GGPGroup/ggpsub",
+			Name:       testOrgName+"/"+testSubgroupName,
 			Permission: &pushPermission,
 		}
 

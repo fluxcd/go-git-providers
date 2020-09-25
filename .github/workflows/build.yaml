@@ -26,6 +26,7 @@ jobs:
       - name: Run tests
         env:
           GITHUB_TOKEN: ${{ secrets.GITPROVIDER_BOT_TOKEN }}
+          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
         run: make test
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1

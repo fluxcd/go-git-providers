@@ -248,8 +248,12 @@ var _ = Describe("GitHub Provider", func() {
 		Expect(err).ToNot(HaveOccurred())
 		validateRepo(repo, repoRef)
 
-		getRepo, err := c.OrgRepositories().Get(ctx, repoRef)
-		Expect(err).ToNot(HaveOccurred())
+		var getRepo gitprovider.OrgRepository
+		Eventually(func() error {
+			getRepo, err = c.OrgRepositories().Get(ctx, repoRef)
+			return err
+		}, 3*time.Second, 1*time.Second).ShouldNot(HaveOccurred())
+
 		// Expect the two responses (one from POST and one from GET to have equal "spec")
 		getSpec := newGithubRepositorySpec(getRepo.APIObject().(*github.Repository))
 		postSpec := newGithubRepositorySpec(repo.APIObject().(*github.Repository))
@@ -292,8 +296,12 @@ var _ = Describe("GitHub Provider", func() {
 		_, err = anonClient.UserRepositories().Get(ctx, userRepoRef)
 		Expect(errors.Is(err, gitprovider.ErrNotFound)).To(BeTrue())
 
-		getUserRepo, err := c.UserRepositories().Get(ctx, userRepoRef)
-		Expect(err).ToNot(HaveOccurred())
+		var getUserRepo gitprovider.UserRepository
+		Eventually(func() error {
+			getUserRepo, err = c.UserRepositories().Get(ctx, userRepoRef)
+			return err
+		}, 3*time.Second, 1*time.Second).ShouldNot(HaveOccurred())
+
 		// Expect the two responses (one from POST and one from GET to have equal "spec")
 		getSpec := newGithubRepositorySpec(getUserRepo.APIObject().(*github.Repository))
 		postSpec := newGithubRepositorySpec(userRepo.APIObject().(*github.Repository))

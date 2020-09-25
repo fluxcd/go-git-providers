@@ -41,7 +41,8 @@ const (
 
 	// Include scheme if custom, e.g.:
 	// gitlabDomain = "https://gitlab.acme.org/"
-	gitlabDomain = "https://gitlab.dev.wkp.weave.works"
+	// gitlabDomain = "https://gitlab.dev.wkp.weave.works"
+	gitlabDomain = "gitlab.com"
 
 	defaultDescription = "Foo description"
 	defaultBranch      = "master"

@@ -370,7 +370,7 @@ var _ = Describe("GitHub Provider", func() {
 		Expect(err).To(Equal(gitprovider.ErrNoProviderSupport))
 		Expect(hasPermission).To(Equal(false))
 
-		hasPermission, err = c.HasTokenPermission(ctx, gitprovider.TokenPermissionFullRepo)
+		hasPermission, err = c.HasTokenPermission(ctx, gitprovider.TokenPermissionRWRepository)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(hasPermission).To(Equal(true))
 	})

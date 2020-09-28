@@ -100,7 +100,7 @@ func (c *Client) UserRepositories() gitprovider.UserRepositoriesClient {
 
 //nolint:gochecknoglobals
 var permissionScopes = map[gitprovider.TokenPermission]string{
-	gitprovider.TokenPermissionFullRepo: "repo",
+	gitprovider.TokenPermissionRWRepository: "repo",
 }
 
 func (c *Client) HasTokenPermission(ctx context.Context, permission gitprovider.TokenPermission) (bool, error) {

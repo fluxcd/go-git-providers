@@ -365,6 +365,16 @@ var _ = Describe("GitHub Provider", func() {
 		Expect(actionTaken).To(BeTrue())
 	})
 
+	It("should validate that the token has the correct permissions", func() {
+		hasPermission, err := c.HasTokenPermission(ctx, 0)
+		Expect(err).To(Equal(gitprovider.ErrNoProviderSupport))
+		Expect(hasPermission).To(Equal(false))
+
+		hasPermission, err = c.HasTokenPermission(ctx, gitprovider.TokenPermissionFullRepo)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(hasPermission).To(Equal(true))
+	})
+
 	AfterSuite(func() {
 		// Don't do anything more if c wasn't created
 		if c == nil {

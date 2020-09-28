@@ -99,11 +99,16 @@ func (c *Client) UserRepositories() gitprovider.UserRepositoriesClient {
 }
 
 //nolint:gochecknoglobals
-var permissionsToScopes = map[gitprovider.TokenPermission]string{
+var permissionScopes = map[gitprovider.TokenPermission]string{
 	gitprovider.TokenPermissionFullRepo: "repo",
 }
 
 func (c *Client) HasTokenPermission(ctx context.Context, permission gitprovider.TokenPermission) (bool, error) {
+	requestedScope, ok := permissionScopes[permission]
+	if !ok {
+		return false, gitprovider.ErrNoProviderSupport
+	}
+
 	// The X-OAuth-Scopes header is returned for any API calls, using Meta here to keep things simple.
 	_, res, err := c.c.Client().APIMeta(ctx)
 	if err != nil {
@@ -115,8 +120,9 @@ func (c *Client) HasTokenPermission(ctx context.Context, permission gitprovider.
 		return false, gitprovider.ErrMissingHeader
 	}
 
-	for _, scope := range strings.Split(scopes, ",") {
-		if permissionsToScopes[permission] == scope {
+	for _, s := range strings.Split(scopes, ",") {
+		scope := strings.TrimSpace(s)
+		if scope == requestedScope {
 			return true, nil
 		}
 	}

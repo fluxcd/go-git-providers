@@ -162,8 +162,9 @@ func LicenseTemplateVar(t LicenseTemplate) *LicenseTemplate {
 	return &t
 }
 
-type TokenPermission string
+type TokenPermission int
 
 const (
-	TokenPermissionFullRepo = TokenPermission("full_repo")
+	// Read/Write permission for public/private repositories.
+	TokenPermissionFullRepo TokenPermission = iota + 1
 )

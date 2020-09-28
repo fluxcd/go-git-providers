@@ -28,7 +28,7 @@ func TestExampleOrganizationsClient_Get(t *testing.T) {
 	// Get public information about the fluxcd organization
 	org, err := c.Organizations().Get(ctx, gitprovider.OrganizationRef{
 		Domain:       gitlab.DefaultDomain,
-		Organization: "9146106",
+		Organization: "fluxcd-testing-public",
 	})
 	checkErr(err)
 

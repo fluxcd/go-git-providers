@@ -166,5 +166,5 @@ type TokenPermission int
 
 const (
 	// Read/Write permission for public/private repositories.
-	TokenPermissionFullRepo TokenPermission = iota + 1
+	TokenPermissionRWRepository TokenPermission = iota + 1
 )

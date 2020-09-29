@@ -17,6 +17,8 @@ limitations under the License.
 package gitlab
 
 import (
+	"context"
+
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/xanzy/go-gitlab"
 )
@@ -101,4 +103,8 @@ func (c *Client) OrgRepositories() gitprovider.OrgRepositoriesClient {
 // UserRepositories returns the UserRepositoriesClient handling sets of repositories for a user.
 func (c *Client) UserRepositories() gitprovider.UserRepositoriesClient {
 	return c.userRepos
+}
+
+func (c *Client) HasTokenPermission(ctx context.Context, permission gitprovider.TokenPermission) (bool, error) {
+	return false, gitprovider.ErrNoProviderSupport
 }

@@ -161,3 +161,10 @@ func ValidateLicenseTemplate(t LicenseTemplate) error {
 func LicenseTemplateVar(t LicenseTemplate) *LicenseTemplate {
 	return &t
 }
+
+type TokenPermission int
+
+const (
+	// Read/Write permission for public/private repositories.
+	TokenPermissionRWRepository TokenPermission = iota + 1
+)

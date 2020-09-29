@@ -177,9 +177,9 @@ func oauth2Transport(oauth2Token string) gitprovider.ChainableRoundTripperFunc {
 	}
 }
 
-// WithConditionalRequests instructs the client to use Conditional Requests to GitHub, asking GitHub
-// whether a resource has changed (without burning your quota), and using an in-memory cached "database"
-// if so. See: https://developer.github.com/v3/#conditional-requests for more information.
+// WithConditionalRequests instructs the client to use Conditional Requests to GitLab.
+// See: https://gitlab.com/gitlab-org/gitlab-foss/-/issues/26926, and
+// https://docs.gitlab.com/ee/development/polling.html for more info.
 func WithConditionalRequests(conditionalRequests bool) ClientOption {
 	return &clientOptions{EnableConditionalRequests: &conditionalRequests}
 }

@@ -254,7 +254,10 @@ func GetCloneURL(rs RepositoryRef, transport TransportType) string {
 	case TransportTypeGit:
 		return fmt.Sprintf("git@%s:%s/%s.git", rs.GetDomain(), rs.GetIdentity(), rs.GetRepository())
 	case TransportTypeSSH:
-		return fmt.Sprintf("ssh://git@%s/%s/%s", rs.GetDomain(), rs.GetIdentity(), rs.GetRepository())
+		trimmedDomain := rs.GetDomain()
+		trimmedDomain = strings.Replace(trimmedDomain, "https://", "", -1)
+		trimmedDomain = strings.Replace(trimmedDomain, "http://", "", -1)
+		return fmt.Sprintf("ssh://git@%s/%s/%s", trimmedDomain, rs.GetIdentity(), rs.GetRepository())
 	}
 	return ""
 }

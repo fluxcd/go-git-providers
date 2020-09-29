@@ -3,6 +3,7 @@ module github.com/fluxcd/go-git-providers
 go 1.14
 
 require (
+	github.com/google/go-cmp v0.4.0
 	github.com/google/go-github/v32 v32.1.0
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79
 	github.com/ktrysmt/go-bitbucket v0.6.2

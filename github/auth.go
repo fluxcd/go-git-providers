@@ -30,6 +30,9 @@ import (
 const (
 	// DefaultDomain specifies the default domain used as the backend.
 	DefaultDomain = "github.com"
+	// TokenVariable is the common name for the environment variable
+	// containing a GitHub authentication token.
+	TokenVariable = "GITHUB_TOKEN" // #nosec G101
 )
 
 // ClientOption is the interface to implement for passing options to NewClient.

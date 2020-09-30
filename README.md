@@ -177,6 +177,7 @@ See the following (automatically tested) examples:
 In alphabetical order:
 
 - Mike Beaumont, [@michaelbeaumont](https://github.com/michaelbeaumont)
+- Sara El-Zayat, [@sarataha](https://github.com/sarataha)
 - Simon Howe, [@foot](https://github.com/foot)
 - Dinos Kousidis, [@dinosk](https://github.com/dinosk)
 - Stefan Prodan, [@stefanprodan](https://github.com/stefanprodan)

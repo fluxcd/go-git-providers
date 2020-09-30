@@ -180,6 +180,7 @@ In alphabetical order:
 - Simon Howe, [@foot](https://github.com/foot)
 - Dinos Kousidis, [@dinosk](https://github.com/dinosk)
 - Stefan Prodan, [@stefanprodan](https://github.com/stefanprodan)
+- Sara El-Zayat, [@sarataha](https://github.com/sarataha)
 
 ## Getting Help
 

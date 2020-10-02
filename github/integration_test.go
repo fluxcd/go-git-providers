@@ -42,7 +42,7 @@ const (
 
 	defaultDescription = "Foo description"
 	// TODO: This will change
-	defaultBranch = "master"
+	defaultBranch = "main"
 )
 
 var (

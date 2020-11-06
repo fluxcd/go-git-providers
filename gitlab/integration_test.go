@@ -612,6 +612,10 @@ var _ = Describe("GitLab Provider", func() {
 	})
 
 	AfterSuite(func() {
+		if os.Getenv("SKIP_CLEANUP") == "1" {
+			return
+		}
+
 		// Don't do anything more if c wasn't created
 		if c == nil {
 			return

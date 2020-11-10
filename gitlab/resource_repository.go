@@ -101,7 +101,7 @@ func (p *userProject) Reconcile(ctx context.Context) (bool, error) {
 			// if orgRef, ok := p.ref.(gitprovider.OrgRepositoryRef); ok {
 			// 	orgName = orgRef.Organization
 			// }
-			project, err := p.c.CreateProject(ctx, &p.p)
+			project, err := p.c.CreateProject(ctx, &p.p, nil)
 			if err != nil {
 				return true, err
 			}
@@ -166,7 +166,7 @@ func (r *orgRepository) Reconcile(ctx context.Context) (bool, error) {
 	if err != nil {
 		// Create if not found
 		if errors.Is(err, gitprovider.ErrNotFound) {
-			project, err := r.c.CreateProject(ctx, &r.p)
+			project, err := r.c.CreateProject(ctx, &r.p, nil)
 			if err != nil {
 				return true, err
 			}

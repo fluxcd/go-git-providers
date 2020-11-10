@@ -133,7 +133,17 @@ func createProject(ctx context.Context, c gitlabClient, ref gitprovider.Reposito
 			Name: groupName,
 		}
 	}
-	return c.CreateProject(ctx, &data)
+
+	// Assemble the options struct based on the given options
+	o, err := gitprovider.MakeRepositoryCreateOptions(opts...)
+	if err != nil {
+		return nil, err
+	}
+	apiOpts := gitlab.CreateProjectOptions{
+		InitializeWithReadme: o.AutoInit,
+	}
+
+	return c.CreateProject(ctx, &data, &apiOpts)
 }
 
 func reconcileRepository(ctx context.Context, actual gitprovider.UserRepository, req gitprovider.RepositoryInfo) (bool, error) {

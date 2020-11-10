@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -559,6 +560,15 @@ var _ = Describe("GitLab Provider", func() {
 		getSpec := newGitlabProjectSpec(getRepo.APIObject().(*gitlab.Project))
 		postSpec := newGitlabProjectSpec(repo.APIObject().(*gitlab.Project))
 		Expect(getSpec.Equals(postSpec)).To(BeTrue())
+
+		gitlabClient := c.Raw().(*gitlab.Client)
+		f, _, err := gitlabClient.RepositoryFiles.GetFile(testUserName+"/"+testRepoName, "README.md", &gitlab.GetFileOptions{
+			Ref: gitlab.String("master"),
+		})
+		Expect(err).ToNot(HaveOccurred())
+		fileContents, err := base64.StdEncoding.DecodeString(f.Content)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(string(fileContents)).To(ContainSubstring(defaultDescription))
 	})
 
 	It("should error at creation time if the user repo already does exist", func() {
@@ -612,6 +622,10 @@ var _ = Describe("GitLab Provider", func() {
 	})
 
 	AfterSuite(func() {
+		if os.Getenv("SKIP_CLEANUP") == "1" {
+			return
+		}
+
 		// Don't do anything more if c wasn't created
 		if c == nil {
 			return

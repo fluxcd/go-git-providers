@@ -67,7 +67,7 @@ type gitlabClient interface {
 	ListProjectUsers(ctx context.Context, projectName string) ([]*gitlab.ProjectUser, error)
 	// CreateProject is a wrapper for "POST /projects"
 	// This function handles HTTP error wrapping, and validates the server result.
-	CreateProject(ctx context.Context, req *gitlab.Project) (*gitlab.Project, error)
+	CreateProject(ctx context.Context, req *gitlab.Project, opts *gitlab.CreateProjectOptions) (*gitlab.Project, error)
 	// UpdateProject is a wrapper for "PUT /projects/{project}".
 	// This function handles HTTP error wrapping, and validates the server result.
 	UpdateProject(ctx context.Context, req *gitlab.Project) (*gitlab.Project, error)
@@ -276,7 +276,7 @@ func (c *gitlabClientImpl) ListUserProjects(ctx context.Context, username string
 	return apiObjs, nil
 }
 
-func (c *gitlabClientImpl) CreateProject(ctx context.Context, req *gitlab.Project) (*gitlab.Project, error) {
+func (c *gitlabClientImpl) CreateProject(ctx context.Context, req *gitlab.Project, extraOpts *gitlab.CreateProjectOptions) (*gitlab.Project, error) {
 	var namespaceID int
 	// If the project doesn't belong to a user set its namespace ID
 	if req.Namespace != nil && req.Namespace.Kind != "user" {
@@ -286,12 +286,15 @@ func (c *gitlabClientImpl) CreateProject(ctx context.Context, req *gitlab.Projec
 		}
 		namespaceID = group.ID
 	}
-	opts := &gitlab.CreateProjectOptions{
-		Name:          &req.Name,
-		DefaultBranch: &req.DefaultBranch,
-		Description:   &req.Description,
-		Visibility:    &req.Visibility,
+
+	opts := extraOpts
+	if opts == nil {
+		opts = &gitlab.CreateProjectOptions{}
 	}
+	opts.Name = &req.Name
+	opts.DefaultBranch = &req.DefaultBranch
+	opts.Description = &req.Description
+	opts.Visibility = &req.Visibility
 	if namespaceID != 0 {
 		opts.NamespaceID = &namespaceID
 	}

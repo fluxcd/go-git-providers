@@ -25,6 +25,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -156,8 +157,12 @@ var _ = Describe("GitLab Provider", func() {
 			}
 		}
 
-		if orgName := os.Getenv("GIT_PROVIDER_ORGANIZATION"); len(orgName) != 0 {
+		if orgName := os.Getenv("GITLAB_ORGANIZATION"); len(orgName) != 0 {
 			testOrgName = orgName
+		}
+
+		if gitProviderUser := os.Getenv("GITLAB_USER"); len(gitProviderUser) != 0 {
+			testUserName = gitProviderUser
 		}
 
 		var err error
@@ -201,6 +206,40 @@ var _ = Describe("GitLab Provider", func() {
 		Expect(*info.Description).To(Equal(internal.Description))
 		Expect(string(*info.Visibility)).To(Equal(string(internal.Visibility)))
 		Expect(*info.DefaultBranch).To(Equal(internal.DefaultBranch))
+	}
+
+	cleanupOrgRepos := func(prefix string) {
+		fmt.Printf("Deleting repos starting with %s in org: %s\n", prefix, testOrgName)
+		repos, err := c.OrgRepositories().List(ctx, newOrgRef(testOrgName))
+		Expect(err).ToNot(HaveOccurred())
+		for _, repo := range repos {
+			// Delete the test org repo used
+			name := repo.Repository().GetRepository()
+			if !strings.HasPrefix(name, prefix) {
+				fmt.Printf("Skipping the org repo: %s\n", name)
+				continue
+			}
+			fmt.Printf("Deleting the org repo: %s\n", name)
+			repo.Delete(ctx)
+			Expect(err).ToNot(HaveOccurred())
+		}
+	}
+
+	cleanupUserRepos := func(prefix string) {
+		fmt.Printf("Deleting repos starting with %s for user: %s\n", prefix, testUserName)
+		repos, err := c.UserRepositories().List(ctx, newUserRef(testUserName))
+		Expect(err).ToNot(HaveOccurred())
+		for _, repo := range repos {
+			// Delete the test org repo used
+			name := repo.Repository().GetRepository()
+			if !strings.HasPrefix(name, prefix) {
+				fmt.Printf("Skipping the org repo: %s\n", name)
+				continue
+			}
+			fmt.Printf("Deleting the org repo: %s\n", name)
+			repo.Delete(ctx)
+			Expect(err).ToNot(HaveOccurred())
+		}
 	}
 
 	It("should list the available organizations the user has access to", func() {
@@ -528,6 +567,9 @@ var _ = Describe("GitLab Provider", func() {
 		// First, check what repositories are available
 		repos, err := c.UserRepositories().List(ctx, newUserRef(testUserName))
 		Expect(err).ToNot(HaveOccurred())
+		for _, repo := range repos {
+			fmt.Printf("repo: %s\n", repo.Repository().GetRepository())
+		}
 
 		// Generate a repository name which doesn't exist already
 		testRepoName = fmt.Sprintf("test-repo-%03d", rand.Intn(1000))
@@ -630,6 +672,10 @@ var _ = Describe("GitLab Provider", func() {
 		if c == nil {
 			return
 		}
+
+		defer cleanupOrgRepos("test-org-repo")
+		defer cleanupUserRepos("test-repo")
+
 		// Delete the test repo used
 		fmt.Println("Deleting the user repo: ", testRepoName)
 		repoRef := newUserRepoRef(testUserName, testRepoName)

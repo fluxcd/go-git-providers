@@ -399,6 +399,10 @@ var _ = Describe("GitLab Provider", func() {
 		// There should be 1 existing subgroup already
 		teams, err := testOrg.Teams().List(ctx)
 		Expect(err).ToNot(HaveOccurred())
+		fmt.Printf("Teams: %d, ...\n", len(teams))
+		for _, team := range teams {
+			fmt.Printf("Team: %s\n", team.Get().Name)
+		}
 		Expect(len(teams)).To(Equal(1), "The 1 team wasn't there...")
 
 		// First, check what repositories are available

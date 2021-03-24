@@ -38,5 +38,5 @@ func TestExampleOrganizationsClient_Get(t *testing.T) {
 	internalOrg := org.APIObject().(*gogitlab.Group)
 
 	fmt.Printf("Name: %s. Location: %s.", *orgInfo.Name, internalOrg.Path)
-	// Output: Name: Flux project. Location: CNCF sandbox.
+	// Output: Name: Flux project. Location: CNCF incubation.
 }

@@ -24,6 +24,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -41,13 +42,12 @@ const (
 	githubDomain = "github.com"
 
 	defaultDescription = "Foo description"
-	// TODO: This will change
-	defaultBranch = "main"
 )
 
 var (
 	// customTransportImpl is a shared instance of a customTransport, allowing counting of cache hits.
 	customTransportImpl *customTransport
+	defaultBranch       = "main"
 )
 
 func init() {
@@ -146,11 +146,11 @@ var _ = Describe("GitHub Provider", func() {
 			}
 		}
 
-		if orgName := os.Getenv("GITHUB_ORGANIZATION"); len(orgName) != 0 {
+		if orgName := os.Getenv("GIT_PROVIDER_ORGANIZATION"); len(orgName) != 0 {
 			testOrgName = orgName
 		}
 
-		if gitProviderUser := os.Getenv("GITHUB_USER"); len(gitProviderUser) != 0 {
+		if gitProviderUser := os.Getenv("GIT_PROVIDER_USER"); len(gitProviderUser) != 0 {
 			testUser = gitProviderUser
 		}
 
@@ -162,7 +162,44 @@ var _ = Describe("GitHub Provider", func() {
 			WithPreChainTransportHook(customTransportFactory),
 		)
 		Expect(err).ToNot(HaveOccurred())
+		fmt.Printf("Settings...\n")
+		fmt.Printf("GITHUB_TOKEN=<redacted>. length: %d\n", len(githubToken))
+		fmt.Printf("GIT_PROVIDER_ORGANIZATION=%s\n", testOrgName)
+		fmt.Printf("GIT_PROVIDER_USER=%s\n", testUser)
+
 	})
+
+	cleanupOrgRepos := func(prefix string) {
+		fmt.Printf("Deleting repos starting with %s in org: %s\n", prefix, testOrgName)
+		repos, err := c.OrgRepositories().List(ctx, newOrgRef(testOrgName))
+		Expect(err).ToNot(HaveOccurred())
+		for _, repo := range repos {
+			// Delete the test org repo used
+			name := repo.Repository().GetRepository()
+			if !strings.HasPrefix(name, prefix) {
+				continue
+			}
+			fmt.Printf("Deleting the org repo: %s\n", name)
+			repo.Delete(ctx)
+			Expect(err).ToNot(HaveOccurred())
+		}
+	}
+
+	cleanupUserRepos := func(prefix string) {
+		fmt.Printf("Deleting repos starting with %s for user: %s\n", prefix, testUser)
+		repos, err := c.UserRepositories().List(ctx, newUserRef(testUser))
+		Expect(err).ToNot(HaveOccurred())
+		for _, repo := range repos {
+			name := repo.Repository().GetRepository()
+			if !strings.HasPrefix(name, prefix) {
+				fmt.Printf("Skipping the org repo: %s\n", name)
+				continue
+			}
+			fmt.Printf("Deleting the org repo: %s\n", name)
+			repo.Delete(ctx)
+			Expect(err).ToNot(HaveOccurred())
+		}
+	}
 
 	It("should list the available organizations the user has access to", func() {
 		// Get a list of all organizations the user is part of
@@ -346,7 +383,8 @@ var _ = Describe("GitHub Provider", func() {
 
 		// Reconcile and create
 		newRepo, actionTaken, err := c.OrgRepositories().Reconcile(ctx, repoRef, gitprovider.RepositoryInfo{
-			Description: gitprovider.StringVar(defaultDescription),
+			DefaultBranch: &defaultBranch,
+			Description:   gitprovider.StringVar(defaultDescription),
 		}, &gitprovider.RepositoryCreateOptions{
 			AutoInit:        gitprovider.BoolVar(true),
 			LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateMIT),
@@ -376,11 +414,17 @@ var _ = Describe("GitHub Provider", func() {
 	})
 
 	AfterSuite(func() {
+		fmt.Printf("AfterSuite\n")
 		// Don't do anything more if c wasn't created
 		if c == nil {
 			return
 		}
+
+		defer cleanupOrgRepos("test-repo")
+		defer cleanupUserRepos("test-repo")
+
 		// Delete the org test repo used
+		fmt.Printf("Deleting: %s/%s\n", testOrgName, testOrgRepoName)
 		orgRepo, err := c.OrgRepositories().Get(ctx, newOrgRepoRef(testOrgName, testOrgRepoName))
 		Expect(err).ToNot(HaveOccurred())
 		Expect(orgRepo.Delete(ctx)).ToNot(HaveOccurred())

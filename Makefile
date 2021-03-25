@@ -1,4 +1,5 @@
 VER?=0.0.1
+TEST_VERBOSE?=
 
 all: test
 
@@ -12,7 +13,7 @@ vet:
 	go vet ./...
 
 test: tidy fmt vet
-	go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+	go test ${TEST_VERBOSE} -race -coverprofile=coverage.txt -covermode=atomic ./...
 
 release:
 	git checkout master

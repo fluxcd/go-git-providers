@@ -27,7 +27,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITPROVIDER_BOT_TOKEN }}
           GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
-        run: make test
+        run: |
+          [ -n "${{ secrets.GIT_PROVIDER_USER }}" ] && export GIT_PROVIDER_USER=${{ secrets.GIT_PROVIDER_USER }} || echo "using default GIT_PROVIDER_USER"
+          [ -n "${{ secrets.GIT_PROVIDER_ORGANIZATION }}" ] && export GIT_PROVIDER_ORGANIZATION=${{ secrets.GIT_PROVIDER_ORGANIZATION }} || echo "using default GIT_PROVIDER_ORGANIZATION"
+          [ -n "${{ secrets.GITLAB_USER }}" ] && export GITLAB_USER=${{ secrets.GITLAB_USER }} || echo "using default GITLAB_USER"
+          [ -n "${{ secrets.GITLAB_ORGANIZATION }}" ] && export GITLAB_ORGANIZATION=${{ secrets.GITLAB_ORGANIZATION }} || echo "using default GITLAB_ORGANIZATION"
+          [ -n "${{ secrets.GITLAB_TEAM_NAME }}" ] && export GITLAB_TEAM_NAME=${{ secrets.GITLAB_TEAM_NAME }} || echo "using default GITLAB_TEAM_NAME"
+          [ -n "${{ secrets.TEST_VERBOSE }}" ] && export TEST_VERBOSE=${{ secrets.TEST_VERBOSE }} || echo "TEST_VERBOSE not set"
+          make test
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
         with:

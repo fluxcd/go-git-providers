@@ -136,21 +136,21 @@ var _ = Describe("GitHub Provider", func() {
 	)
 
 	BeforeSuite(func() {
-		githubToken := os.Getenv("GITHUB_TOKEN")
+		githubToken := os.Getenv("MY_GITHUB_TOKEN")
 		if len(githubToken) == 0 {
 			b, err := ioutil.ReadFile(ghTokenFile)
 			if token := string(b); err == nil && len(token) != 0 {
 				githubToken = token
 			} else {
-				Fail("couldn't acquire GITHUB_TOKEN env variable")
+				Fail("couldn't acquire MY_GITHUB_TOKEN env variable")
 			}
 		}
 
-		if orgName := os.Getenv("GIT_PROVIDER_ORGANIZATION"); len(orgName) != 0 {
+		if orgName := os.Getenv("MY_GITHUB_ORGANIZATION"); len(orgName) != 0 {
 			testOrgName = orgName
 		}
 
-		if gitProviderUser := os.Getenv("GIT_PROVIDER_USER"); len(gitProviderUser) != 0 {
+		if gitProviderUser := os.Getenv("MY_GITHUB_USER"); len(gitProviderUser) != 0 {
 			testUser = gitProviderUser
 		}
 

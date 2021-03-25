@@ -212,40 +212,6 @@ var _ = Describe("GitLab Provider", func() {
 		Expect(*info.DefaultBranch).To(Equal(internal.DefaultBranch))
 	}
 
-	cleanupOrgRepos := func(prefix string) {
-		fmt.Printf("Deleting repos starting with %s in org: %s\n", prefix, testOrgName)
-		repos, err := c.OrgRepositories().List(ctx, newOrgRef(testOrgName))
-		Expect(err).ToNot(HaveOccurred())
-		for _, repo := range repos {
-			// Delete the test org repo used
-			name := repo.Repository().GetRepository()
-			if !strings.HasPrefix(name, prefix) {
-				fmt.Printf("Skipping the org repo: %s\n", name)
-				continue
-			}
-			fmt.Printf("Deleting the org repo: %s\n", name)
-			repo.Delete(ctx)
-			Expect(err).ToNot(HaveOccurred())
-		}
-	}
-
-	cleanupUserRepos := func(prefix string) {
-		fmt.Printf("Deleting repos starting with %s for user: %s\n", prefix, testUserName)
-		repos, err := c.UserRepositories().List(ctx, newUserRef(testUserName))
-		Expect(err).ToNot(HaveOccurred())
-		for _, repo := range repos {
-			// Delete the test org repo used
-			name := repo.Repository().GetRepository()
-			if !strings.HasPrefix(name, prefix) {
-				fmt.Printf("Skipping the org repo: %s\n", name)
-				continue
-			}
-			fmt.Printf("Deleting the org repo: %s\n", name)
-			repo.Delete(ctx)
-			Expect(err).ToNot(HaveOccurred())
-		}
-	}
-
 	It("should list the available organizations the user has access to", func() {
 		// Get a list of all organizations the user is part of
 		orgs, err := c.Organizations().List(ctx)
@@ -403,10 +369,6 @@ var _ = Describe("GitLab Provider", func() {
 		// There should be 1 existing subgroup already
 		teams, err := testOrg.Teams().List(ctx)
 		Expect(err).ToNot(HaveOccurred())
-		fmt.Printf("Teams: %d, ...\n", len(teams))
-		for _, team := range teams {
-			fmt.Printf("Team: %s\n", team.Get().Name)
-		}
 		Expect(len(teams)).To(Equal(1), "The 1 team wasn't there...")
 
 		// First, check what repositories are available
@@ -680,9 +642,6 @@ var _ = Describe("GitLab Provider", func() {
 		if c == nil {
 			return
 		}
-
-		defer cleanupOrgRepos("test-org-repo")
-		defer cleanupUserRepos("test-repo")
 
 		// Delete the test repo used
 		fmt.Println("Deleting the user repo: ", testRepoName)

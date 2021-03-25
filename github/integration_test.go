@@ -146,11 +146,11 @@ var _ = Describe("GitHub Provider", func() {
 			}
 		}
 
-		if orgName := os.Getenv("GIT_PROVIDER_ORGANIZATION"); len(orgName) != 0 {
+		if orgName := os.Getenv("GITHUB_ORGANIZATION"); len(orgName) != 0 {
 			testOrgName = orgName
 		}
 
-		if gitProviderUser := os.Getenv("GIT_PROVIDER_USER"); len(gitProviderUser) != 0 {
+		if gitProviderUser := os.Getenv("GITHUB_USER"); len(gitProviderUser) != 0 {
 			testUser = gitProviderUser
 		}
 

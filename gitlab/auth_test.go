@@ -196,3 +196,48 @@ func Test_makeOptions(t *testing.T) {
 		})
 	}
 }
+
+func Test_DomainVariations(t *testing.T) {
+	tests := []struct {
+		name         string
+		opts         ClientOption
+		want         string
+		expectedErrs []error
+	}{
+		{
+			name: "gitlab.com domain",
+			opts: WithDomain("gitlab.com"),
+			want: "gitlab.com",
+		},
+		{
+			name: "custom domain without protocol",
+			opts: WithDomain("my-gitlab.dev.com"),
+			want: "https://my-gitlab.dev.com",
+		},
+		{
+			name: "custom domain with https protocol",
+			opts: WithDomain("my-gitlab.dev.com"),
+			want: "https://my-gitlab.dev.com",
+		},
+		{
+			name: "custom domain with http protocol",
+			opts: WithDomain("http://my-gitlab.dev.com"),
+			want: "http://my-gitlab.dev.com",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c1, _ := NewClient("token", "oauth2", tt.opts)
+			assertEqual(t, tt.want, c1.SupportedDomain())
+
+			c2, _ := NewClient("token", "pat", tt.opts)
+			assertEqual(t, tt.want, c2.SupportedDomain())
+		})
+	}
+}
+
+func assertEqual(t *testing.T, a interface{}, b interface{}) {
+	if a != b {
+		t.Fatalf("%s != %s", a, b)
+	}
+}

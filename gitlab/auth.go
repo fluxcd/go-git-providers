@@ -19,6 +19,7 @@ package gitlab
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/fluxcd/go-git-providers/gitprovider/cache"
@@ -222,6 +223,13 @@ func NewClient(token string, tokenType string, optFns ...ClientOption) (gitprovi
 			}
 		} else {
 			domain = *opts.Domain
+			u, err := url.Parse(*opts.Domain)
+			if err != nil {
+				return nil, err
+			}
+			if u.Scheme == "" {
+				domain = fmt.Sprintf("https://%s", domain)
+			}
 			gl, err = gogitlab.NewOAuthClient(token, gogitlab.WithHTTPClient(httpClient), gogitlab.WithBaseURL(domain))
 			if err != nil {
 				return nil, err
@@ -237,6 +245,13 @@ func NewClient(token string, tokenType string, optFns ...ClientOption) (gitprovi
 			}
 		} else {
 			domain = *opts.Domain
+			u, err := url.Parse(*opts.Domain)
+			if err != nil {
+				return nil, err
+			}
+			if u.Scheme == "" {
+				domain = fmt.Sprintf("https://%s", domain)
+			}
 			gl, err = gogitlab.NewClient(token, gogitlab.WithHTTPClient(httpClient), gogitlab.WithBaseURL(domain))
 			if err != nil {
 				return nil, err

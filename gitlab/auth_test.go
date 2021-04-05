@@ -207,7 +207,7 @@ func Test_DomainVariations(t *testing.T) {
 		{
 			name: "gitlab.com domain",
 			opts: WithDomain("gitlab.com"),
-			want: "gitlab.com",
+			want: "https://gitlab.com",
 		},
 		{
 			name: "custom domain without protocol",
@@ -216,7 +216,7 @@ func Test_DomainVariations(t *testing.T) {
 		},
 		{
 			name: "custom domain with https protocol",
-			opts: WithDomain("my-gitlab.dev.com"),
+			opts: WithDomain("https://my-gitlab.dev.com"),
 			want: "https://my-gitlab.dev.com",
 		},
 		{

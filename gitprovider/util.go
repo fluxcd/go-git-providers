@@ -16,6 +16,11 @@ limitations under the License.
 
 package gitprovider
 
+import (
+	"fmt"
+	"net/url"
+)
+
 // BoolVar returns a pointer to the given bool.
 func BoolVar(b bool) *bool {
 	return &b
@@ -24,4 +29,13 @@ func BoolVar(b bool) *bool {
 // StringVar returns a pointer to the given string.
 func StringVar(s string) *string {
 	return &s
+}
+
+// GetDomainURL returns the domain URL prepended with https:// if a scheme is not set.
+func GetDomainURL(d string) string {
+	parsedURL, _ := url.Parse(d)
+	if parsedURL.Scheme == "" {
+		d = fmt.Sprintf("https://%s", d)
+	}
+	return d
 }

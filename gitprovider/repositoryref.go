@@ -55,7 +55,7 @@ type IdentityRef interface {
 	// IdentityTypeSuborganization are returned, this IdentityRef can be casted to a OrganizationRef.
 	GetType() IdentityType
 
-	// String returns the HTTPS URL, and implements fmt.Stringer.
+	// String returns the URL, and implements fmt.Stringer.
 	String() string
 }
 
@@ -103,7 +103,8 @@ func (u UserRef) GetType() IdentityType {
 
 // String returns the HTTPS URL to access the User.
 func (u UserRef) String() string {
-	return fmt.Sprintf("https://%s/%s", u.GetDomain(), u.GetIdentity())
+	domain := GetDomainURL(u.GetDomain())
+	return fmt.Sprintf("%s/%s", domain, u.GetIdentity())
 }
 
 // ValidateFields validates its own fields for a given validator.
@@ -157,9 +158,10 @@ func (o OrganizationRef) GetType() IdentityType {
 	return IdentityTypeOrganization
 }
 
-// String returns the HTTPS URL to access the Organization.
+// String returns the URL to access the Organization.
 func (o OrganizationRef) String() string {
-	return fmt.Sprintf("https://%s/%s", o.GetDomain(), o.GetIdentity())
+	domain := GetDomainURL(o.GetDomain())
+	return fmt.Sprintf("%s/%s", domain, o.GetIdentity())
 }
 
 // ValidateFields validates its own fields for a given validator.
@@ -220,7 +222,7 @@ type UserRepositoryRef struct {
 	RepositoryName string `json:"repositoryName"`
 }
 
-// String returns the HTTPS URL to access the repository.
+// String returns the URL to access the repository.
 func (r UserRepositoryRef) String() string {
 	return fmt.Sprintf("%s/%s", r.UserRef.String(), r.RepositoryName)
 }

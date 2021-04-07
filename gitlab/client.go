@@ -18,6 +18,8 @@ package gitlab
 
 import (
 	"context"
+	"fmt"
+	"net/url"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/xanzy/go-gitlab"
@@ -67,6 +69,10 @@ type Client struct {
 // what endpoints.
 // This field is set at client creation time, and can't be changed.
 func (c *Client) SupportedDomain() string {
+	u, _ := url.Parse(c.domain)
+	if u.Scheme == "" {
+		c.domain = fmt.Sprintf("https://%s", c.domain)
+	}
 	return c.domain
 }
 

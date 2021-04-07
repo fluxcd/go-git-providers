@@ -660,3 +660,70 @@ func TestRepositoryRef_ValidateFields(t *testing.T) {
 		})
 	}
 }
+
+func TestGetDomainURL(t *testing.T) {
+	tests := []struct {
+		name   string
+		domain string
+		want   string
+	}{
+		{
+			name:   "github.com, no https",
+			domain: "github.com",
+			want:   "https://github.com",
+		},
+		{
+			name:   "github.com, with https",
+			domain: "https://github.com",
+			want:   "https://github.com",
+		},
+		{
+			name:   "github enterprise, no https",
+			domain: "my-github.com",
+			want:   "https://my-github.com",
+		},
+		{
+			name:   "github enterprise, with http",
+			domain: "http://my-github.com",
+			want:   "http://my-github.com",
+		},
+		{
+			name:   "github enterprise, with https",
+			domain: "https://my-github.com",
+			want:   "https://my-github.com",
+		},
+		{
+			name:   "gitlab.com, no https",
+			domain: "gitlab.com",
+			want:   "https://gitlab.com",
+		},
+		{
+			name:   "gitlab.com, with https",
+			domain: "https://gitlab.com",
+			want:   "https://gitlab.com",
+		},
+		{
+			name:   "self hosted gitlab, no https",
+			domain: "my-gitlab.com",
+			want:   "https://my-gitlab.com",
+		},
+		{
+			name:   "self hosted gitlab, with https",
+			domain: "https://my-gitlab.com",
+			want:   "https://my-gitlab.com",
+		},
+		{
+			name:   "self hosted gitlab, with http",
+			domain: "http://my-gitlab.com",
+			want:   "http://my-gitlab.com",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := GetDomainURL(tt.domain)
+			if got != tt.want {
+				t.Errorf("GetDomainURL(domain) = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

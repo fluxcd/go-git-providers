@@ -35,6 +35,18 @@ func newUserProject(ctx *clientContext, apiObj *gogitlab.Project, ref gitprovide
 			clientContext: ctx,
 			ref:           ref,
 		},
+		commits: &CommitClient{
+			clientContext:ctx,
+			ref:ref,
+		},
+		branches: &BranchClient{
+			clientContext:ctx,
+			ref:ref,
+		},
+		pullRequests: &PullRequestClient{
+			clientContext:ctx,
+			ref:ref,
+		},
 	}
 }
 
@@ -47,6 +59,9 @@ type userProject struct {
 	ref gitprovider.RepositoryRef
 
 	deployKeys *DeployKeyClient
+	commits *CommitClient
+	branches *BranchClient
+	pullRequests *PullRequestClient
 }
 
 func (p *userProject) Get() gitprovider.RepositoryInfo {
@@ -71,6 +86,18 @@ func (p *userProject) Repository() gitprovider.RepositoryRef {
 
 func (p *userProject) DeployKeys() gitprovider.DeployKeyClient {
 	return p.deployKeys
+}
+
+func (p *userProject) Commits() gitprovider.CommitClient {
+	return p.commits
+}
+
+func (p *userProject) Branches() gitprovider.BranchClient {
+	return p.branches
+}
+
+func (p *userProject) PullRequests() gitprovider.PullRequestClient {
+	return p.pullRequests
 }
 
 // The internal API object will be overridden with the received server data.
@@ -151,6 +178,14 @@ type orgRepository struct {
 
 func (r *orgRepository) TeamAccess() gitprovider.TeamAccessClient {
 	return r.teamAccess
+}
+
+func (r *orgRepository) Commits() gitprovider.CommitClient {
+	return r.commits
+}
+
+func (r *orgRepository) Branches() gitprovider.BranchClient {
+	return r.branches
 }
 
 // Reconcile makes sure the desired state in this object (called "req" here) becomes

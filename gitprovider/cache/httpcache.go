@@ -68,7 +68,7 @@ func (r *cacheRoundtripper) RoundTrip(req *http.Request) (*http.Response, error)
 	// Call the underlying roundtrip
 	resp, err := r.Transport.RoundTrip(req)
 	// Don't cache anything but "200 OK" requests
-	if resp.StatusCode != http.StatusOK {
+	if resp == nil || resp.StatusCode != http.StatusOK {
 		r.Transport.Cache.Delete(cacheKey)
 	}
 	return resp, err

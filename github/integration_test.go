@@ -270,7 +270,6 @@ var _ = Describe("GitHub Provider", func() {
 		for findUserRepo(repos, testUserRepoName) != nil {
 			testUserRepoName = fmt.Sprintf("test-repo-%03d", rand.Intn(1000))
 		}
-		Expect(err).ToNot(HaveOccurred())
 
 		desc := "GGP integration test user repo"
 		userRepoRef := newUserRepoRef(testUser, testUserRepoName)
@@ -373,6 +372,45 @@ var _ = Describe("GitHub Provider", func() {
 		hasPermission, err = c.HasTokenPermission(ctx, gitprovider.TokenPermissionRWRepository)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(hasPermission).To(Equal(true))
+	})
+
+	It("should be possible to create a pr for a user repository", func() {
+
+		userRepoRef := newUserRepoRef(testUser, testUserRepoName)
+
+		userRepo, err := c.UserRepositories().Get(ctx, userRepoRef)
+		Expect(err).ToNot(HaveOccurred())
+
+		defaultBranch := userRepo.Get().DefaultBranch
+
+		commits, err := userRepo.Commits().ListPage(ctx, *defaultBranch, 1, 0)
+		Expect(err).ToNot(HaveOccurred())
+
+		latestCommit := commits[0]
+
+		branchName := fmt.Sprintf("test-branch-%03d", rand.Intn(1000))
+
+		err = userRepo.Branches().Create(ctx, branchName, latestCommit.Get().Sha)
+		Expect(err).ToNot(HaveOccurred())
+
+		err = userRepo.Branches().Create(ctx, branchName, "wrong-sha")
+		Expect(err).To(HaveOccurred())
+
+		path := "setup/config.txt"
+		content := "yaml content"
+		files := []gitprovider.CommitFile{
+			gitprovider.CommitFile{
+				Path:    &path,
+				Content: &content,
+			},
+		}
+
+		_, err = userRepo.Commits().Create(ctx, branchName, "added config file", files)
+		Expect(err).ToNot(HaveOccurred())
+
+		err = userRepo.PullRequests().Create(ctx, "Added config file", branchName, *defaultBranch, "added config file")
+		Expect(err).ToNot(HaveOccurred())
+
 	})
 
 	AfterSuite(func() {

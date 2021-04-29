@@ -34,7 +34,7 @@ func StringVar(s string) *string {
 // GetDomainURL returns the domain URL prepended with https:// if a scheme is not set.
 func GetDomainURL(d string) string {
 	parsedURL, _ := url.Parse(d)
-	if parsedURL.Scheme == "" {
+	if parsedURL.Scheme != "https" && parsedURL.Scheme != "http" {
 		d = fmt.Sprintf("https://%s", d)
 	}
 	return d

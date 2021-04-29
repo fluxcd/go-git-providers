@@ -1,6 +1,6 @@
 module github.com/fluxcd/go-git-providers
 
-go 1.14
+go 1.15
 
 require (
 	github.com/google/go-cmp v0.4.0

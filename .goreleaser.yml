@@ -6,6 +6,3 @@ project_name: go-git-providers
 build:
   skip: true
 
-# This automatically closes any milestone named the same as the tag
-milestones:
-- close: true

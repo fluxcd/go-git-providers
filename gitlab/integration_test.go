@@ -17,14 +17,17 @@ limitations under the License.
 package gitlab
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -85,11 +88,48 @@ type customTransport struct {
 	mux            *sync.Mutex
 }
 
+func getBodyFromReaderWithoutConsuming(r *io.ReadCloser) string {
+	body, _ := ioutil.ReadAll(*r)
+	(*r).Close()
+	*r = ioutil.NopCloser(bytes.NewBuffer(body))
+	return string(body)
+}
+
+const (
+	ConnectionResetByPeer    = "connection reset by peer"
+	ProjectStillBeingDeleted = "The project is still being deleted"
+)
+
 func (t *customTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 
-	resp, err := t.transport.RoundTrip(req)
+	var resp *http.Response
+	var err error
+	var responseBody string
+	var requestBody string
+	retryCount := 3
+	for retryCount != 0 {
+		responseBody = ""
+		requestBody = ""
+		if req != nil && req.Body != nil {
+			requestBody = getBodyFromReaderWithoutConsuming(&req.Body)
+		}
+		resp, err = t.transport.RoundTrip(req)
+		if resp != nil && resp.Body != nil {
+			responseBody = getBodyFromReaderWithoutConsuming(&resp.Body)
+		}
+		if (err != nil && (strings.Contains(err.Error(), ConnectionResetByPeer))) ||
+			strings.Contains(string(responseBody), ProjectStillBeingDeleted) {
+			time.Sleep(2 * time.Second)
+			if req != nil && req.Body != nil {
+				req.Body = ioutil.NopCloser(strings.NewReader(requestBody))
+			}
+			retryCount--
+			continue
+		}
+		break
+	}
 	// If we should count, count all cache hits whenever found
 	if t.countCacheHits {
 		if _, ok := resp.Header[httpcache.XFromCache]; ok {
@@ -158,6 +198,18 @@ var _ = Describe("GitLab Provider", func() {
 
 		if orgName := os.Getenv("GIT_PROVIDER_ORGANIZATION"); len(orgName) != 0 {
 			testOrgName = orgName
+		}
+
+		if subGroupName := os.Getenv("GITLAB_TEST_SUBGROUP"); len(subGroupName) != 0 {
+			testSubgroupName = subGroupName
+		}
+
+		if teamName := os.Getenv("GITLAB_TEST_TEAM_NAME"); len(teamName) != 0 {
+			testTeamName = teamName
+		}
+
+		if gitProviderUser := os.Getenv("GIT_PROVIDER_USER"); len(gitProviderUser) != 0 {
+			testUserName = gitProviderUser
 		}
 
 		var err error
@@ -607,7 +659,6 @@ var _ = Describe("GitLab Provider", func() {
 		// Delete the repository and later re-create
 		Expect(resp.Delete(ctx)).ToNot(HaveOccurred())
 
-		time.Sleep(10 * time.Second)
 		// Reconcile and create
 		newRepo, actionTaken, err := c.UserRepositories().Reconcile(ctx, repoRef, gitprovider.RepositoryInfo{
 			Description: gitprovider.StringVar(defaultDescription),
@@ -619,6 +670,56 @@ var _ = Describe("GitLab Provider", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(actionTaken).To(BeTrue())
 		validateUserRepo(newRepo, repoRef)
+	})
+
+	It("should be possible to create a pr for a user repository", func() {
+
+		testRepoName = fmt.Sprintf("test-repo2-%03d", rand.Intn(1000))
+		repoRef := newUserRepoRef(testUserName, testRepoName)
+
+		defaultBranch := "master"
+		description := "test description"
+		// Create a new repo
+		userRepo, err := c.UserRepositories().Create(ctx, repoRef,
+			gitprovider.RepositoryInfo{
+				DefaultBranch: &defaultBranch,
+				Description:   &description,
+				Visibility:    gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
+			},
+			&gitprovider.RepositoryCreateOptions{
+				AutoInit: gitprovider.BoolVar(true),
+			})
+		Expect(err).ToNot(HaveOccurred())
+
+		commits, err := userRepo.Commits().ListPage(ctx, defaultBranch, 1, 0)
+		Expect(err).ToNot(HaveOccurred())
+
+		latestCommit := commits[0]
+
+		branchName := fmt.Sprintf("test-branch-%03d", rand.Intn(1000))
+		branchName2 := fmt.Sprintf("test-branch-%03d", rand.Intn(1000))
+
+		err = userRepo.Branches().Create(ctx, branchName, latestCommit.Get().Sha)
+		Expect(err).ToNot(HaveOccurred())
+
+		err = userRepo.Branches().Create(ctx, branchName2, "wrong-sha")
+		Expect(err).To(HaveOccurred())
+
+		path := "setup/config.txt"
+		content := "yaml content"
+		files := []gitprovider.CommitFile{
+			gitprovider.CommitFile{
+				Path:    &path,
+				Content: &content,
+			},
+		}
+
+		_, err = userRepo.Commits().Create(ctx, branchName, "added config file", files)
+		Expect(err).ToNot(HaveOccurred())
+
+		err = userRepo.PullRequests().Create(ctx, "Added config file", branchName, defaultBranch, "added config file")
+		Expect(err).ToNot(HaveOccurred())
+
 	})
 
 	AfterSuite(func() {

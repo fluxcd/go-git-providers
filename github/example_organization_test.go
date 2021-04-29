@@ -36,5 +36,5 @@ func ExampleOrganizationsClient_Get() {
 	internalOrg := org.APIObject().(*gogithub.Organization)
 
 	fmt.Printf("Name: %s. Location: %s.", *orgInfo.Name, internalOrg.GetLocation())
-	// Output: Name: Flux project. Location: CNCF sandbox.
+	// Output: Name: Flux project. Location: CNCF incubation.
 }

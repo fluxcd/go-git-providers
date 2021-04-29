@@ -177,3 +177,25 @@ func (dk DeployKeyInfo) ValidateInfo() error {
 func (dk DeployKeyInfo) Equals(actual InfoRequest) bool {
 	return reflect.DeepEqual(dk, actual)
 }
+
+// CommitInfo contains high-level information about a deploy key.
+type CommitInfo struct {
+	// Sha is the git sha for this commit.
+	// +required
+	Sha string `json:"sha"`
+
+	// TreeSha is the tree sha this commit belongs to.
+	// +required
+	TreeSha string `json:"tree_sha"`
+}
+
+// CommitFile contains high-level information about a file added to a commit.
+type CommitFile struct {
+	// Path is path where this file is located.
+	// +required
+	Path *string `json:"path"`
+
+	// Content is the content of the file.
+	// +required
+	Content *string `json:"content"`
+}

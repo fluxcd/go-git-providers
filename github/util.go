@@ -151,6 +151,7 @@ func handleHTTPError(err error) error {
 // There is no need to wrap the resulting error in handleHTTPError(err), as that's already done.
 func allPages(opts *github.ListOptions, fn func() (*github.Response, error)) error {
 	for {
+
 		resp, err := fn()
 		if err != nil {
 			return handleHTTPError(err)

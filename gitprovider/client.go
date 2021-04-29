@@ -206,3 +206,27 @@ type DeployKeyClient interface {
 	// If req is already the actual state, this is a no-op (actionTaken == false).
 	Reconcile(ctx context.Context, req DeployKeyInfo) (resp DeployKey, actionTaken bool, err error)
 }
+
+// CommitClient operates on the commits list for a specific repository.
+// This client can be accessed through Repository.Commits().
+type CommitClient interface {
+
+	// ListPage lists repository commits of the given page and page size.
+	ListPage(ctx context.Context, branch string, perPage int, page int) ([]Commit, error)
+	// Create creates a commit with the given specifications.
+	Create(ctx context.Context, branch string, message string, files []CommitFile) (Commit, error)
+}
+
+// BranchClient operates on the branches for a specific repository.
+// This client can be accessed through Repository.Branches().
+type BranchClient interface {
+	// Create creates a branch with the given specifications.
+	Create(ctx context.Context, branch, sha string) error
+}
+
+// PullRequestClient operates on the pull requests for a specific repository.
+// This client can be accessed through Repository.PullRequests().
+type PullRequestClient interface {
+	// Create creates a pull request with the given specifications.
+	Create(ctx context.Context, title, branch, baseBranch, description string) error
+}

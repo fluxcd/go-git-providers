@@ -96,6 +96,12 @@ type gitlabClient interface {
 	// UnshareProject is a wrapper for ""
 	// This function handles HTTP error wrapping, and validates the server result.
 	UnshareProject(ctx context.Context, projectName string, groupID int) error
+
+	// Commits
+
+	// ListCommitsPage is a wrapper for "GET /projects/{project}/repository/commits".
+	// This function handles pagination, HTTP error wrapping.
+	ListCommitsPage(ctx context.Context, projectName, branch string, perPage int,page int) ([]*gitlab.Commit, error)
 }
 
 // gitlabClientImpl is a wrapper around *gitlab.Client, which implements higher-level methods,
@@ -382,4 +388,29 @@ func (c *gitlabClientImpl) ShareProject(ctx context.Context, projectName string,
 func (c *gitlabClientImpl) UnshareProject(ctx context.Context, projectName string, groupID int) error {
 	_, err := c.c.Projects.DeleteSharedProjectFromGroup(projectName, groupID)
 	return handleHTTPError(err)
+}
+
+func (c *gitlabClientImpl) ListCommitsPage(ctx context.Context,projectName string, branch string, perPage int,page int) ([]*gitlab.Commit, error) {
+	apiObjs := make([]*gitlab.Commit, 0)
+
+	opts := gitlab.ListCommitsOptions{
+		ListOptions: gitlab.ListOptions{
+			PerPage: perPage,
+			Page: page,
+		},
+		RefName: &branch,
+	}
+
+	// GET /projects/{id}/repository/commits
+	pageObjs, _, listErr := c.c.Commits.ListCommits(projectName,&opts)
+	for _, c := range pageObjs {
+		apiObjs = append(apiObjs, &gitlab.Commit{
+			ID: c.ID,
+		})
+	}
+
+	if listErr != nil {
+		return nil, listErr
+	}
+	return apiObjs, nil
 }

@@ -67,6 +67,15 @@ type UserRepository interface {
 
 	// DeployKeys gives access to manipulating deploy keys to access this specific repository.
 	DeployKeys() DeployKeyClient
+
+	// Commits gives access to this specific repository commits
+	Commits() CommitClient
+
+	// Branches gives access to this specific repository branches
+	Branches() BranchClient
+
+	// PullRequests gives access to this specific repository pull requests
+	PullRequests() PullRequestClient
 }
 
 // OrgRepository describes a repository owned by an organization.
@@ -118,4 +127,14 @@ type TeamAccess interface {
 	// Set sets high-level desired state for this team access object. In order to apply these changes in
 	// the Git provider, run .Update() or .Reconcile().
 	Set(TeamAccessInfo) error
+}
+
+// Commit represents a git commit.
+type Commit interface {
+	// Object implements the Object interface,
+	// allowing access to the underlying object returned from the API.
+	Object
+
+	// Get returns high-level information about this commit.
+	Get() CommitInfo
 }

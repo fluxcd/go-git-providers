@@ -70,6 +70,9 @@ type githubClient interface {
 	// ListKeys is a wrapper for "GET /repos/{owner}/{repo}/keys".
 	// This function handles pagination, HTTP error wrapping, and validates the server result.
 	ListKeys(ctx context.Context, owner, repo string) ([]*github.Key, error)
+	// ListCommitsPage is a wrapper for "GET /repos/{owner}/{repo}/commits".
+	// This function handles pagination, HTTP error wrapping.
+	ListCommitsPage(ctx context.Context, owner, repo, branch string, perPage int, page int) ([]*github.Commit, error)
 	// CreateKey is a wrapper for "POST /repos/{owner}/{repo}/keys".
 	// This function handles HTTP error wrapping, and validates the server result.
 	CreateKey(ctx context.Context, owner, repo string, req *github.Key) (*github.Key, error)
@@ -290,6 +293,33 @@ func (c *githubClientImpl) ListKeys(ctx context.Context, owner, repo string) ([]
 		if err := validateDeployKeyAPI(apiObj); err != nil {
 			return nil, err
 		}
+	}
+	return apiObjs, nil
+}
+
+func (c *githubClientImpl) ListCommitsPage(ctx context.Context, owner, repo, branch string, perPage int, page int) ([]*github.Commit, error) {
+	apiObjs := make([]*github.Commit, 0)
+	lcOpts := &github.CommitsListOptions{
+		ListOptions: github.ListOptions{
+			PerPage: perPage,
+			Page:    page,
+		},
+		SHA: branch,
+	}
+
+	// GET /repos/{owner}/{repo}/commits
+	pageObjs, _, listErr := c.c.Repositories.ListCommits(ctx, owner, repo, lcOpts)
+	for _, c := range pageObjs {
+		apiObjs = append(apiObjs, &github.Commit{
+			SHA: c.SHA,
+			Tree: &github.Tree{
+				SHA: c.Commit.Tree.SHA,
+			},
+		})
+	}
+
+	if listErr != nil {
+		return nil, listErr
 	}
 	return apiObjs, nil
 }

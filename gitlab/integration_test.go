@@ -529,7 +529,7 @@ var _ = Describe("GitLab Provider", func() {
 		readOnly := false
 		testDeployKeyInfo := gitprovider.DeployKeyInfo{
 			Name:     testDeployKeyName,
-			Key:      []byte("ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDLbHBknQQaasdl2/O9DfgizMyUh/lhYwXk9GrBY9Ow9fFHy+lIiRBiS8H4rjvP2YkECrWWSbcevTKe+yk7PsU98RZiPL9S2+d2ENo3uQ2Rp6xnKY+XtvJnSvpLnABz/mGDPgvcLxXvPj2rAGu35u08DZ1WufU7hzgiWuLM3TH/albVcadw5ZflOAXalMmUhinB9m/O71DWyaP33pIqZBGCc8IBMcUHOL72NkNcpatXvCALltApJVUPZIvQUnrmUOglQMklaCeeWn6B269UI9kH9TjhGbbIvHpPZ7Ky9RTklZTeINLZW5Yql/leA/vJGcIipyXQkDPs7RSwtpmp5kat dinos@dinos-desktop"),
+			Key:      []byte("ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC8f94nlLYm+pFUCE0BSpNGrcGtxVbqNcsrg54wzbbazHadP4JpMQzjGjIJZI9q+gK+nCiU6KqDsm55fyPb8dkDjXcp/3soYlBS9fLkuh0v2LlLfM9AnqShQVM1CKFs8VzDEnwMfhIx3XR1JJJfGEyu36GzAgHv3bSGYMi5MyPT16yCg9427RwaokV1+9MTXdjCS1OOrhMqCwgHcHhBCdY/st9k2l1OLXW40IJ4fHT9QTyGQvp4UZE6xylJxJdJEnK/YDloW1HpL+U63lxUl+ME8abmpFdenBiysC/FBhKb7b6rmnxSbw9DbAVdXaB9knJ21EjdEWtRV75wVfONwUFL user@host"),
 			ReadOnly: &readOnly,
 		}
 		_, err = orgRepo.DeployKeys().Create(ctx, testDeployKeyInfo)
@@ -556,7 +556,7 @@ var _ = Describe("GitLab Provider", func() {
 		title := "new-title"
 		req := getKey.Get()
 		req.Name = title
-		req.Key = []byte("ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCasdHV91pRmqTaWPJnvZmvTPZPpHmIYocY1kmYFeOOL6/ofdvYb1sxNwsccOJEeLGJjp6FGe4BWNQSqDUCeO3EVU8A7ZTnd9eizB8nYDGoACbmG2GfMmtAdxKfsPE/lNRzAOFmHAHrzOnL6zk5SMPe0Y2poW1Z5w+If5r62WwfqG2/ujUA7BU3Vf/arFIYJvXvuEOJMP3QbezWL0b22Wmedu8esKrOYcak80I6Ti8qiof8ly1JZa58ezHJVvcEWZGSKU4G53jmDz7ky4GGb9DRo+LqOaU1qetdJX1GiCRNnhvz8DsxGcL77BJPE7HPBct44lN1TZCeIOG00Hai4bDp dinos@dinos-desktop")
+		req.Key = []byte("ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDVkrF2RW7z8kG6K530zOCiVdGBfYErh+cYch1d48/ZpPYd45h9oG6E6qtkc6WD9/6WOV3RWNqeePTnxPfD2oEr6Lzh1lPazBmcWFvexct0q3+9XbR4Ir0h43gjjxtzyeaDHpKNFpupKDOA+iVTuewOARpqqaHpASW8PQrCCaCG/g9p8dK7vLKJXegEY+TIXJFLM5PWRR2SJZCsifyJytDeKxcUw9lGCXi/Bq5ce+xpZIUpv8TXmB5MYwNZSM5eEQcpsG2/obKWC0iN73PoC5IH0UaAiVrJzLbg2U8SZJGZOSPNu/KQugiXmJHRkgmu1J6TfyqRRccru+RpxFEbvC1d user@node")
 		Expect(getKey.Set(req)).ToNot(HaveOccurred())
 		actionTaken, err = getKey.Reconcile(ctx)
 		// Expect the update to succeed, and modify the state

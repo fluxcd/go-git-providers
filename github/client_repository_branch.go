@@ -32,22 +32,20 @@ type BranchClient struct {
 }
 
 // Create creates a branch with the given specifications.
-func (c *BranchClient) Create(ctx context.Context, branch,sha string)  error {
+func (c *BranchClient) Create(ctx context.Context, branch, sha string) error {
 
-	ref := "refs/heads/"+branch
+	ref := "refs/heads/" + branch
 
 	reference := &github.Reference{
-		Ref:&ref,
+		Ref: &ref,
 		Object: &github.GitObject{
-			SHA:&sha,
+			SHA: &sha,
 		},
 	}
 
-	if _,_,err:=c.c.Client().Git.CreateRef(ctx, c.ref.GetIdentity(), c.ref.GetRepository(),reference); err != nil {
+	if _, _, err := c.c.Client().Git.CreateRef(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), reference); err != nil {
 		return err
 	}
 
 	return nil
 }
-
-

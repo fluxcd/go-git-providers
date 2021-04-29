@@ -37,16 +37,16 @@ func newUserRepository(ctx *clientContext, apiObj *github.Repository, ref gitpro
 			ref:           ref,
 		},
 		commits: &CommitClient{
-			clientContext:ctx,
-			ref:ref,
+			clientContext: ctx,
+			ref:           ref,
 		},
 		branches: &BranchClient{
-			clientContext:ctx,
-			ref:ref,
+			clientContext: ctx,
+			ref:           ref,
 		},
 		pullRequests: &PullRequestClient{
-			clientContext:ctx,
-			ref:ref,
+			clientContext: ctx,
+			ref:           ref,
 		},
 	}
 }
@@ -59,9 +59,9 @@ type userRepository struct {
 	r   github.Repository // go-github
 	ref gitprovider.RepositoryRef
 
-	deployKeys *DeployKeyClient
-	commits    *CommitClient
-	branches    *BranchClient
+	deployKeys   *DeployKeyClient
+	commits      *CommitClient
+	branches     *BranchClient
 	pullRequests *PullRequestClient
 }
 

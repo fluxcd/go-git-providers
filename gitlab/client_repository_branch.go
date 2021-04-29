@@ -32,18 +32,16 @@ type BranchClient struct {
 }
 
 // Create creates a branch with the given specifications.
-func (c *BranchClient) Create(ctx context.Context,branch,sha string)  error {
+func (c *BranchClient) Create(ctx context.Context, branch, sha string) error {
 
 	ref := &gitlab.CreateBranchOptions{
-		Ref:&sha,
+		Ref:    &sha,
 		Branch: &branch,
 	}
 
-	if _,_,err:=c.c.Client().Branches.CreateBranch(getRepoPath(c.ref),ref); err != nil {
+	if _, _, err := c.c.Client().Branches.CreateBranch(getRepoPath(c.ref), ref); err != nil {
 		return err
 	}
 
 	return nil
 }
-
-

@@ -15,7 +15,7 @@ test: tidy fmt vet
 	go test -race -coverprofile=coverage.txt -covermode=atomic ./...
 
 release:
-	git checkout master
+	git checkout main
 	git pull
 	git tag "v$(VER)"
 	git push origin "v$(VER)"

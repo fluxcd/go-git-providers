@@ -1,6 +1,6 @@
 # Contributing
 
-FluxCD go-git-providers is [Apache 2.0 licensed](LICENSE) and accepts contributions
+go-git-providers is [Apache 2.0 licensed](LICENSE) and accepts contributions
 via GitHub pull requests. This document outlines some of the conventions on
 to make it easier to get your contribution accepted.
 
@@ -12,9 +12,18 @@ code.
 By contributing to this project you agree to the Developer Certificate of
 Origin (DCO). This document was created by the Linux Kernel community and is a
 simple statement that you, as a contributor, have the legal right to make the
-contribution. No action from you is required, but it's a good idea to see the
-[DCO](DCO) file for details before you start contributing code to FluxCD
-go-git-providers.
+contribution.
+
+We require all commits to be signed. By signing off with your signature, you
+certify that you wrote the patch or otherwise have the right to contribute the
+material by the rules of the [DCO](DCO):
+
+`Signed-off-by: Jane Doe <jane.doe@example.com>`
+
+The signature must contain your real name
+(sorry, no pseudonyms or anonymous contributions)
+If your `user.name` and `user.email` are configured in your Git config,
+you can sign your commit automatically with `git commit -s`.
 
 ## Communications
 
@@ -30,7 +39,14 @@ meeting](https://docs.google.com/document/d/1l_M0om0qUEN_NNiGgpqJ2tvsF2iioHkaARD
 
 ### How to run the test suite
 
-You can run the unit tests by simply doing
+To run the e2e tests you'll have to provide GitHub and GitLab tokens:
+
+```sh
+export GITHUB_TOKEN=YOUR-GH-ADMIN-TOKEN
+export GITLAB_TOKEN=YOUR-GL-ADMIN-TOKEN
+```
+
+Then run the tests with:
 
 ```bash
 make test
@@ -57,7 +73,7 @@ get asked to resubmit the PR or divide the changes into more than one PR.
 
 ### Format of the Commit Message
 
-For Source Controller we prefer the following rules for good commit messages:
+For go-git-providers we prefer the following rules for good commit messages:
 
 - Limit the subject to 50 characters and write as the continuation
   of the sentence "If applied, this commit will ..."

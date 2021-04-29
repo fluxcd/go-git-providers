@@ -16,7 +16,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.14
+          go-version: 1.15
       # Similar as to https://github.com/fluxcd/toolkit/blob/master/.github/workflows/release.yaml#L20-L27
       - name: Download release notes utility
         env:

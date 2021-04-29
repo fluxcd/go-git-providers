@@ -32,20 +32,18 @@ type PullRequestClient struct {
 }
 
 // Create creates a pull request with the given specifications.
-func (c *PullRequestClient) Create(ctx context.Context,title,branch,baseBranch,description string)  error {
+func (c *PullRequestClient) Create(ctx context.Context, title, branch, baseBranch, description string) error {
 
 	prOpts := &github.NewPullRequest{
 		Title: &title,
-		Head: &branch,
-		Base: &baseBranch,
-		Body: &description,
+		Head:  &branch,
+		Base:  &baseBranch,
+		Body:  &description,
 	}
 
-	if _,_, err := c.c.Client().PullRequests.Create(ctx, c.ref.GetIdentity(), c.ref.GetRepository(),prOpts); err != nil {
+	if _, _, err := c.c.Client().PullRequests.Create(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), prOpts); err != nil {
 		return err
 	}
 
 	return nil
 }
-
-

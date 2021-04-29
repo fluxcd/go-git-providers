@@ -101,7 +101,7 @@ type gitlabClient interface {
 
 	// ListCommitsPage is a wrapper for "GET /projects/{project}/repository/commits".
 	// This function handles pagination, HTTP error wrapping.
-	ListCommitsPage(ctx context.Context, projectName, branch string, perPage int,page int) ([]*gitlab.Commit, error)
+	ListCommitsPage(ctx context.Context, projectName, branch string, perPage int, page int) ([]*gitlab.Commit, error)
 }
 
 // gitlabClientImpl is a wrapper around *gitlab.Client, which implements higher-level methods,
@@ -390,19 +390,19 @@ func (c *gitlabClientImpl) UnshareProject(ctx context.Context, projectName strin
 	return handleHTTPError(err)
 }
 
-func (c *gitlabClientImpl) ListCommitsPage(ctx context.Context,projectName string, branch string, perPage int,page int) ([]*gitlab.Commit, error) {
+func (c *gitlabClientImpl) ListCommitsPage(ctx context.Context, projectName string, branch string, perPage int, page int) ([]*gitlab.Commit, error) {
 	apiObjs := make([]*gitlab.Commit, 0)
 
 	opts := gitlab.ListCommitsOptions{
 		ListOptions: gitlab.ListOptions{
 			PerPage: perPage,
-			Page: page,
+			Page:    page,
 		},
 		RefName: &branch,
 	}
 
 	// GET /projects/{id}/repository/commits
-	pageObjs, _, listErr := c.c.Commits.ListCommits(projectName,&opts)
+	pageObjs, _, listErr := c.c.Commits.ListCommits(projectName, &opts)
 	for _, c := range pageObjs {
 		apiObjs = append(apiObjs, &gitlab.Commit{
 			ID: c.ID,

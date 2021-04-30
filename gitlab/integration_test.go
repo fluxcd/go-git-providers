@@ -38,6 +38,7 @@ import (
 	"github.com/xanzy/go-gitlab"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
+	testutils "github.com/fluxcd/go-git-providers/gitprovider/testutils"
 )
 
 const (
@@ -526,10 +527,15 @@ var _ = Describe("GitLab Provider", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(len(keys)).To(Equal(0))
 
+		rsaGen := testutils.NewRSAGenerator(256)
+		keyPair1, err := rsaGen.Generate()
+		Expect(err).ToNot(HaveOccurred())
+		pubKey := keyPair1.PublicKey
+
 		readOnly := false
 		testDeployKeyInfo := gitprovider.DeployKeyInfo{
 			Name:     testDeployKeyName,
-			Key:      []byte("ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC8f94nlLYm+pFUCE0BSpNGrcGtxVbqNcsrg54wzbbazHadP4JpMQzjGjIJZI9q+gK+nCiU6KqDsm55fyPb8dkDjXcp/3soYlBS9fLkuh0v2LlLfM9AnqShQVM1CKFs8VzDEnwMfhIx3XR1JJJfGEyu36GzAgHv3bSGYMi5MyPT16yCg9427RwaokV1+9MTXdjCS1OOrhMqCwgHcHhBCdY/st9k2l1OLXW40IJ4fHT9QTyGQvp4UZE6xylJxJdJEnK/YDloW1HpL+U63lxUl+ME8abmpFdenBiysC/FBhKb7b6rmnxSbw9DbAVdXaB9knJ21EjdEWtRV75wVfONwUFL user@host"),
+			Key:      pubKey,
 			ReadOnly: &readOnly,
 		}
 		_, err = orgRepo.DeployKeys().Create(ctx, testDeployKeyInfo)
@@ -544,7 +550,8 @@ var _ = Describe("GitLab Provider", func() {
 		getKey, err := orgRepo.DeployKeys().Get(ctx, testDeployKeyName)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(getKey.Get().Key).To(Equal(testDeployKeyInfo.Key))
+		deployKeyStr := string(testDeployKeyInfo.Key)
+		Expect(string(getKey.Get().Key)).To(Equal(strings.TrimSuffix(deployKeyStr, "\n")))
 		Expect(getKey.Get().Name).To(Equal(testDeployKeyInfo.Name))
 
 		Expect(getKey.Set(getKey.Get())).ToNot(HaveOccurred())
@@ -556,7 +563,12 @@ var _ = Describe("GitLab Provider", func() {
 		title := "new-title"
 		req := getKey.Get()
 		req.Name = title
-		req.Key = []byte("ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDVkrF2RW7z8kG6K530zOCiVdGBfYErh+cYch1d48/ZpPYd45h9oG6E6qtkc6WD9/6WOV3RWNqeePTnxPfD2oEr6Lzh1lPazBmcWFvexct0q3+9XbR4Ir0h43gjjxtzyeaDHpKNFpupKDOA+iVTuewOARpqqaHpASW8PQrCCaCG/g9p8dK7vLKJXegEY+TIXJFLM5PWRR2SJZCsifyJytDeKxcUw9lGCXi/Bq5ce+xpZIUpv8TXmB5MYwNZSM5eEQcpsG2/obKWC0iN73PoC5IH0UaAiVrJzLbg2U8SZJGZOSPNu/KQugiXmJHRkgmu1J6TfyqRRccru+RpxFEbvC1d user@node")
+
+		keyPair2, err := rsaGen.Generate()
+		Expect(err).ToNot(HaveOccurred())
+		anotherPubKey := keyPair2.PublicKey
+		req.Key = anotherPubKey
+
 		Expect(getKey.Set(req)).ToNot(HaveOccurred())
 		actionTaken, err = getKey.Reconcile(ctx)
 		// Expect the update to succeed, and modify the state

@@ -1,0 +1,75 @@
+/*
+Copyright 2020 The Flux CD contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package gitlab
+
+import (
+	"context"
+	"encoding/base64"
+	"github.com/fluxcd/go-git-providers/gitprovider"
+	"github.com/xanzy/go-gitlab"
+	"io/ioutil"
+	"strings"
+)
+
+// FileClient implements the gitprovider.FileClient interface.
+var _ gitprovider.FileClient = &FileClient{}
+
+// FileClient operates on the branch for a specific repository.
+type FileClient struct {
+	*clientContext
+	ref gitprovider.RepositoryRef
+}
+
+func (c *FileClient) Get(ctx context.Context, path, branch string) ([]*gitprovider.File, error) {
+
+	opts := &gitlab.ListTreeOptions{
+		Path: &path,
+		Ref:  &branch,
+	}
+
+	listFiles, _, err := c.c.Client().Repositories.ListTree(getRepoPath(c.ref), opts)
+	if err != nil {
+		return nil, err
+	}
+
+	fileOpts := &gitlab.GetFileOptions{
+		Ref: &branch,
+	}
+
+	files := make([]*gitprovider.File, 0)
+	for _, file := range listFiles {
+		fileDownloaded, _, err := c.c.Client().RepositoryFiles.GetFile(getRepoPath(c.ref), file.Path, fileOpts)
+		if err != nil {
+			return nil, err
+		}
+		filePath := fileDownloaded.FilePath
+		fileName := fileDownloaded.FileName
+		fileContentDecoded := base64.NewDecoder(base64.RawStdEncoding, strings.NewReader(fileDownloaded.Content))
+		fileBytes, err := ioutil.ReadAll(fileContentDecoded)
+		if err != nil {
+			return nil, err
+		}
+		fileStr := string(fileBytes)
+		files = append(files, &gitprovider.File{
+			Path:    &filePath,
+			Name:    &fileName,
+			Content: &fileStr,
+		})
+	}
+
+	return files, nil
+}

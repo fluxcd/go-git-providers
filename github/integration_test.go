@@ -398,8 +398,8 @@ var _ = Describe("GitHub Provider", func() {
 
 		path := "setup/config.txt"
 		content := "yaml content"
-		files := []gitprovider.CommitFile{
-			gitprovider.CommitFile{
+		files := []gitprovider.File{
+			gitprovider.File{
 				Path:    &path,
 				Content: &content,
 			},
@@ -410,6 +410,57 @@ var _ = Describe("GitHub Provider", func() {
 
 		err = userRepo.PullRequests().Create(ctx, "Added config file", branchName, *defaultBranch, "added config file")
 		Expect(err).ToNot(HaveOccurred())
+
+	})
+
+	It("should be possible to download files from path and branch specified", func() {
+
+		userRepoRef := newUserRepoRef(testUser, testUserRepoName)
+
+		userRepo, err := c.UserRepositories().Get(ctx, userRepoRef)
+		Expect(err).ToNot(HaveOccurred())
+
+		defaultBranch := userRepo.Get().DefaultBranch
+
+		path0 := "cluster/machine1.yaml"
+		name0 := "machine1.yaml"
+		content0 := "machine1 yaml content"
+		path1 := "cluster/machine2.yaml"
+		name1 := "machine2.yaml"
+		content1 := "machine2 yaml content"
+
+		files := []gitprovider.File{
+			{
+				Path:    &path0,
+				Name:    &name0,
+				Content: &content0,
+			},
+			{
+				Path:    &path1,
+				Name:    &name1,
+				Content: &content1,
+			},
+		}
+
+		commitFiles := make([]gitprovider.File, 0)
+		for _, file := range files {
+			path := file.Path
+			content := file.Content
+			commitFiles = append(commitFiles, gitprovider.File{
+				Path:    path,
+				Content: content,
+			})
+		}
+
+		_, err = userRepo.Commits().Create(ctx, *defaultBranch, "added config files", commitFiles)
+		Expect(err).ToNot(HaveOccurred())
+
+		downloadedFiles, err := userRepo.Files().Get(ctx, "cluster", *defaultBranch)
+		Expect(err).ToNot(HaveOccurred())
+
+		for ind, downloadedFile := range downloadedFiles {
+			Expect(*downloadedFile).To(Equal(files[ind]))
+		}
 
 	})
 

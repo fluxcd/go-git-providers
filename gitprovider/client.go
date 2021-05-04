@@ -214,7 +214,7 @@ type CommitClient interface {
 	// ListPage lists repository commits of the given page and page size.
 	ListPage(ctx context.Context, branch string, perPage int, page int) ([]Commit, error)
 	// Create creates a commit with the given specifications.
-	Create(ctx context.Context, branch string, message string, files []CommitFile) (Commit, error)
+	Create(ctx context.Context, branch string, message string, files []File) (Commit, error)
 }
 
 // BranchClient operates on the branches for a specific repository.
@@ -229,4 +229,11 @@ type BranchClient interface {
 type PullRequestClient interface {
 	// Create creates a pull request with the given specifications.
 	Create(ctx context.Context, title, branch, baseBranch, description string) error
+}
+
+// FileClient operates on the branches for a specific repository.
+// This client can be accessed through Repository.Branches().
+type FileClient interface {
+	// GetFiles fetch files content from specific path and branch
+	Get(ctx context.Context, path, branch string) ([]*File, error)
 }

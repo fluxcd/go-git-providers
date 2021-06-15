@@ -408,9 +408,9 @@ var _ = Describe("GitHub Provider", func() {
 		_, err = userRepo.Commits().Create(ctx, branchName, "added config file", files)
 		Expect(err).ToNot(HaveOccurred())
 
-		err = userRepo.PullRequests().Create(ctx, "Added config file", branchName, *defaultBranch, "added config file")
+		pr, err := userRepo.PullRequests().Create(ctx, "Added config file", branchName, *defaultBranch, "added config file")
 		Expect(err).ToNot(HaveOccurred())
-
+		Expect(pr.Get().WebURL).ToNot(BeEmpty())
 	})
 
 	AfterSuite(func() {

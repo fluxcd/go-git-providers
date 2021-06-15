@@ -228,5 +228,5 @@ type BranchClient interface {
 // This client can be accessed through Repository.PullRequests().
 type PullRequestClient interface {
 	// Create creates a pull request with the given specifications.
-	Create(ctx context.Context, title, branch, baseBranch, description string) error
+	Create(ctx context.Context, title, branch, baseBranch, description string) (PullRequest, error)
 }

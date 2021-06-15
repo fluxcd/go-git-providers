@@ -18,6 +18,7 @@ package github
 
 import (
 	"context"
+
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/google/go-github/v32/github"
 )
@@ -32,7 +33,7 @@ type PullRequestClient struct {
 }
 
 // Create creates a pull request with the given specifications.
-func (c *PullRequestClient) Create(ctx context.Context, title, branch, baseBranch, description string) error {
+func (c *PullRequestClient) Create(ctx context.Context, title, branch, baseBranch, description string) (gitprovider.PullRequest, error) {
 
 	prOpts := &github.NewPullRequest{
 		Title: &title,
@@ -41,9 +42,10 @@ func (c *PullRequestClient) Create(ctx context.Context, title, branch, baseBranc
 		Body:  &description,
 	}
 
-	if _, _, err := c.c.Client().PullRequests.Create(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), prOpts); err != nil {
-		return err
+	pr, _, err := c.c.Client().PullRequests.Create(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), prOpts)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil
+	return newPullRequest(c.clientContext, pr), nil
 }

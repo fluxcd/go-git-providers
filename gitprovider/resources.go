@@ -138,3 +138,12 @@ type Commit interface {
 	// Get returns high-level information about this commit.
 	Get() CommitInfo
 }
+
+type PullRequest interface {
+	// Object implements the Object interface,
+	// allowing access to the underlying object returned from the API.
+	Object
+
+	// Get returns high-level information about this pull request.
+	Get() PullRequestInfo
+}

@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"context"
+
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/xanzy/go-gitlab"
 )
@@ -32,7 +33,7 @@ type PullRequestClient struct {
 }
 
 // Create creates a pull request with the given specifications.
-func (c *PullRequestClient) Create(ctx context.Context, title, branch, baseBranch, description string) error {
+func (c *PullRequestClient) Create(ctx context.Context, title, branch, baseBranch, description string) (gitprovider.PullRequest, error) {
 
 	prOpts := &gitlab.CreateMergeRequestOptions{
 		Title:        &title,
@@ -41,9 +42,10 @@ func (c *PullRequestClient) Create(ctx context.Context, title, branch, baseBranc
 		Description:  &description,
 	}
 
-	if _, _, err := c.c.Client().MergeRequests.CreateMergeRequest(getRepoPath(c.ref), prOpts); err != nil {
-		return err
+	mr, _, err := c.c.Client().MergeRequests.CreateMergeRequest(getRepoPath(c.ref), prOpts)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil
+	return newPullRequest(c.clientContext, mr), nil
 }

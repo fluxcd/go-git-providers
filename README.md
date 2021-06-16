@@ -172,6 +172,15 @@ See the following (automatically tested) examples:
 - [github/example_organization_test.go](github/example_organization_test.go)
 - [github/example_repository_test.go](github/example_repository_test.go)
 
+
+If you need to run `make test` for your fork/branch you may need to supply the following environment variables:
+- GIT_PROVIDER_ORGANIZATION : For GitHub this should be an organization whereas for GitLab this should be a top-level group. As this environment variable is used for both test suites, the name of the GitHub organization must match the name of the GitLab top-level group. Also, this organization needs to have its repository default branch set to `main`.
+- GIT_PROVIDER_USER : This should be the same username for both GitHub and GitLab.
+- GITLAB_TEST_TEAM_NAME : An existing GitLab group.
+- GITLAB_TEST_SUBGROUP : An existing GitLab subgroup of the GIT_PROVIDER_ORGANIZATION top-level group.
+- GITHUB_TOKEN : A GitHub token with `repo`, `admin:org` and `delete_repo` permissions.
+- GITLAB_TOKEN: A GitLab token with `api` scope.
+
 ## Maintainers
 
 In alphabetical order:
@@ -181,6 +190,7 @@ In alphabetical order:
 - Simon Howe, [@foot](https://github.com/foot)
 - Dinos Kousidis, [@dinosk](https://github.com/dinosk)
 - Stefan Prodan, [@stefanprodan](https://github.com/stefanprodan)
+- Yiannis Triantafyllopoulos, [@yiannistri](https://github.com/yiannistri)
 
 ## Getting Help
 

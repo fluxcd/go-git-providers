@@ -199,3 +199,9 @@ type CommitFile struct {
 	// +required
 	Content *string `json:"content"`
 }
+
+type PullRequestInfo struct {
+	// WebURL is the URL of the pull request in the git provider web interface.
+	// +required
+	WebURL string `json:"web_url"`
+}

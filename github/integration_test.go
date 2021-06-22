@@ -24,6 +24,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -163,6 +164,38 @@ var _ = Describe("GitHub Provider", func() {
 		)
 		Expect(err).ToNot(HaveOccurred())
 	})
+
+	cleanupOrgRepos := func(prefix string) {
+		fmt.Printf("Deleting repos starting with %s in org: %s\n", prefix, testOrgName)
+		repos, err := c.OrgRepositories().List(ctx, newOrgRef(testOrgName))
+		Expect(err).ToNot(HaveOccurred())
+		for _, repo := range repos {
+			// Delete the test org repo used
+			name := repo.Repository().GetRepository()
+			if !strings.HasPrefix(name, prefix) {
+				continue
+			}
+			fmt.Printf("Deleting the org repo: %s\n", name)
+			repo.Delete(ctx)
+			Expect(err).ToNot(HaveOccurred())
+		}
+	}
+
+	cleanupUserRepos := func(prefix string) {
+		fmt.Printf("Deleting repos starting with %s for user: %s\n", prefix, testUser)
+		repos, err := c.UserRepositories().List(ctx, newUserRef(testUser))
+		Expect(err).ToNot(HaveOccurred())
+		for _, repo := range repos {
+			name := repo.Repository().GetRepository()
+			if !strings.HasPrefix(name, prefix) {
+				fmt.Printf("Skipping the org repo: %s\n", name)
+				continue
+			}
+			fmt.Printf("Deleting the org repo: %s\n", name)
+			repo.Delete(ctx)
+			Expect(err).ToNot(HaveOccurred())
+		}
+	}
 
 	It("should list the available organizations the user has access to", func() {
 		// Get a list of all organizations the user is part of
@@ -418,11 +451,21 @@ var _ = Describe("GitHub Provider", func() {
 		if c == nil {
 			return
 		}
+
+		if len(os.Getenv("CLEANUP_ALL")) > 0 {
+			defer cleanupOrgRepos("test-repo")
+			defer cleanupUserRepos("test-repo")
+		}
+
 		// Delete the org test repo used
 		orgRepo, err := c.OrgRepositories().Get(ctx, newOrgRepoRef(testOrgName, testOrgRepoName))
-		Expect(err).ToNot(HaveOccurred())
-		Expect(orgRepo.Delete(ctx)).ToNot(HaveOccurred())
-
+		if err != nil && len(os.Getenv("CLEANUP_ALL")) > 0 {
+			fmt.Printf("failed to get repo: %s in org: %s, error: %s\n", testOrgRepoName, testOrgName, err)
+			fmt.Printf("CLEANUP_ALL set so continuing\n")
+		} else {
+			Expect(err).ToNot(HaveOccurred())
+			Expect(orgRepo.Delete(ctx)).ToNot(HaveOccurred())
+		}
 		// Delete the user test repo used
 		userRepo, err := c.UserRepositories().Get(ctx, newUserRepoRef(testUser, testUserRepoName))
 		Expect(err).ToNot(HaveOccurred())

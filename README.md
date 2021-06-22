@@ -178,8 +178,10 @@ If you need to run `make test` for your fork/branch you may need to supply the f
 - GIT_PROVIDER_USER : This should be the same username for both GitHub and GitLab.
 - GITLAB_TEST_TEAM_NAME : An existing GitLab group.
 - GITLAB_TEST_SUBGROUP : An existing GitLab subgroup of the GIT_PROVIDER_ORGANIZATION top-level group.
-- GITHUB_TOKEN : A GitHub token with `repo`, `admin:org` and `delete_repo` permissions.
+- GITPROVIDER_BOT_TOKEN : A GitHub token with `repo`, `admin:org` and `delete_repo` permissions.
 - GITLAB_TOKEN: A GitLab token with `api` scope.
+- TEST_VERBOSE: Set to '-v' to emit test output for debugging purposes
+- CLEANUP_ALL: Set to delete all test repos after testing.
 
 ## Maintainers
 

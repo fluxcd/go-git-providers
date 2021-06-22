@@ -32,4 +32,4 @@ jobs:
           version: latest
           args: release --release-notes=/tmp/release.txt --rm-dist
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITPROVIDER_BOT_TOKEN }}

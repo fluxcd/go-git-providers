@@ -42,7 +42,7 @@ meeting](https://docs.google.com/document/d/1l_M0om0qUEN_NNiGgpqJ2tvsF2iioHkaARD
 To run the e2e tests you'll have to provide GitHub and GitLab tokens:
 
 ```sh
-export GITHUB_TOKEN=YOUR-GH-ADMIN-TOKEN
+export GITPROVIDER_BOT_TOKEN=YOUR-GH-ADMIN-TOKEN
 export GITLAB_TOKEN=YOUR-GL-ADMIN-TOKEN
 ```
 

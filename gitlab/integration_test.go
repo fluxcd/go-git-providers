@@ -226,6 +226,7 @@ var _ = Describe("GitLab Provider", func() {
 
 	validateOrgRepo := func(repo gitprovider.OrgRepository, expectedRepoRef gitprovider.RepositoryRef) {
 		info := repo.Get()
+		fmt.Fprintf(os.Stderr, "validating repo: %s\n", repo.Repository().GetRepository())
 		// Expect certain fields to be set
 		Expect(repo.Repository()).To(Equal(expectedRepoRef))
 		Expect(*info.Description).To(Equal(defaultDescription))
@@ -257,7 +258,7 @@ var _ = Describe("GitLab Provider", func() {
 	}
 
 	cleanupOrgRepos := func(prefix string) {
-		fmt.Printf("Deleting repos starting with %s in org: %s\n", prefix, testOrgName)
+		fmt.Fprintf(os.Stderr, "Deleting repos starting with %s in org: %s\n", prefix, testOrgName)
 		repos, err := c.OrgRepositories().List(ctx, newOrgRef(testOrgName))
 		Expect(err).ToNot(HaveOccurred())
 		for _, repo := range repos {
@@ -266,14 +267,14 @@ var _ = Describe("GitLab Provider", func() {
 			if !strings.HasPrefix(name, prefix) {
 				continue
 			}
-			fmt.Printf("Deleting the org repo: %s\n", name)
+			fmt.Fprintf(os.Stderr, "Deleting the org repo: %s\n", name)
 			repo.Delete(ctx)
 			Expect(err).ToNot(HaveOccurred())
 		}
 	}
 
 	cleanupUserRepos := func(prefix string) {
-		fmt.Printf("Deleting repos starting with %s for user: %s\n", prefix, testUserName)
+		fmt.Fprintf(os.Stderr, "Deleting repos starting with %s for user: %s\n", prefix, testUserName)
 		repos, err := c.UserRepositories().List(ctx, newUserRef(testUserName))
 		Expect(err).ToNot(HaveOccurred())
 		for _, repo := range repos {
@@ -282,7 +283,7 @@ var _ = Describe("GitLab Provider", func() {
 			if !strings.HasPrefix(name, prefix) {
 				continue
 			}
-			fmt.Printf("Deleting the org repo: %s\n", name)
+			fmt.Fprintf(os.Stderr, "Deleting the org repo: %s\n", name)
 			repo.Delete(ctx)
 			Expect(err).ToNot(HaveOccurred())
 		}
@@ -421,15 +422,20 @@ var _ = Describe("GitLab Provider", func() {
 		// Delete the repository and later re-create
 		Expect(resp.Delete(ctx)).ToNot(HaveOccurred())
 
-		// Reconcile and create
-		newRepo, actionTaken, err := c.OrgRepositories().Reconcile(ctx, repoRef, gitprovider.RepositoryInfo{
-			Description: gitprovider.StringVar(defaultDescription),
-		}, &gitprovider.RepositoryCreateOptions{
-			AutoInit:        gitprovider.BoolVar(true),
-			LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateMIT),
-		})
-		// Expect the create to succeed, and have modified the state. Also validate the newRepo data
-		Expect(err).ToNot(HaveOccurred())
+		var newRepo gitprovider.OrgRepository
+		retryOp := testutils.NewRetry()
+		Eventually(func() bool {
+			var err error
+			// Reconcile and create
+			newRepo, actionTaken, err = c.OrgRepositories().Reconcile(ctx, repoRef, gitprovider.RepositoryInfo{
+				Description: gitprovider.StringVar(defaultDescription),
+			}, &gitprovider.RepositoryCreateOptions{
+				AutoInit:        gitprovider.BoolVar(true),
+				LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateMIT),
+			})
+			return retryOp.Retry(err, fmt.Sprintf("reconcile org repository: %s", repoRef.RepositoryName))
+		}, retryOp.Timeout(), retryOp.Interval()).Should(BeTrue())
+
 		Expect(actionTaken).To(BeTrue())
 		validateOrgRepo(newRepo, repoRef)
 	})
@@ -703,15 +709,21 @@ var _ = Describe("GitLab Provider", func() {
 		// Delete the repository and later re-create
 		Expect(resp.Delete(ctx)).ToNot(HaveOccurred())
 
-		// Reconcile and create
-		newRepo, actionTaken, err := c.UserRepositories().Reconcile(ctx, repoRef, gitprovider.RepositoryInfo{
-			Description: gitprovider.StringVar(defaultDescription),
-		}, &gitprovider.RepositoryCreateOptions{
-			AutoInit:        gitprovider.BoolVar(true),
-			LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateMIT),
-		})
+		var newRepo gitprovider.UserRepository
+		retryOp := testutils.NewRetry()
+		Eventually(func() bool {
+			var err error
+			// Reconcile and create
+			newRepo, actionTaken, err = c.UserRepositories().Reconcile(ctx, repoRef, gitprovider.RepositoryInfo{
+				Description: gitprovider.StringVar(defaultDescription),
+			}, &gitprovider.RepositoryCreateOptions{
+				AutoInit:        gitprovider.BoolVar(true),
+				LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateMIT),
+			})
+			return retryOp.Retry(err, fmt.Sprintf("new user repository: %s", repoRef.RepositoryName))
+		}, retryOp.Timeout(), retryOp.Interval()).Should(BeTrue())
+
 		// Expect the create to succeed, and have modified the state. Also validate the newRepo data
-		Expect(err).ToNot(HaveOccurred())
 		Expect(actionTaken).To(BeTrue())
 		validateUserRepo(newRepo, repoRef)
 	})
@@ -735,8 +747,16 @@ var _ = Describe("GitLab Provider", func() {
 			})
 		Expect(err).ToNot(HaveOccurred())
 
-		commits, err := userRepo.Commits().ListPage(ctx, defaultBranch, 1, 0)
-		Expect(err).ToNot(HaveOccurred())
+		var commits []gitprovider.Commit = []gitprovider.Commit{}
+		retryOp := testutils.NewRetry()
+		Eventually(func() bool {
+			var err error
+			commits, err = userRepo.Commits().ListPage(ctx, defaultBranch, 1, 0)
+			if err == nil && len(commits) == 0 {
+				err = errors.New("empty commits list")
+			}
+			return retryOp.Retry(err, fmt.Sprintf("get commits, repository: %s", userRepo.Repository().GetRepository()))
+		}, retryOp.Timeout(), retryOp.Interval()).Should(BeTrue())
 
 		latestCommit := commits[0]
 

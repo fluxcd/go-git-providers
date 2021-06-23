@@ -174,7 +174,7 @@ See the following (automatically tested) examples:
 
 
 If you need to run `make test` for your fork/branch you may need to supply the following environment variables:
-- GIT_PROVIDER_ORGANIZATION : For GitHub this should be an organization whereas for GitLab this should be a top-level group. As this environment variable is used for both test suites, the name of the GitHub organization must match the name of the GitLab top-level group. Also, this organization needs to have its repository default branch set to `main`.
+- GIT_PROVIDER_ORGANIZATION : For GitHub this should be an organization whereas for GitLab this should be a top-level group. As this environment variable is used for both test suites, the name of the GitHub organization must match the name of the GitLab top-level group. Also, this organization needs to have its repository default branch set to `main`. For stash specify and existing project.
 - GIT_PROVIDER_USER : This should be the same username for both GitHub and GitLab.
 - GITLAB_TEST_TEAM_NAME : An existing GitLab group.
 - GITLAB_TEST_SUBGROUP : An existing GitLab subgroup of the GIT_PROVIDER_ORGANIZATION top-level group.
@@ -182,6 +182,13 @@ If you need to run `make test` for your fork/branch you may need to supply the f
 - GITLAB_TOKEN: A GitLab token with `api` scope.
 - TEST_VERBOSE: Set to '-v' to emit test output for debugging purposes
 - CLEANUP_ALL: Set to delete all test repos after testing.
+- TEST_PATTERN: Use to run only matching testsm i.e. `./stash` for stash provider tests only.
+- TEST_STOP_ON_ERROR: Set to `-failfast` to stop on first test failure, currently ineffective due to go test bug.
+- HTTP_CLIENT_DEBUG: Set to `true` to emitt http requests and responses, will expose credentials.
+- STASH_TEST_REPO_NAME: The name of an existing repository in the `GIT_PROVIDER_ORGANIZATION` project.
+- STASH_TEST_TEAM_NAME: An existing group.
+- STASH_TOKEN: A Stash token.
+- STASH_DOMAIN: Domain name of the stash server.
 
 ## Maintainers
 

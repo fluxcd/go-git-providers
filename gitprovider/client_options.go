@@ -19,6 +19,8 @@ package gitprovider
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/go-logr/logr"
 )
 
 // ChainableRoundTripperFunc is a function that returns a higher-level "out" RoundTripper,
@@ -52,6 +54,9 @@ type CommonClientOptions struct {
 	// The "chain" looks like follows:
 	// Git provider API (in==nil) <-> "Post Chain" (out) <-> Provider Specific (e.g. auth, caching) <-> "Pre Chain" <-> *http.Client
 	PostChainTransportHook ChainableRoundTripperFunc
+
+	// Logger allows the caller to pass a logger for use by the provider
+	Logger *logr.Logger
 }
 
 // ApplyToCommonClientOptions applies the currently set fields in opts to target. If both opts and
@@ -91,6 +96,13 @@ func (opts *CommonClientOptions) ApplyToCommonClientOptions(target *CommonClient
 			return fmt.Errorf("option PostChainTransportHook already configured: %w", ErrInvalidClientOptions)
 		}
 		target.PostChainTransportHook = opts.PostChainTransportHook
+	}
+
+	if opts.Logger != nil {
+		if target.Logger != nil {
+			return fmt.Errorf("option Logger already configured: %w", ErrInvalidClientOptions)
+		}
+		target.Logger = opts.Logger
 	}
 	return nil
 }

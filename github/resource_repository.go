@@ -48,6 +48,10 @@ func newUserRepository(ctx *clientContext, apiObj *github.Repository, ref gitpro
 			clientContext: ctx,
 			ref:           ref,
 		},
+		files: &FileClient{
+			clientContext: ctx,
+			ref:           ref,
+		},
 	}
 }
 
@@ -63,6 +67,7 @@ type userRepository struct {
 	commits      *CommitClient
 	branches     *BranchClient
 	pullRequests *PullRequestClient
+	files        *FileClient
 }
 
 func (r *userRepository) Get() gitprovider.RepositoryInfo {
@@ -99,6 +104,10 @@ func (r *userRepository) Branches() gitprovider.BranchClient {
 
 func (r *userRepository) PullRequests() gitprovider.PullRequestClient {
 	return r.pullRequests
+}
+
+func (r *userRepository) Files() gitprovider.FileClient {
+	return r.files
 }
 
 // Update will apply the desired state in this object to the server.

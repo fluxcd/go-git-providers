@@ -33,6 +33,10 @@ jobs:
           [ -n "${{ secrets.GITLAB_TEST_SUBGROUP }}" ] && export GITLAB_TEST_SUBGROUP=${{ secrets.GITLAB_TEST_SUBGROUP }} || echo "using default GITLAB_TEST_SUBGROUP"
           [ -n "${{ secrets.TEST_VERBOSE }}" ] && export TEST_VERBOSE=${{ secrets.TEST_VERBOSE }} || echo "TEST_VERBOSE not set"
           [ -n "${{ secrets.CLEANUP_ALL }}" ] && export CLEANUP_ALL=${{ secrets.CLEANUP_ALL }} || echo "CLEANUP_ALL not set"
+          [ -n "${{ secrets.STASH_TOKEN }}" ] && export STASH_TOKEN=${{ secrets.STASH_TOKEN }} || echo "using default STASH_TOKEN"
+          [ -n "${{ secrets.STASH_DOMAIN }}" ] && export STASH_DOMAIN=${{ secrets.STASH_DOMAIN }} || echo "using default STASH_DOMAIN"
+          [ -n "${{ secrets.STASH_TEST_TEAM_NAME }}" ] && export STASH_TEST_TEAM_NAME=${{ secrets.STASH_TEST_TEAM_NAME }} || echo "using default STASH_TEST_TEAM_NAME"
+          [ -n "${{ secrets.STASH_TEST_REPO_NAME }}" ] && export STASH_TEST_REPO_NAME=${{ secrets.STASH_TEST_REPO_NAME }} || echo "using default STASH_TEST_REPO_NAME"
           make test
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1

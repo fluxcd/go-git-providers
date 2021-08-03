@@ -63,10 +63,10 @@ func (r *Branch) Equals(actual gitprovider.InfoRequest) bool {
 
 func NewStashBranches(client *stashClientImpl) StashBranches {
 	p := &Branches{
-		Paging:   Paging{},
-		ReqResp:  client.Client(),
-		Branches: make([]*Branch, 0),
-		log:      client.log,
+		Paging:    Paging{},
+		Requester: client.Client(),
+		Branches:  make([]*Branch, 0),
+		log:       client.log,
 	}
 	return p
 }
@@ -81,7 +81,7 @@ type StashBranches interface {
 type Branches struct {
 	StashBranches
 	Paging
-	httpclient.ReqResp
+	httpclient.Requester
 	Branches []*Branch `json:"values,omitempty"`
 	log      logr.Logger
 }
@@ -93,7 +93,7 @@ func (p *Branches) getBranches() []*Branch {
 func (p *Branches) List(ctx context.Context, projectName, repoName string, opts *ListOptions) (*Paging, error) {
 	var query *url.Values
 	query = addPaging(query, opts)
-	resp, err := p.ReqResp.Do(ctx, newURI(projectsURI, projectName, RepositoriesURI, repoName, branchesURI), query, nil, nil, nil)
+	resp, err := p.Requester.Do(ctx, newURI(projectsURI, projectName, RepositoriesURI, repoName, branchesURI), query, nil, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("list branches for repository failed, %w", err)
 	}
@@ -120,7 +120,7 @@ func (p *Branches) List(ctx context.Context, projectName, repoName string, opts 
 func (p *Branches) Get(ctx context.Context, projectName, repoName, branchID string) (*Branch, error) {
 	var query *url.Values
 	query = addPaging(query, &ListOptions{})
-	resp, err := p.ReqResp.Do(ctx, newURI(projectsURI, projectName, RepositoriesURI, repoName, branchesURI), query, nil, nil, nil)
+	resp, err := p.Requester.Do(ctx, newURI(projectsURI, projectName, RepositoriesURI, repoName, branchesURI), query, nil, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("get branch failed, %w", err)
 	}
@@ -151,7 +151,7 @@ func (p *Branches) Get(ctx context.Context, projectName, repoName, branchID stri
 func (p *Branches) Default(ctx context.Context, projectName, repoName string) (*Branch, error) {
 	var query *url.Values
 	query = addPaging(query, &ListOptions{})
-	resp, err := p.ReqResp.Do(ctx, newURI(projectsURI, projectName, RepositoriesURI, repoName, branchesURI, defaultBranchURI), nil, nil, nil, nil)
+	resp, err := p.Requester.Do(ctx, newURI(projectsURI, projectName, RepositoriesURI, repoName, branchesURI, defaultBranchURI), nil, nil, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("get branch failed, %w", err)
 	}

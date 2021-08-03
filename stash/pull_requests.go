@@ -108,7 +108,7 @@ func (r *PullRequest) Equals(actual gitprovider.InfoRequest) bool {
 func NewStashPullRequests(client *stashClientImpl) StashPullRequests {
 	p := &PullRequests{
 		Paging:       Paging{},
-		ReqResp:      client.Client(),
+		Requester:    client.Client(),
 		PullRequests: make([]*PullRequest, 0),
 		log:          client.log,
 	}
@@ -127,7 +127,7 @@ type StashPullRequests interface {
 type PullRequests struct {
 	StashPullRequests
 	Paging
-	httpclient.ReqResp
+	httpclient.Requester
 	PullRequests []*PullRequest `json:"values,omitempty"`
 	log          logr.Logger
 }
@@ -139,7 +139,7 @@ func (p *PullRequests) getPullRequests() []*PullRequest {
 func (p *PullRequests) List(ctx context.Context, projectName, repoName string, opts *ListOptions) (*Paging, error) {
 	var query *url.Values
 	query = addPaging(query, opts)
-	resp, err := p.ReqResp.Do(ctx, newURI(projectsURI, projectName, RepositoriesURI, repoName, PullRequestsURI), query, nil, nil, nil)
+	resp, err := p.Requester.Do(ctx, newURI(projectsURI, projectName, RepositoriesURI, repoName, PullRequestsURI), query, nil, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("list pull requests failed, %w", err)
 	}
@@ -165,7 +165,7 @@ func (p *PullRequests) List(ctx context.Context, projectName, repoName string, o
 }
 
 func (p *PullRequests) Get(ctx context.Context, projectName, repoName string, prID int) (*PullRequest, error) {
-	resp, err := p.ReqResp.Do(ctx, newURI(projectsURI, projectName, RepositoriesURI, repoName, PullRequestsURI, strconv.Itoa(prID)), nil, nil, nil, nil)
+	resp, err := p.Requester.Do(ctx, newURI(projectsURI, projectName, RepositoriesURI, repoName, PullRequestsURI, strconv.Itoa(prID)), nil, nil, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("get pull request failed, %w", err)
 	}
@@ -190,7 +190,7 @@ func (p *PullRequests) Get(ctx context.Context, projectName, repoName string, pr
 }
 
 func (p *PullRequests) Delete(ctx context.Context, projectName, repoName string, prID int) error {
-	resp, err := p.ReqResp.Do(ctx, newURI(projectsURI, projectName, RepositoriesURI, repoName, PullRequestsURI, strconv.Itoa(prID)), nil, nil, &httpclient.Delete, nil)
+	resp, err := p.Requester.Do(ctx, newURI(projectsURI, projectName, RepositoriesURI, repoName, PullRequestsURI, strconv.Itoa(prID)), nil, nil, &httpclient.Delete, nil)
 	if err != nil {
 		return fmt.Errorf("delete pull request for repository failed, %w", err)
 	}
@@ -205,7 +205,7 @@ func (p *PullRequests) Delete(ctx context.Context, projectName, repoName string,
 func (p *PullRequests) Create(ctx context.Context, projectName, repoName string, pr *PullRequestCreation) (*PullRequest, error) {
 	hdr := http.Header{"Content-Type": []string{"application/json"}}
 
-	resp, err := p.ReqResp.Do(ctx, newURI(projectsURI, projectName, RepositoriesURI, repoName, PullRequestsURI), nil, pr, &httpclient.Post, &hdr)
+	resp, err := p.Requester.Do(ctx, newURI(projectsURI, projectName, RepositoriesURI, repoName, PullRequestsURI), nil, pr, &httpclient.Post, &hdr)
 	if err != nil {
 		if resp.StatusCode == http.StatusConflict {
 			return nil, gitprovider.ErrAlreadyExists
@@ -235,7 +235,7 @@ func (p *PullRequests) Create(ctx context.Context, projectName, repoName string,
 func (p *PullRequests) Update(ctx context.Context, projectName, repoName string, pr *PullRequest) (*PullRequest, error) {
 	hdr := http.Header{"Content-Type": []string{"application/json"}}
 
-	resp, err := p.ReqResp.Do(ctx, newURI(projectsURI, projectName, RepositoriesURI, repoName, PullRequestsURI, strconv.Itoa(pr.ID)), nil, pr, &httpclient.Put, &hdr)
+	resp, err := p.Requester.Do(ctx, newURI(projectsURI, projectName, RepositoriesURI, repoName, PullRequestsURI, strconv.Itoa(pr.ID)), nil, pr, &httpclient.Put, &hdr)
 	if err != nil {
 		return nil, fmt.Errorf("update pull request failed, %w", err)
 	}

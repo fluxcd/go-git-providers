@@ -67,10 +67,10 @@ func (r *Commit) Equals(actual gitprovider.InfoRequest) bool {
 
 func NewStashCommits(client *stashClientImpl) StashCommits {
 	p := &Commits{
-		Paging:  Paging{},
-		ReqResp: client.Client(),
-		Commits: make([]*Commit, 0),
-		log:     client.log,
+		Paging:    Paging{},
+		Requester: client.Client(),
+		Commits:   make([]*Commit, 0),
+		log:       client.log,
 	}
 	return p
 }
@@ -84,7 +84,7 @@ type StashCommits interface {
 type Commits struct {
 	StashCommits
 	Paging
-	httpclient.ReqResp
+	httpclient.Requester
 	Commits []*Commit `json:"values,omitempty"`
 	log     logr.Logger
 }
@@ -96,7 +96,7 @@ func (p *Commits) getCommits() []*Commit {
 func (p *Commits) List(ctx context.Context, projectName, repoName string, opts *ListOptions) (*Paging, error) {
 	var query *url.Values
 	query = addPaging(query, opts)
-	resp, err := p.ReqResp.Do(ctx, newURI(projectsURI, projectName, RepositoriesURI, repoName, CommitsURI), query, nil, nil, nil)
+	resp, err := p.Requester.Do(ctx, newURI(projectsURI, projectName, RepositoriesURI, repoName, CommitsURI), query, nil, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("list commits for repository failed, %w", err)
 	}
@@ -121,7 +121,7 @@ func (p *Commits) List(ctx context.Context, projectName, repoName string, opts *
 }
 
 func (p *Commits) Get(ctx context.Context, projectName, repoName, commitID string) (*Commit, error) {
-	resp, err := p.ReqResp.Do(ctx, newURI(projectsURI, projectName, RepositoriesURI, repoName, CommitsURI, commitID), nil, nil, nil, nil)
+	resp, err := p.Requester.Do(ctx, newURI(projectsURI, projectName, RepositoriesURI, repoName, CommitsURI, commitID), nil, nil, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("get commit failed, %w", err)
 	}

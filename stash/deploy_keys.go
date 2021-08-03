@@ -72,7 +72,7 @@ func (d *DeployKey) Equals(actual gitprovider.InfoRequest) bool {
 func NewStashDeployKeys(client *stashClientImpl) StashDeployKeys {
 	d := &DeployKeys{
 		Paging:     Paging{},
-		ReqResp:    client.Client(),
+		Requester:  client.Client(),
 		DeployKeys: make([]*DeployKey, 0),
 		log:        client.log,
 	}
@@ -91,7 +91,7 @@ type StashDeployKeys interface {
 type DeployKeys struct {
 	StashDeployKeys
 	Paging
-	httpclient.ReqResp
+	httpclient.Requester
 	DeployKeys []*DeployKey `json:"values,omitempty"`
 	log        logr.Logger
 }
@@ -103,7 +103,7 @@ func (d *DeployKeys) getDeployKeys() []*DeployKey {
 func (d *DeployKeys) List(ctx context.Context, projectName, repoName string, opts *ListOptions) (*Paging, error) {
 	var query *url.Values
 	query = addPaging(query, opts)
-	resp, err := d.ReqResp.Do(ctx, newKeysURI(projectsURI, projectName, RepositoriesURI, repoName, deployKeysURI), query, nil, nil, nil)
+	resp, err := d.Requester.Do(ctx, newKeysURI(projectsURI, projectName, RepositoriesURI, repoName, deployKeysURI), query, nil, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("list deploy keys for repository failed, %w", err)
 	}
@@ -129,7 +129,7 @@ func (d *DeployKeys) List(ctx context.Context, projectName, repoName string, opt
 }
 
 func (d *DeployKeys) Get(ctx context.Context, projectName, repoName string, keyNum int) (*DeployKey, error) {
-	resp, err := d.ReqResp.Do(ctx, newKeysURI(projectsURI, projectName, RepositoriesURI, repoName, deployKeysURI, strconv.Itoa(keyNum)), nil, nil, nil, nil)
+	resp, err := d.Requester.Do(ctx, newKeysURI(projectsURI, projectName, RepositoriesURI, repoName, deployKeysURI, strconv.Itoa(keyNum)), nil, nil, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("get deploy key for repository failed, %w", err)
 	}
@@ -152,7 +152,7 @@ func (d *DeployKeys) Get(ctx context.Context, projectName, repoName string, keyN
 }
 
 func (d *DeployKeys) Delete(ctx context.Context, projectName, repoName string, keyNum int) error {
-	resp, err := d.ReqResp.Do(ctx, newKeysURI(projectsURI, projectName, RepositoriesURI, repoName, deployKeysURI, strconv.Itoa(keyNum)), nil, nil, &httpclient.Delete, nil)
+	resp, err := d.Requester.Do(ctx, newKeysURI(projectsURI, projectName, RepositoriesURI, repoName, deployKeysURI, strconv.Itoa(keyNum)), nil, nil, &httpclient.Delete, nil)
 	if err != nil {
 		return fmt.Errorf("delete deploy key for repository failed, %w", err)
 	}
@@ -167,7 +167,7 @@ func (d *DeployKeys) Delete(ctx context.Context, projectName, repoName string, k
 func (d *DeployKeys) Create(ctx context.Context, deployKey *DeployKey) (*DeployKey, error) {
 	hdr := http.Header{"Content-Type": []string{"application/json"}}
 
-	resp, err := d.ReqResp.Do(ctx, newKeysURI(projectsURI, deployKey.Repository.Project.Key, RepositoriesURI, deployKey.Repository.Name, deployKeysURI), nil, deployKey, &httpclient.Post, &hdr)
+	resp, err := d.Requester.Do(ctx, newKeysURI(projectsURI, deployKey.Repository.Project.Key, RepositoriesURI, deployKey.Repository.Name, deployKeysURI), nil, deployKey, &httpclient.Post, &hdr)
 	if err != nil {
 		if resp.StatusCode == http.StatusConflict {
 			return nil, gitprovider.ErrAlreadyExists
@@ -193,7 +193,7 @@ func (d *DeployKeys) Create(ctx context.Context, deployKey *DeployKey) (*DeployK
 func (d *DeployKeys) Update(ctx context.Context, projectName, repoName string, keyNum int, permission string) (*DeployKey, error) {
 	hdr := http.Header{"Content-Type": []string{"application/json"}}
 
-	resp, err := d.ReqResp.Do(ctx, newKeysURI(projectsURI, projectName, RepositoriesURI, repoName, deployKeysURI, strconv.Itoa(keyNum), keyPermisionsURI, permission), nil, nil, &httpclient.Put, &hdr)
+	resp, err := d.Requester.Do(ctx, newKeysURI(projectsURI, projectName, RepositoriesURI, repoName, deployKeysURI, strconv.Itoa(keyNum), keyPermisionsURI, permission), nil, nil, &httpclient.Put, &hdr)
 	if err != nil {
 		return nil, fmt.Errorf("update deploy key for repository failed, %w", err)
 	}

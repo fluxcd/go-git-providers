@@ -68,7 +68,7 @@ func (r *Repository) Equals(actual gitprovider.InfoRequest) bool {
 func NewStashRepositories(client *stashClientImpl) stashRepositories {
 	p := &Repositories{
 		Paging:       Paging{},
-		ReqResp:      client.Client(),
+		Requester:    client.Client(),
 		Repositories: make([]*Repository, 0),
 		log:          client.log,
 	}
@@ -87,7 +87,7 @@ type stashRepositories interface {
 type Repositories struct {
 	stashRepositories
 	Paging
-	httpclient.ReqResp
+	httpclient.Requester
 	Repositories []*Repository `json:"values,omitempty"`
 	log          logr.Logger
 }
@@ -99,7 +99,7 @@ func (p *Repositories) getRepositories() []*Repository {
 func (p *Repositories) List(ctx context.Context, projectName string, opts *ListOptions) (*Paging, error) {
 	var query *url.Values
 	query = addPaging(query, opts)
-	resp, err := p.ReqResp.Do(ctx, newURI(projectsURI, projectName, RepositoriesURI), query, nil, nil, nil)
+	resp, err := p.Requester.Do(ctx, newURI(projectsURI, projectName, RepositoriesURI), query, nil, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("list respositories failed, %w", err)
 	}
@@ -125,7 +125,7 @@ func (p *Repositories) List(ctx context.Context, projectName string, opts *ListO
 }
 
 func (p *Repositories) Get(ctx context.Context, projectName, repoName string) (*Repository, error) {
-	resp, err := p.ReqResp.Do(ctx, newURI(projectsURI, projectName, RepositoriesURI, repoName), nil, nil, nil, nil)
+	resp, err := p.Requester.Do(ctx, newURI(projectsURI, projectName, RepositoriesURI, repoName), nil, nil, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("get respository failed, %w", err)
 	}
@@ -149,7 +149,7 @@ func (p *Repositories) Get(ctx context.Context, projectName, repoName string) (*
 }
 
 func (p *Repositories) Delete(ctx context.Context, projectName, repoName string) error {
-	resp, err := p.ReqResp.Do(ctx, newURI(projectsURI, projectName, RepositoriesURI, repoName), nil, nil, &httpclient.Delete, nil)
+	resp, err := p.Requester.Do(ctx, newURI(projectsURI, projectName, RepositoriesURI, repoName), nil, nil, &httpclient.Delete, nil)
 	if err != nil {
 		return fmt.Errorf("delete repository failed, %w", err)
 	}
@@ -164,7 +164,7 @@ func (p *Repositories) Delete(ctx context.Context, projectName, repoName string)
 func (p *Repositories) Create(ctx context.Context, projectName string, repo *Repository) (*Repository, error) {
 	hdr := http.Header{"Content-Type": []string{"application/json"}}
 
-	resp, err := p.ReqResp.Do(ctx, newURI(projectsURI, projectName, RepositoriesURI), nil, repo, &httpclient.Post, &hdr)
+	resp, err := p.Requester.Do(ctx, newURI(projectsURI, projectName, RepositoriesURI), nil, repo, &httpclient.Post, &hdr)
 	if err != nil {
 		if resp.StatusCode == http.StatusConflict {
 			return nil, gitprovider.ErrAlreadyExists
@@ -193,7 +193,7 @@ func (p *Repositories) Create(ctx context.Context, projectName string, repo *Rep
 func (p *Repositories) Update(ctx context.Context, projectName string, repo *Repository) (*Repository, error) {
 	hdr := http.Header{"Content-Type": []string{"application/json"}}
 
-	resp, err := p.ReqResp.Do(ctx, newURI(projectsURI, projectName, RepositoriesURI, repo.Name), nil, repo, &httpclient.Put, &hdr)
+	resp, err := p.Requester.Do(ctx, newURI(projectsURI, projectName, RepositoriesURI, repo.Name), nil, repo, &httpclient.Put, &hdr)
 	if err != nil {
 		return nil, fmt.Errorf("update repository failed, %w", err)
 	}
@@ -226,7 +226,7 @@ type RepositoryGroupPermission struct {
 func NewStashRepositoryGroups(client *stashClientImpl, projectName, repositoryName string) StashRepositoryGroups {
 	p := &RepositoryGroups{
 		Paging:         Paging{},
-		ReqResp:        client.Client(),
+		Requester:      client.Client(),
 		ProjectName:    projectName,
 		RepositoryName: repositoryName,
 		Groups:         make([]*RepositoryGroupPermission, 0),
@@ -245,7 +245,7 @@ type StashRepositoryGroups interface {
 type RepositoryGroups struct {
 	StashRepositoryGroups `json:"-"`
 	Paging
-	httpclient.ReqResp
+	httpclient.Requester
 	ProjectName    string                       `json:"-"`
 	RepositoryName string                       `json:"-"`
 	Groups         []*RepositoryGroupPermission `json:"values,omitempty"`
@@ -261,7 +261,7 @@ func (p *RepositoryGroups) Create(ctx context.Context, permission *RepositoryGro
 		"name":       []string{permission.Group.Name},
 		"permission": []string{permission.Permission},
 	}
-	resp, err := p.ReqResp.Do(ctx, newURI(projectsURI, p.ProjectName, RepositoriesURI, p.RepositoryName, groupPermisionsURI), query, nil, &httpclient.Put, nil)
+	resp, err := p.Requester.Do(ctx, newURI(projectsURI, p.ProjectName, RepositoriesURI, p.RepositoryName, groupPermisionsURI), query, nil, &httpclient.Put, nil)
 	if err != nil {
 		return fmt.Errorf("add group permissions to repository failed, %w", err)
 	}
@@ -277,7 +277,7 @@ func (p *RepositoryGroups) Get(ctx context.Context, groupName string) (*Reposito
 	var query *url.Values = &url.Values{
 		filterKey: []string{groupName},
 	}
-	resp, err := p.ReqResp.Do(ctx, newURI(projectsURI, p.ProjectName, RepositoriesURI, p.RepositoryName, groupPermisionsURI), query, nil, nil, nil)
+	resp, err := p.Requester.Do(ctx, newURI(projectsURI, p.ProjectName, RepositoriesURI, p.RepositoryName, groupPermisionsURI), query, nil, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("get group permissions for repository failed, %w", err)
 	}
@@ -308,7 +308,7 @@ func (p *RepositoryGroups) Get(ctx context.Context, groupName string) (*Reposito
 func (p *RepositoryGroups) List(ctx context.Context, opts *ListOptions) (*Paging, error) {
 	var query *url.Values
 	query = addPaging(query, opts)
-	resp, err := p.ReqResp.Do(ctx, newURI(projectsURI, p.ProjectName, RepositoriesURI, p.RepositoryName, groupPermisionsURI), query, nil, nil, nil)
+	resp, err := p.Requester.Do(ctx, newURI(projectsURI, p.ProjectName, RepositoriesURI, p.RepositoryName, groupPermisionsURI), query, nil, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("list groups permissions for repository failed, %w", err)
 	}
@@ -342,7 +342,7 @@ type RepositoryUserPermission struct {
 func NewStashRepositoryUsers(client stashClientImpl, repositoryName string) StashRepositoryUsers {
 	p := &RepositoryUsers{
 		Paging:         Paging{},
-		ReqResp:        client.Client(),
+		Requester:      client.Client(),
 		RepositoryName: repositoryName,
 		Users:          make([]*RepositoryUserPermission, 0),
 		log:            client.log,
@@ -359,7 +359,7 @@ type StashRepositoryUsers interface {
 type RepositoryUsers struct {
 	StashRepositoryUsers `json:"-"`
 	Paging
-	httpclient.ReqResp
+	httpclient.Requester
 	ProjectName    string                      `json:"-"`
 	RepositoryName string                      `json:"-"`
 	Users          []*RepositoryUserPermission `json:"values,omitempty"`
@@ -373,7 +373,7 @@ func (p *RepositoryUsers) getUsers() []*RepositoryUserPermission {
 func (p RepositoryUsers) List(ctx context.Context, opts *ListOptions) (*Paging, error) {
 	var query *url.Values
 	query = addPaging(query, opts)
-	resp, err := p.ReqResp.Do(ctx, newURI(projectsURI, p.ProjectName, userPermisionsURI), query, nil, nil, nil)
+	resp, err := p.Requester.Do(ctx, newURI(projectsURI, p.ProjectName, userPermisionsURI), query, nil, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("list users permissions for repository failed, %w", err)
 	}

@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	maxIdelConns         = 100
+	maxIdleConns         = 100
 	defaultTimeoutSecs   = 10
 	defaultRetries       = 30
 	defaultRetryInterval = 1
@@ -32,8 +32,8 @@ var (
 
 	defaultTransport *http.Transport = &http.Transport{
 		Proxy:               http.ProxyFromEnvironment,
-		MaxIdleConns:        maxIdelConns,
-		MaxIdleConnsPerHost: maxIdelConns,
+		MaxIdleConns:        maxIdleConns,
+		MaxIdleConnsPerHost: maxIdleConns,
 	} // nolint:gochecknoglobals // ok
 
 	DefaultTimeout time.Duration = time.Second * defaultTimeoutSecs // nolint:gochecknoglobals // ok
@@ -44,9 +44,19 @@ var (
 	DefaultDomain  string        = "localhost"                      // nolint:gochecknoglobals // ok
 )
 
+// A Requester makes HTTP requests
+//
+// Do returns an http.Response and an error.
+//
+// Except for reading the body, handlers should not modify the
+// provided Request parameters.
+type Requester interface {
+	Do(ctx context.Context, path string, query *url.Values, body interface{}, method *string, header *http.Header) (*http.Response, error)
+}
+
 // reqResp hold information relating to an HTTPS request and response.
 type reqResp struct {
-	ReqResp
+	Requester
 	client       *http.Client
 	transport    *http.Transport
 	url          *url.URL
@@ -55,11 +65,11 @@ type reqResp struct {
 	log          logr.Logger
 }
 
-type ReqResp interface {
-	Do(ctx context.Context, path string, query *url.Values, body interface{}, method *string, header *http.Header) (*http.Response, error)
+func (r *reqResp) String() string {
+	return fmt.Sprintf("domain:%s}", r.url.String())
 }
 
-func NewReqResp(domain string, header *http.Header, timeout *time.Duration, client *http.Client, transport http.RoundTripper, log logr.Logger) (ReqResp, error) {
+func NewRequester(domain string, header *http.Header, timeout *time.Duration, client *http.Client, transport http.RoundTripper, log logr.Logger) (Requester, error) {
 
 	if transport == nil {
 		transport = defaultTransport
@@ -78,7 +88,12 @@ func NewReqResp(domain string, header *http.Header, timeout *time.Duration, clie
 		return nil, errors.New("domain is required")
 	}
 
-	url, err := url.Parse(fmt.Sprintf("https://%s", domain))
+	d := domain
+	if !strings.Contains(d, "http") && !strings.Contains(d, "https") {
+		d = fmt.Sprintf("https://%s", domain)
+	}
+
+	url, err := url.ParseRequestURI(d)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse domain to url, %w", err)
 	}
@@ -99,8 +114,6 @@ func NewReqResp(domain string, header *http.Header, timeout *time.Duration, clie
 	return &r, nil
 }
 
-// reqResp Methods
-
 // CloseBody closes the response body.
 func CloseBody(resp *http.Response) error {
 	if resp != nil {
@@ -114,7 +127,7 @@ func CloseBody(resp *http.Response) error {
 	return nil
 }
 
-// HTTPreq creates an HTTP client and sends a request.
+// Do creates an HTTP client and sends a request.
 // The response is returned
 func (r *reqResp) Do(ctx context.Context, path string, query *url.Values, body interface{}, method *string, header *http.Header) (*http.Response, error) { // nolint:funlen,gocognit,gocyclo // ok
 	var err error

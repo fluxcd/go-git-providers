@@ -27,7 +27,7 @@ import (
 // ProviderID is the provider ID for BitBucket Server a.k.a gostash.
 const ProviderID = gitprovider.ProviderID("stash")
 
-func newClient(c httpclient.ReqResp, domain, token, sshDomain string, destructiveActions bool, log logr.Logger) *Client {
+func newClient(c httpclient.Requester, domain, token, sshDomain string, destructiveActions bool, log logr.Logger) *Client {
 	sClient := &stashClientImpl{c, destructiveActions, log}
 	ctx := &clientContext{sClient, domain, token, sshDomain, destructiveActions, log}
 	return &Client{

@@ -31,7 +31,7 @@ import (
 // This interface is also fakeable, in order to unit-test the client.
 type stashClient interface {
 	// Client returns the underlying httpclient.ReqResp
-	Client() httpclient.ReqResp
+	Client() httpclient.Requester
 
 	// GetUser returns the user details for a given user name.
 	GetUser(ctx context.Context, user string) (*User, error)
@@ -166,7 +166,7 @@ type stashClient interface {
 // Pagination is implemented for all List* methods, all returned
 // objects are validated, and HTTP errors are handled/wrapped using handleHTTPError.
 type stashClientImpl struct {
-	c                  httpclient.ReqResp
+	c                  httpclient.Requester
 	destructiveActions bool
 	log                logr.Logger
 }
@@ -174,7 +174,7 @@ type stashClientImpl struct {
 // stashClientImpl implements stashClient.
 var _ stashClient = &stashClientImpl{}
 
-func (c *stashClientImpl) Client() httpclient.ReqResp {
+func (c *stashClientImpl) Client() httpclient.Requester {
 	return c.c
 }
 

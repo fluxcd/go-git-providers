@@ -51,10 +51,10 @@ type User struct {
 
 func NewStashUsers(client *stashClientImpl) StashUsers {
 	g := &Users{
-		Paging:  Paging{},
-		ReqResp: client.Client(),
-		Users:   make([]*User, 0),
-		log:     client.log,
+		Paging:    Paging{},
+		Requester: client.Client(),
+		Users:     make([]*User, 0),
+		log:       client.log,
 	}
 	return g
 }
@@ -68,7 +68,7 @@ type StashUsers interface {
 type Users struct {
 	StashUsers
 	Paging
-	httpclient.ReqResp
+	httpclient.Requester
 	Users []*User `json:"values,omitempty"`
 	log   logr.Logger
 }
@@ -80,7 +80,7 @@ func (g *Users) getUsers() []*User {
 func (g *Users) List(ctx context.Context, opts *ListOptions) (*Paging, error) {
 	var query *url.Values
 	query = addPaging(query, opts)
-	resp, err := g.ReqResp.Do(ctx, newURI(usersURI), query, nil, nil, nil)
+	resp, err := g.Requester.Do(ctx, newURI(usersURI), query, nil, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("list users failed, %w", err)
 	}
@@ -108,7 +108,7 @@ func (g *Users) List(ctx context.Context, opts *ListOptions) (*Paging, error) {
 func (g *Users) Get(ctx context.Context, userName string) (*User, error) {
 	var query *url.Values
 	query = addPaging(query, &ListOptions{})
-	resp, err := g.ReqResp.Do(ctx, newURI(usersURI), nil, nil, nil, nil)
+	resp, err := g.Requester.Do(ctx, newURI(usersURI), nil, nil, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("get user failed, %w", err)
 	}

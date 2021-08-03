@@ -48,10 +48,10 @@ type Group struct {
 
 func NewStashGroups(client *stashClientImpl) StashGroups {
 	g := &Groups{
-		Paging:  Paging{},
-		ReqResp: client.Client(),
-		Groups:  make([]*Group, 0),
-		log:     client.log,
+		Paging:    Paging{},
+		Requester: client.Client(),
+		Groups:    make([]*Group, 0),
+		log:       client.log,
 	}
 	return g
 }
@@ -65,7 +65,7 @@ type StashGroups interface {
 type Groups struct {
 	StashGroups
 	Paging
-	httpclient.ReqResp
+	httpclient.Requester
 	Groups []*Group `json:"values,omitempty"`
 	log    logr.Logger
 }
@@ -77,7 +77,7 @@ func (g *Groups) getGroups() []*Group {
 func (g *Groups) List(ctx context.Context, opts *ListOptions) (*Paging, error) {
 	var query *url.Values
 	query = addPaging(query, opts)
-	resp, err := g.ReqResp.Do(ctx, newURI(groupsURI), query, nil, nil, nil)
+	resp, err := g.Requester.Do(ctx, newURI(groupsURI), query, nil, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("list groups failed, %w", err)
 	}
@@ -107,7 +107,7 @@ func (g *Groups) Get(ctx context.Context, groupName string) (*Group, error) {
 	query = &url.Values{
 		"filter": []string{groupName},
 	}
-	resp, err := g.ReqResp.Do(ctx, groupsURI, query, nil, nil, nil)
+	resp, err := g.Requester.Do(ctx, groupsURI, query, nil, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("get group failed, %w", err)
 	}
@@ -137,10 +137,10 @@ func (g *Groups) Get(ctx context.Context, groupName string) (*Group, error) {
 
 func NewStashGroupMembers(client *stashClientImpl) StashGroupMembers {
 	m := &GroupMembers{
-		Paging:  Paging{},
-		ReqResp: client.Client(),
-		Users:   make([]*User, 0),
-		log:     client.log,
+		Paging:    Paging{},
+		Requester: client.Client(),
+		Users:     make([]*User, 0),
+		log:       client.log,
 	}
 	return m
 }
@@ -153,7 +153,7 @@ type StashGroupMembers interface {
 type GroupMembers struct {
 	StashGroupMembers
 	Paging
-	httpclient.ReqResp
+	httpclient.Requester
 	GroupName string  `json:"-"`
 	Users     []*User `json:"values,omitempty"`
 	log       logr.Logger
@@ -167,7 +167,7 @@ func (m *GroupMembers) List(ctx context.Context, groupName string, opts *ListOpt
 	var query *url.Values
 	query = addPaging(query, opts)
 	query = setKeyValues(query, contextKey, groupName)
-	resp, err := m.ReqResp.Do(ctx, newURI(groupMembersURI), query, nil, nil, nil)
+	resp, err := m.Requester.Do(ctx, newURI(groupMembersURI), query, nil, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("list group members failed, %w", err)
 	}

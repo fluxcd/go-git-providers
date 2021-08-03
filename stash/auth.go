@@ -207,7 +207,7 @@ func makeOptions(opts ...ClientOption) (*clientOptions, error) {
 
 // NewClient creates a new gostash.Client instance for Stash API endpoints.
 func NewClient(token string, tokenType string, optFns ...ClientOption) (gitprovider.Client, error) {
-	var st httpclient.ReqResp
+	var st httpclient.Requester
 	var domain, sshDomain string
 	var url = &url.URL{}
 	var logger logr.Logger
@@ -243,7 +243,7 @@ func NewClient(token string, tokenType string, optFns ...ClientOption) (gitprovi
 
 	header := make(http.Header, 1)
 	header.Set("Authorization", "Bearer "+token)
-	st, err = httpclient.NewReqResp(domain, &header, nil, httpClient, nil, logger)
+	st, err = httpclient.NewRequester(domain, &header, nil, httpClient, nil, logger)
 	if err != nil {
 		return nil, err
 	}

@@ -54,10 +54,10 @@ type Project struct {
 
 func NewStashProjects(client *stashClientImpl) StashProjects {
 	p := &Projects{
-		Paging:   Paging{},
-		ReqResp:  client.Client(),
-		Projects: make([]*Project, 0),
-		log:      client.log,
+		Paging:    Paging{},
+		Requester: client.Client(),
+		Projects:  make([]*Project, 0),
+		log:       client.log,
 	}
 	return p
 }
@@ -71,7 +71,7 @@ type StashProjects interface {
 type Projects struct {
 	StashProjects
 	Paging
-	httpclient.ReqResp
+	httpclient.Requester
 	Projects []*Project `json:"values,omitempty"`
 	log      logr.Logger
 }
@@ -83,7 +83,7 @@ func (p *Projects) getProjects() []*Project {
 func (p *Projects) List(ctx context.Context, opts *ListOptions) (*Paging, error) {
 	var query *url.Values
 	query = addPaging(query, opts)
-	resp, err := p.ReqResp.Do(ctx, newURI(projectsURI), query, nil, nil, nil)
+	resp, err := p.Requester.Do(ctx, newURI(projectsURI), query, nil, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("list projects failed, %w", err)
 	}
@@ -113,7 +113,7 @@ func (p *Projects) Get(ctx context.Context, projectName string) (*Project, error
 	query = &url.Values{
 		"name": []string{projectName},
 	}
-	resp, err := p.ReqResp.Do(ctx, newURI(projectsURI), query, nil, nil, nil)
+	resp, err := p.Requester.Do(ctx, newURI(projectsURI), query, nil, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("get project failed, %w", err)
 	}
@@ -150,7 +150,7 @@ type ProjectGroupPermission struct {
 func NewStashProjectGroups(client *stashClientImpl, projectName string) StashProjectGroups {
 	p := &ProjectGroups{
 		Paging:      Paging{},
-		ReqResp:     client.Client(),
+		Requester:   client.Client(),
 		ProjectName: projectName,
 		Groups:      make([]*ProjectGroupPermission, 0),
 		log:         client.log,
@@ -167,7 +167,7 @@ type StashProjectGroups interface {
 type ProjectGroups struct {
 	StashProjects
 	Paging
-	httpclient.ReqResp
+	httpclient.Requester
 	ProjectName string                    `json:"-"`
 	Groups      []*ProjectGroupPermission `json:"values,omitempty"`
 	log         logr.Logger
@@ -180,7 +180,7 @@ func (p *ProjectGroups) getGroups() []*ProjectGroupPermission {
 func (p *ProjectGroups) List(ctx context.Context, opts *ListOptions) (*Paging, error) {
 	var query *url.Values
 	query = addPaging(query, opts)
-	resp, err := p.ReqResp.Do(ctx, newURI(projectsURI, p.ProjectName, groupPermisionsURI), query, nil, nil, nil)
+	resp, err := p.Requester.Do(ctx, newURI(projectsURI, p.ProjectName, groupPermisionsURI), query, nil, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("list project groups failed, %w", err)
 	}
@@ -214,7 +214,7 @@ type ProjectUserPermission struct {
 func NewStashProjectUsers(client *stashClientImpl, projectName string) StashProjectUsers {
 	p := &ProjectUsers{
 		Paging:      Paging{},
-		ReqResp:     client.Client(),
+		Requester:   client.Client(),
 		ProjectName: projectName,
 		Users:       make([]*ProjectUserPermission, 0),
 		log:         client.log,
@@ -231,7 +231,7 @@ type StashProjectUsers interface {
 type ProjectUsers struct {
 	StashProjects
 	Paging
-	httpclient.ReqResp
+	httpclient.Requester
 	ProjectName string                   `json:"-"`
 	Users       []*ProjectUserPermission `json:"values,omitempty"`
 	log         logr.Logger
@@ -244,7 +244,7 @@ func (p *ProjectUsers) getUsers() []*ProjectUserPermission {
 func (p ProjectUsers) List(ctx context.Context, opts *ListOptions) (*Paging, error) {
 	var query *url.Values
 	query = addPaging(query, opts)
-	resp, err := p.ReqResp.Do(ctx, newURI(projectsURI, p.ProjectName, userPermisionsURI), query, nil, nil, nil)
+	resp, err := p.Requester.Do(ctx, newURI(projectsURI, p.ProjectName, userPermisionsURI), query, nil, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("list project users failed, %w", err)
 	}

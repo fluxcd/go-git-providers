@@ -50,7 +50,7 @@ const (
 	gitlabDomain = "gitlab.com"
 
 	defaultDescription = "Foo description"
-	defaultBranch      = "master"
+	defaultBranch      = "main"
 )
 
 var (
@@ -231,7 +231,7 @@ var _ = Describe("GitLab Provider", func() {
 		Expect(repo.Repository()).To(Equal(expectedRepoRef))
 		Expect(*info.Description).To(Equal(defaultDescription))
 		Expect(*info.Visibility).To(Equal(gitprovider.RepositoryVisibilityPrivate))
-		Expect(*info.DefaultBranch).To(Equal(masterBranchName))
+		Expect(*info.DefaultBranch).To(Equal(defaultBranchName))
 		// Expect high-level fields to match their underlying data
 		internal := repo.APIObject().(*gitlab.Project)
 		Expect(repo.Repository().GetRepository()).To(Equal(internal.Name))
@@ -247,7 +247,7 @@ var _ = Describe("GitLab Provider", func() {
 		Expect(repo.Repository()).To(Equal(expectedRepoRef))
 		Expect(*info.Description).To(Equal(defaultDescription))
 		Expect(*info.Visibility).To(Equal(gitprovider.RepositoryVisibilityPrivate))
-		Expect(*info.DefaultBranch).To(Equal(masterBranchName))
+		Expect(*info.DefaultBranch).To(Equal(defaultBranchName))
 		// Expect high-level fields to match their underlying data
 		internal := repo.APIObject().(*gitlab.Project)
 		Expect(repo.Repository().GetRepository()).To(Equal(internal.Name))
@@ -642,10 +642,12 @@ var _ = Describe("GitLab Provider", func() {
 		repoRef := newUserRepoRef(testUserName, testRepoName)
 		_, err = c.UserRepositories().Get(ctx, repoRef)
 		Expect(errors.Is(err, gitprovider.ErrNotFound)).To(BeTrue())
+		db := defaultBranchName
 
 		// Create a new repo
 		repo, err := c.UserRepositories().Create(ctx, repoRef, gitprovider.RepositoryInfo{
-			Description: gitprovider.StringVar(defaultDescription),
+			DefaultBranch: &db,
+			Description:   gitprovider.StringVar(defaultDescription),
 			// Default visibility is private, no need to set this at least now
 			//Visibility:     gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
 		}, &gitprovider.RepositoryCreateOptions{
@@ -665,7 +667,7 @@ var _ = Describe("GitLab Provider", func() {
 
 		gitlabClient := c.Raw().(*gitlab.Client)
 		f, _, err := gitlabClient.RepositoryFiles.GetFile(testUserName+"/"+testRepoName, "README.md", &gitlab.GetFileOptions{
-			Ref: gitlab.String("master"),
+			Ref: gitlab.String(defaultBranchName),
 		})
 		Expect(err).ToNot(HaveOccurred())
 		fileContents, err := base64.StdEncoding.DecodeString(f.Content)
@@ -684,7 +686,7 @@ var _ = Describe("GitLab Provider", func() {
 		// No-op reconcile
 		resp, actionTaken, err := c.UserRepositories().Reconcile(ctx, repoRef, gitprovider.RepositoryInfo{
 			Description:   gitprovider.StringVar(defaultDescription),
-			DefaultBranch: gitprovider.StringVar(defaultBranch),
+			DefaultBranch: gitprovider.StringVar(defaultBranchName),
 			Visibility:    gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
 		})
 		Expect(err).ToNot(HaveOccurred())
@@ -733,7 +735,7 @@ var _ = Describe("GitLab Provider", func() {
 		testRepoName = fmt.Sprintf("test-repo2-%03d", rand.Intn(1000))
 		repoRef := newUserRepoRef(testUserName, testRepoName)
 
-		defaultBranch := "master"
+		defaultBranch := defaultBranchName
 		description := "test description"
 		// Create a new repo
 		userRepo, err := c.UserRepositories().Create(ctx, repoRef,

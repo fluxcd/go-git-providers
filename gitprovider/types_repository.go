@@ -31,7 +31,7 @@ const (
 	// the default branch name.
 	// TODO: When enough Git providers support setting this at both POST and PATCH-time
 	// (including when auto-initing), change this to "main".
-	defaultBranchName = "master"
+	defaultBranchName = "main"
 	// by default, deploy keys are read-only.
 	defaultDeployKeyReadOnly = true
 )

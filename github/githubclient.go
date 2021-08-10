@@ -315,6 +315,8 @@ func (c *githubClientImpl) ListCommitsPage(ctx context.Context, owner, repo, bra
 			Tree: &github.Tree{
 				SHA: c.Commit.Tree.SHA,
 			},
+			Author:  c.Commit.Author,
+			Message: c.Commit.Message,
 		})
 	}
 

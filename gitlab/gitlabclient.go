@@ -405,7 +405,10 @@ func (c *gitlabClientImpl) ListCommitsPage(ctx context.Context, projectName stri
 	pageObjs, _, listErr := c.c.Commits.ListCommits(projectName, &opts)
 	for _, c := range pageObjs {
 		apiObjs = append(apiObjs, &gitlab.Commit{
-			ID: c.ID,
+			ID:         c.ID,
+			AuthorName: c.AuthorName,
+			Message:    c.Message,
+			CreatedAt:  c.CreatedAt,
 		})
 	}
 

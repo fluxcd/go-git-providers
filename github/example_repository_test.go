@@ -29,5 +29,5 @@ func ExampleOrgRepositoriesClient_Get() {
 	internalRepo := repo.APIObject().(*gogithub.Repository)
 
 	fmt.Printf("Description: %s. Homepage: %s", *repoInfo.Description, internalRepo.GetHomepage())
-	// Output: Description: The GitOps Kubernetes operator. Homepage: https://fluxcd.io/docs
+	// Output: Description: The GitOps Kubernetes operator. Homepage: https://docs.fluxcd.io
 }

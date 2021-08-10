@@ -46,7 +46,10 @@ func (c *commitType) APIObject() interface{} {
 
 func commitFromAPI(apiObj *github.Commit) gitprovider.CommitInfo {
 	return gitprovider.CommitInfo{
-		Sha:     *apiObj.SHA,
-		TreeSha: *apiObj.Tree.SHA,
+		Sha:       *apiObj.SHA,
+		TreeSha:   *apiObj.Tree.SHA,
+		Author:    *apiObj.Author.Name,
+		Message:   *apiObj.Message,
+		CreatedAt: *apiObj.Author.Date,
 	}
 }

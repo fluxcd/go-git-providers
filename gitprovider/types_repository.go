@@ -18,6 +18,7 @@ package gitprovider
 
 import (
 	"reflect"
+	"time"
 
 	"github.com/fluxcd/go-git-providers/validation"
 )
@@ -30,7 +31,7 @@ const (
 	// the default branch name.
 	// TODO: When enough Git providers support setting this at both POST and PATCH-time
 	// (including when auto-initing), change this to "main".
-	defaultBranchName = "master"
+	defaultBranchName = "main"
 	// by default, deploy keys are read-only.
 	defaultDeployKeyReadOnly = true
 )
@@ -187,6 +188,15 @@ type CommitInfo struct {
 	// TreeSha is the tree sha this commit belongs to.
 	// +required
 	TreeSha string `json:"tree_sha"`
+
+	// Author is the author of the commit
+	Author string `json:"author"`
+
+	// Message is the commit message
+	Message string `json:"message"`
+
+	// CreatedAt is the time the commit was created
+	CreatedAt time.Time `json:"created_at"`
 }
 
 // CommitFile contains high-level information about a file added to a commit.

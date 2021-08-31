@@ -19,6 +19,10 @@ package gitprovider
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/fluxcd/go-git-providers/gitprovider/cache"
+	"github.com/go-logr/logr"
+	"golang.org/x/oauth2"
 )
 
 // ChainableRoundTripperFunc is a function that returns a higher-level "out" RoundTripper,
@@ -39,7 +43,7 @@ type CommonClientOptions struct {
 	// deleting a repository) are allowed in the Client. Default: false
 	EnableDestructiveAPICalls *bool
 
-	// PreChainRoundTripper is a function to get a custom RoundTripper that is given as the Transport
+	// PreChainTransportHook is a function to get a custom RoundTripper that is given as the Transport
 	// to the *http.Client given to the provider-specific Client. It can be set for doing arbitrary
 	// modifications to HTTP requests. "in" might be nil, if so http.DefaultTransport is recommended.
 	// The "chain" looks like follows:
@@ -52,6 +56,9 @@ type CommonClientOptions struct {
 	// The "chain" looks like follows:
 	// Git provider API (in==nil) <-> "Post Chain" (out) <-> Provider Specific (e.g. auth, caching) <-> "Pre Chain" <-> *http.Client
 	PostChainTransportHook ChainableRoundTripperFunc
+
+	// Logger allows the caller to pass a logger for use by the provider
+	Logger *logr.Logger
 }
 
 // ApplyToCommonClientOptions applies the currently set fields in opts to target. If both opts and
@@ -92,6 +99,13 @@ func (opts *CommonClientOptions) ApplyToCommonClientOptions(target *CommonClient
 		}
 		target.PostChainTransportHook = opts.PostChainTransportHook
 	}
+
+	if opts.Logger != nil {
+		if target.Logger != nil {
+			return fmt.Errorf("option Logger already configured: %w", ErrInvalidClientOptions)
+		}
+		target.Logger = opts.Logger
+	}
 	return nil
 }
 
@@ -108,4 +122,173 @@ func BuildClientFromTransportChain(chain []ChainableRoundTripperFunc) (*http.Cli
 		}
 	}
 	return &http.Client{Transport: transport}, nil
+}
+
+// ClientOption is the interface to implement for passing options to NewClient.
+// The clientOptions struct is private to force usage of the With... functions.
+type ClientOption interface {
+	// ApplyToClientOptions applies set fields of this object into target.
+	ApplyToClientOptions(target *clientOptions) error
+}
+
+// clientOptions is the struct that tracks data about what options have been set.
+type clientOptions struct {
+	// clientOptions shares all the common options
+	CommonClientOptions
+
+	// authTransport is a ChainableRoundTripperFunc adding authentication credentials to the transport chain.
+	authTransport ChainableRoundTripperFunc
+
+	// enableConditionalRequests will be set if conditional requests should be used.
+	enableConditionalRequests *bool
+}
+
+// ApplyToClientOptions implements ClientOption, and applies the set fields of opts
+// into target. If both opts and target has the same specific field set, ErrInvalidClientOptions is returned.
+func (opts *clientOptions) ApplyToClientOptions(target *clientOptions) error {
+	// Apply common values, if any
+	if err := opts.CommonClientOptions.ApplyToCommonClientOptions(&target.CommonClientOptions); err != nil {
+		return err
+	}
+
+	if opts.authTransport != nil {
+		// Make sure the user didn't specify the authTransport twice
+		if target.authTransport != nil {
+			return fmt.Errorf("option authTransport already configured: %w", ErrInvalidClientOptions)
+		}
+		target.authTransport = opts.authTransport
+	}
+
+	if opts.enableConditionalRequests != nil {
+		// Make sure the user didn't specify the enableConditionalRequests twice
+		if target.enableConditionalRequests != nil {
+			return fmt.Errorf("option enableConditionalRequests already configured: %w", ErrInvalidClientOptions)
+		}
+		target.enableConditionalRequests = opts.enableConditionalRequests
+	}
+	return nil
+}
+
+// GetTransportChain builds the full chain of transports (from left to right,
+// as per gitprovider.BuildClientFromTransportChain) of the form described in NewClient.
+func (opts *clientOptions) GetTransportChain() (chain []ChainableRoundTripperFunc) {
+	if opts.PostChainTransportHook != nil {
+		chain = append(chain, opts.PostChainTransportHook)
+	}
+	if opts.authTransport != nil {
+		chain = append(chain, opts.authTransport)
+	}
+	if opts.enableConditionalRequests != nil && *opts.enableConditionalRequests {
+		// TODO: Provide some kind of debug logging if/when the httpcache is used
+		// One can see if the request hit the cache using: resp.Header[httpcache.XFromCache]
+		chain = append(chain, cache.NewHTTPCacheTransport)
+	}
+	if opts.PreChainTransportHook != nil {
+		chain = append(chain, opts.PreChainTransportHook)
+	}
+	return
+}
+
+// buildCommonOption is a helper for returning a ClientOption out of a common option field.
+func buildCommonOption(opt CommonClientOptions) *clientOptions {
+	return &clientOptions{CommonClientOptions: opt}
+}
+
+// errorOption implements ClientOption, and just wraps an error which is immediately returned.
+// This struct can be used through the optionError function, in order to make makeOptions fail
+// if there are invalid options given to the With... functions.
+type errorOption struct {
+	err error
+}
+
+// ApplyToClientOptions implements ClientOption, but just returns the internal error.
+func (e *errorOption) ApplyToClientOptions(*clientOptions) error { return e.err }
+
+// optionError is a constructor for errorOption.
+func optionError(err error) ClientOption {
+	return &errorOption{err}
+}
+
+//
+// Common options
+//
+
+// WithDomain initializes a Client for a custom instance of the given domain.
+// Only host and port information should be present in domain. domain must not be an empty string.
+func WithDomain(domain string) ClientOption {
+	return buildCommonOption(CommonClientOptions{Domain: &domain})
+}
+
+// WithLogger initializes a Client for a custom Stash instance with a logger.
+func WithLogger(log *logr.Logger) ClientOption {
+	return buildCommonOption(CommonClientOptions{Logger: log})
+}
+
+// WithDestructiveAPICalls tells the client whether it's allowed to do dangerous and possibly destructive
+// actions, like e.g. deleting a repository.
+func WithDestructiveAPICalls(destructiveActions bool) ClientOption {
+	return buildCommonOption(CommonClientOptions{EnableDestructiveAPICalls: &destructiveActions})
+}
+
+// WithPreChainTransportHook registers a ChainableRoundTripperFunc "before" the cache and authentication
+// transports in the chain. For more information, see NewClient, and gitprovider.CommonClientOptions.PreChainTransportHook.
+func WithPreChainTransportHook(preRoundTripperFunc ChainableRoundTripperFunc) ClientOption {
+	// Don't allow an empty value
+	if preRoundTripperFunc == nil {
+		return optionError(fmt.Errorf("preRoundTripperFunc cannot be nil: %w", ErrInvalidClientOptions))
+	}
+
+	return buildCommonOption(CommonClientOptions{PreChainTransportHook: preRoundTripperFunc})
+}
+
+// WithPostChainTransportHook registers a ChainableRoundTripperFunc "after" the cache and authentication
+// transports in the chain. For more information, see NewClient, and gitprovider.CommonClientOptions.WithPostChainTransportHook.
+func WithPostChainTransportHook(postRoundTripperFunc ChainableRoundTripperFunc) ClientOption {
+	// Don't allow an empty value
+	if postRoundTripperFunc == nil {
+		return optionError(fmt.Errorf("postRoundTripperFunc cannot be nil: %w", ErrInvalidClientOptions))
+	}
+
+	return buildCommonOption(CommonClientOptions{PostChainTransportHook: postRoundTripperFunc})
+}
+
+// WithOAuth2Token initializes a Client which authenticates with Stash through an OAuth2 token.
+// oauth2Token must not be an empty string.
+func WithOAuth2Token(oauth2Token string) ClientOption {
+	// Don't allow an empty value
+	if oauth2Token == "" {
+		return optionError(fmt.Errorf("oauth2Token cannot be empty: %w", ErrInvalidClientOptions))
+	}
+
+	return &clientOptions{authTransport: oauth2Transport(oauth2Token)}
+}
+
+func oauth2Transport(oauth2Token string) ChainableRoundTripperFunc {
+	return func(in http.RoundTripper) http.RoundTripper {
+		// Create a TokenSource of the given access token
+		ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: oauth2Token})
+		// Create a Transport, with "in" as the underlying transport, and the given TokenSource
+		return &oauth2.Transport{
+			Base:   in,
+			Source: oauth2.ReuseTokenSource(nil, ts),
+		}
+	}
+}
+
+// WithConditionalRequests instructs the client to use Conditional Requests to Stash.
+// See: https://gitlab.com/gitlab.org/gitlab.foss/-/issues/26926, and
+// https://docs.gitlab.com/ee/development/polling.html for more info.
+func WithConditionalRequests(conditionalRequests bool) ClientOption {
+	return &clientOptions{enableConditionalRequests: &conditionalRequests}
+}
+
+// MakeClientOptions assembles a clientOptions struct from ClientOption mutator functions.
+func MakeClientOptions(opts ...ClientOption) (*clientOptions, error) {
+	o := &clientOptions{}
+	for _, opt := range opts {
+		if err := opt.ApplyToClientOptions(o); err != nil {
+			return nil, err
+		}
+	}
+	return o, nil
 }

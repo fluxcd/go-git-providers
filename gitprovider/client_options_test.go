@@ -24,6 +24,10 @@ import (
 	"github.com/fluxcd/go-git-providers/validation"
 )
 
+func dummyRoundTripper1(http.RoundTripper) http.RoundTripper { return nil }
+func dummyRoundTripper2(http.RoundTripper) http.RoundTripper { return nil }
+func dummyRoundTripper3(http.RoundTripper) http.RoundTripper { return nil }
+
 func roundTrippersEqual(a, b ChainableRoundTripperFunc) bool {
 	if a == nil && b == nil {
 		return true
@@ -64,8 +68,6 @@ func withPreChainTransportHook(preRoundTripperFunc ChainableRoundTripperFunc) co
 func withPostChainTransportHook(postRoundTripperFunc ChainableRoundTripperFunc) commonClientOption {
 	return &CommonClientOptions{PostChainTransportHook: postRoundTripperFunc}
 }
-
-func dummyRoundTripper1(http.RoundTripper) http.RoundTripper { return nil }
 
 func Test_makeOptions(t *testing.T) {
 	tests := []struct {
@@ -137,6 +139,161 @@ func Test_makeOptions(t *testing.T) {
 			}
 			got.PostChainTransportHook = nil
 			got.PreChainTransportHook = nil
+			tt.want.PostChainTransportHook = nil
+			tt.want.PreChainTransportHook = nil
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("makeOptions() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_clientOptions_getTransportChain(t *testing.T) {
+	tests := []struct {
+		name      string
+		preChain  ChainableRoundTripperFunc
+		postChain ChainableRoundTripperFunc
+		auth      ChainableRoundTripperFunc
+		cache     bool
+		wantChain []ChainableRoundTripperFunc
+	}{
+		{
+			name:      "all roundtrippers",
+			preChain:  dummyRoundTripper1,
+			postChain: dummyRoundTripper2,
+			auth:      dummyRoundTripper3,
+			cache:     true,
+			// expect: "post chain" <-> "auth" <-> "cache" <-> "pre chain"
+			wantChain: []ChainableRoundTripperFunc{
+				dummyRoundTripper2,
+				dummyRoundTripper3,
+				dummyRoundTripper1,
+			},
+		},
+		{
+			name:     "only pre + auth",
+			preChain: dummyRoundTripper1,
+			auth:     dummyRoundTripper2,
+			// expect: "auth" <-> "pre chain"
+			wantChain: []ChainableRoundTripperFunc{
+				dummyRoundTripper2,
+				dummyRoundTripper1,
+			},
+		},
+		{
+			name:  "only cache + auth",
+			cache: true,
+			auth:  dummyRoundTripper1,
+			// expect: "auth" <-> "cache"
+			wantChain: []ChainableRoundTripperFunc{
+				dummyRoundTripper1,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dummy := "dummy"
+			opts := &clientOptions{
+				CommonClientOptions: CommonClientOptions{
+					Domain:                 &dummy,
+					PreChainTransportHook:  tt.preChain,
+					PostChainTransportHook: tt.postChain,
+				},
+				authTransport: tt.auth,
+			}
+			gotChain := opts.GetTransportChain()
+			for i := range tt.wantChain {
+				if !roundTrippersEqual(tt.wantChain[i], gotChain[i]) {
+					t.Fatalf("%s - clientOptions.getTransportChain() = %v, want %v", tt.name, gotChain, tt.wantChain)
+				}
+			}
+		})
+	}
+}
+
+func Test_makeCientOptions(t *testing.T) {
+	tests := []struct {
+		name         string
+		opts         []ClientOption
+		want         *clientOptions
+		expectedErrs []error
+	}{
+		{
+			name: "no options",
+			want: &clientOptions{},
+		},
+		{
+			name: "WithDomain",
+			opts: []ClientOption{WithDomain("foo")},
+			want: buildCommonOption(CommonClientOptions{Domain: StringVar("foo")}),
+		},
+		{
+			name:         "WithDomain, empty",
+			opts:         []ClientOption{WithDomain("")},
+			expectedErrs: []error{ErrInvalidClientOptions},
+		},
+		{
+			name: "WithDestructiveAPICalls",
+			opts: []ClientOption{WithDestructiveAPICalls(true)},
+			want: buildCommonOption(CommonClientOptions{EnableDestructiveAPICalls: BoolVar(true)}),
+		},
+		{
+			name: "WithPreChainTransportHook",
+			opts: []ClientOption{WithPreChainTransportHook(dummyRoundTripper1)},
+			want: buildCommonOption(CommonClientOptions{PreChainTransportHook: dummyRoundTripper1}),
+		},
+		{
+			name:         "WithPreChainTransportHook, nil",
+			opts:         []ClientOption{WithPreChainTransportHook(nil)},
+			expectedErrs: []error{ErrInvalidClientOptions},
+		},
+		{
+			name: "WithPostChainTransportHook",
+			opts: []ClientOption{WithPostChainTransportHook(dummyRoundTripper2)},
+			want: buildCommonOption(CommonClientOptions{PostChainTransportHook: dummyRoundTripper2}),
+		},
+		{
+			name:         "WithPostChainTransportHook, nil",
+			opts:         []ClientOption{WithPostChainTransportHook(nil)},
+			expectedErrs: []error{ErrInvalidClientOptions},
+		},
+		{
+			name: "WithOAuth2Token",
+			opts: []ClientOption{WithOAuth2Token("foo")},
+			want: &clientOptions{authTransport: oauth2Transport("foo")},
+		},
+		{
+			name:         "WithOAuth2Token, empty",
+			opts:         []ClientOption{WithOAuth2Token("")},
+			expectedErrs: []error{ErrInvalidClientOptions},
+		},
+		{
+			name: "WithConditionalRequests",
+			opts: []ClientOption{WithConditionalRequests(true)},
+			want: &clientOptions{enableConditionalRequests: BoolVar(true)},
+		},
+		{
+			name:         "WithConditionalRequests, exclusive",
+			opts:         []ClientOption{WithConditionalRequests(true), WithConditionalRequests(false)},
+			expectedErrs: []error{ErrInvalidClientOptions},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := MakeClientOptions(tt.opts...)
+			validation.TestExpectErrors(t, "makeOptions", err, tt.expectedErrs...)
+			if tt.want == nil {
+				return
+			}
+			if !roundTrippersEqual(got.authTransport, tt.want.authTransport) ||
+				!roundTrippersEqual(got.PostChainTransportHook, tt.want.PostChainTransportHook) ||
+				!roundTrippersEqual(got.PreChainTransportHook, tt.want.PreChainTransportHook) {
+				t.Errorf("makeOptions() = %v, want %v", got, tt.want)
+			}
+			got.authTransport = nil
+			got.PostChainTransportHook = nil
+			got.PreChainTransportHook = nil
+			tt.want.authTransport = nil
 			tt.want.PostChainTransportHook = nil
 			tt.want.PreChainTransportHook = nil
 			if !reflect.DeepEqual(got, tt.want) {

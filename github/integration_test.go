@@ -158,10 +158,10 @@ var _ = Describe("GitHub Provider", func() {
 
 		var err error
 		c, err = NewClient(
-			WithOAuth2Token(githubToken),
-			WithDestructiveAPICalls(true),
-			WithConditionalRequests(true),
-			WithPreChainTransportHook(customTransportFactory),
+			gitprovider.WithOAuth2Token(githubToken),
+			gitprovider.WithDestructiveAPICalls(true),
+			gitprovider.WithConditionalRequests(true),
+			gitprovider.WithPreChainTransportHook(customTransportFactory),
 		)
 		Expect(err).ToNot(HaveOccurred())
 	})

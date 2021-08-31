@@ -216,10 +216,10 @@ var _ = Describe("GitLab Provider", func() {
 		var err error
 		c, err = NewClient(
 			gitlabToken, "",
-			WithDomain(gitlabDomain),
-			WithDestructiveAPICalls(true),
-			WithConditionalRequests(true),
-			WithPreChainTransportHook(customTransportFactory),
+			gitprovider.WithDomain(gitlabDomain),
+			gitprovider.WithDestructiveAPICalls(true),
+			gitprovider.WithConditionalRequests(true),
+			gitprovider.WithPreChainTransportHook(customTransportFactory),
 		)
 		Expect(err).ToNot(HaveOccurred())
 	})

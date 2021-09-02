@@ -198,8 +198,8 @@ type CommitInfo struct {
 	// CreatedAt is the time the commit was created
 	CreatedAt time.Time `json:"created_at"`
 
-	// URL is the link for the commit
-	URL string `json:"url"`
+	// WebURL is the link for the commit
+	WebURL string `json:"web_url"`
 }
 
 // CommitFile contains high-level information about a file added to a commit.

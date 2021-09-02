@@ -51,6 +51,6 @@ func commitFromAPI(apiObj *github.Commit) gitprovider.CommitInfo {
 		Author:    *apiObj.Author.Name,
 		Message:   *apiObj.Message,
 		CreatedAt: *apiObj.Author.Date,
-		URL:       *apiObj.URL,
+		WebURL:    *apiObj.URL,
 	}
 }

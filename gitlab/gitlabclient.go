@@ -409,6 +409,7 @@ func (c *gitlabClientImpl) ListCommitsPage(ctx context.Context, projectName stri
 			AuthorName: c.AuthorName,
 			Message:    c.Message,
 			CreatedAt:  c.CreatedAt,
+			WebURL:     c.WebURL,
 		})
 	}
 

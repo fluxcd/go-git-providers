@@ -317,6 +317,7 @@ func (c *githubClientImpl) ListCommitsPage(ctx context.Context, owner, repo, bra
 			},
 			Author:  c.Commit.Author,
 			Message: c.Commit.Message,
+			URL:     c.HTMLURL,
 		})
 	}
 

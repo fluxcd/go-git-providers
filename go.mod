@@ -1,6 +1,6 @@
 module github.com/fluxcd/go-git-providers
 
-go 1.15
+go 1.16
 
 require (
 	github.com/go-logr/logr v1.1.0

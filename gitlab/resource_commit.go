@@ -50,6 +50,6 @@ func commitFromAPI(apiObj *gitlab.Commit) gitprovider.CommitInfo {
 		Author:    apiObj.AuthorName,
 		Message:   apiObj.Message,
 		CreatedAt: *apiObj.CreatedAt,
-		WebURL:    apiObj.WebURL,
+		URL:       apiObj.WebURL,
 	}
 }

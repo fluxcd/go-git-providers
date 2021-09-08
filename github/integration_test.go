@@ -389,8 +389,11 @@ var _ = Describe("GitHub Provider", func() {
 				AutoInit:        gitprovider.BoolVar(true),
 				LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateMIT),
 			})
+			if err == nil && !actionTaken {
+				err = errors.New("expecting action taken to be true")
+			}
 			return retryOp.Retry(err, fmt.Sprintf("reconcile user repository: %s", repoRef.RepositoryName))
-		}, retryOp.Timeout(), retryOp.Interval()).Should(BeTrue())
+		}, time.Second*90, retryOp.Interval()).Should(BeTrue())
 
 		Expect(actionTaken).To(BeTrue())
 		validateRepo(newRepo, repoRef)

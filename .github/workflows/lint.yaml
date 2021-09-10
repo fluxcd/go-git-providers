@@ -1,0 +1,27 @@
+name: lint
+
+on:
+  workflow_dispatch:
+  push:
+    branches-ignore:
+      # Do not push events to branches matching refs/heads/main
+      - 'main'
+    tags-ignore: [ '*' ]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Run Revive Action
+        uses: docker://morphy/revive-action:v2
+        with:
+          # Path to your Revive config within the repo (optional)
+          config: revive/config.toml
+
+
+

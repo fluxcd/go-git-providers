@@ -1,11 +1,27 @@
-package http
+/*
+Copyright 2021 The Flux authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package gostash
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -222,9 +238,7 @@ func Test_Do(t *testing.T) {
 
 			if tt.method == http.MethodGet {
 				user := user{}
-				// Restore the io.ReadCloser to its original state
-				resp.Body = ioutil.NopCloser(bytes.NewBuffer(res))
-				err := json.NewDecoder(resp.Body).Decode(&user)
+				err := json.Unmarshal(res, &user)
 				if err != nil {
 					t.Fatalf("%s users failed, unable to obtain response body: %v", tt.method, err)
 				}
@@ -273,11 +287,11 @@ func Test_DoWithRetry(t *testing.T) {
 			c := NewTestClient(t, func(req *http.Request) (*http.Response, error) {
 				if retries < tt.retries {
 					retries++
-					return nil, fmt.Errorf("connection refused, please retry.")
+					return nil, fmt.Errorf("connection refused, please retry")
 				}
 				return &http.Response{
 					StatusCode: 200,
-					Body:       ioutil.NopCloser(bytes.NewBufferString(fmt.Sprint(retries))),
+					Body:       io.NopCloser(bytes.NewBufferString(fmt.Sprint(retries))),
 					Header:     make(http.Header),
 				}, nil
 			}, func(c *Client) {

@@ -1,11 +1,28 @@
-package http
+/*
+Copyright 2021 The Flux authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package gostash
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -54,8 +71,8 @@ type Doer interface {
 	Do(req *http.Request) ([]byte, *http.Response, error)
 }
 
-// ClientOptions are options for the Client.
-// It can be used for exemple to setup a custom http Client.
+// ClientOptionsFunc are options for the Client.
+// It can be used for example to setup a custom http Client.
 type ClientOptionsFunc func(Client *Client)
 
 // A Client is a retryable HTTP Client.
@@ -79,6 +96,9 @@ type Client struct {
 	HeaderFields *http.Header
 	// Logger is the logger used to log the request and response.
 	Logger *logr.Logger
+
+	// Services are used to communicate with the different stash endpoints.
+	Users *UsersService
 }
 
 // RateLimiter is the interface that wraps the basic Wait method.
@@ -148,6 +168,11 @@ func NewClient(httpClient *http.Client, host string, header *http.Header, logger
 	}
 
 	c.HeaderFields = header
+
+	c.Users = &UsersService{
+		Client: c,
+		log:    *c.Logger,
+	}
 
 	return c, nil
 }
@@ -281,12 +306,12 @@ func (c *Client) configureLimiter() error {
 	return nil
 }
 
-// NewRequest creates a request, and returns an retryablehttp.Request and an error,
+// NewRequest creates a request, and returns an http.Request and an error,
 // given a path and optional method, query, body, and header.
 // A relative URL path can be provided in path, in which case it is resolved relative to the base URL of the Client.
 // Relative URL paths should always be specified without a preceding slash.
 // If specified, the value pointed to by body is JSON encoded and included as the request body.
-func (c *Client) NewRequest(ctx context.Context, method string, path string, query url.Values, body interface{}, header http.Header) (*retryablehttp.Request, error) { // nolint:funlen,gocognit,gocyclo // ok
+func (c *Client) NewRequest(ctx context.Context, method string, path string, query url.Values, body interface{}, header http.Header) (*http.Request, error) {
 	u := *c.BaseURL
 	unescaped, err := url.PathUnescape(path)
 	if err != nil {
@@ -301,12 +326,14 @@ func (c *Client) NewRequest(ctx context.Context, method string, path string, que
 		method = http.MethodGet
 	}
 
-	var jsonBody interface{}
+	var bodyReader io.ReadCloser
 	if (method == http.MethodPost || method == http.MethodPut) && body != nil {
 		jsonBody, e := json.Marshal(body)
 		if e != nil {
 			return nil, fmt.Errorf("failed to marshall request body, %w", e)
 		}
+
+		bodyReader = io.NopCloser(bytes.NewReader(jsonBody))
 
 		c.Logger.V(2).Info("request", "body", string(jsonBody))
 	}
@@ -317,7 +344,7 @@ func (c *Client) NewRequest(ctx context.Context, method string, path string, que
 
 	u.RawQuery = query.Encode()
 
-	req, err := retryablehttp.NewRequest(method, u.String(), jsonBody)
+	req, err := http.NewRequest(method, u.String(), bodyReader)
 	if err != nil {
 		return req, fmt.Errorf("failed create request for %s %s, %w", method, u.String(), err)
 	}
@@ -343,11 +370,11 @@ func (c *Client) NewRequest(ctx context.Context, method string, path string, que
 	return req, nil
 }
 
-// Do performs a request, and returns an http.Response and an error given an retryablehttp.Request.
+// Do performs a request, and returns an http.Response and an error given an http.Request.
 // For an outgoing Client request, the context controls the entire lifetime of a reques:
 // obtaining a connection, sending the request, checking errors and retrying.
 // The response body is not closed.
-func (c *Client) Do(request *retryablehttp.Request) ([]byte, *http.Response, error) {
+func (c *Client) Do(request *http.Request) ([]byte, *http.Response, error) {
 	// If not yet configured, try to configure the rate limiter. Fail
 	// silently as the limiter will be disabled in case of an error.
 	c.configureLimiterOnce.Do(func() { c.configureLimiter() })
@@ -360,7 +387,12 @@ func (c *Client) Do(request *retryablehttp.Request) ([]byte, *http.Response, err
 
 	c.Logger.V(2).Info("request", "method", request.Method, "url", request.URL)
 
-	resp, err := c.Client.Do(request)
+	req, err := retryablehttp.FromRequest(request)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	resp, err := c.Client.Do(req)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -382,9 +414,9 @@ func (c *Client) Do(request *retryablehttp.Request) ([]byte, *http.Response, err
 	return nil, resp, fmt.Errorf("request %s %s returned status code: %s, %w", request.Method, request.URL, resp.Status, ErrorUnexpectedStatusCode)
 }
 
-// getRespBody is used to obtain the response body as a string.
+// getRespBody is used to obtain the response body as a []byte.
 func getRespBody(resp *http.Response) ([]byte, error) {
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}

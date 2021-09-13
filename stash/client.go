@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package gostash
+package stash
 
 import (
 	"bytes"
@@ -75,6 +75,8 @@ type Doer interface {
 // It can be used for example to setup a custom http Client.
 type ClientOptionsFunc func(Client *Client)
 
+type service struct{ Client *Client }
+
 // A Client is a retryable HTTP Client.
 // The Client will automatically retry when it encounters recoverable errors.
 // The Client will also retry when it encounters a 429 Too Many Requests status.
@@ -98,7 +100,8 @@ type Client struct {
 	Logger *logr.Logger
 
 	// Services are used to communicate with the different stash endpoints.
-	Users *UsersService
+	Users  Users
+	Groups Groups
 }
 
 // RateLimiter is the interface that wraps the basic Wait method.
@@ -169,10 +172,8 @@ func NewClient(httpClient *http.Client, host string, header *http.Header, logger
 
 	c.HeaderFields = header
 
-	c.Users = &UsersService{
-		Client: c,
-		log:    *c.Logger,
-	}
+	c.Users = &UsersService{Client: c}
+	c.Groups = &GroupsService{Client: c}
 
 	return c, nil
 }

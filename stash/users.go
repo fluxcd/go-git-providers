@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package gostash
+package stash
 
 import (
 	"context"
@@ -24,8 +24,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-
-	"github.com/go-logr/logr"
 )
 
 const (
@@ -37,13 +35,16 @@ var (
 	ErrNotFound = fmt.Errorf("not found")
 )
 
+// Users interface defines the methods that can be used to
+// retrieve users.
+type Users interface {
+	List(ctx context.Context, opts *PagingOptions) (*UserList, error)
+	Get(ctx context.Context, userName string) (*User, error)
+}
+
 // UsersService is a client for communicating with stash users endpoint
 // Stash API docs: https://docs.atlassian.com/DAC/rest/stash/3.11.3/stash-rest.html
-type UsersService struct {
-	// Client is the client used to communicate with the Stash API.
-	Client *Client
-	log    logr.Logger
-}
+type UsersService service
 
 // User represents a Stash user.
 type User struct {
@@ -129,9 +130,9 @@ func (s *UsersService) List(ctx context.Context, opts *PagingOptions) (*UserList
 	return u, nil
 }
 
-// GetUser retrieves a user by name.
+// Get retrieves a user by name.
 // Get uses the endpoint "GET /rest/api/1.0/users/{userSlug}".
-func (s *UsersService) GetUser(ctx context.Context, userSlug string) (*User, error) {
+func (s *UsersService) Get(ctx context.Context, userSlug string) (*User, error) {
 	var query *url.Values
 	query = addPaging(query, &PagingOptions{})
 	req, err := s.Client.NewRequest(ctx, http.MethodGet, newURI(usersURI, userSlug), *query, nil, nil)

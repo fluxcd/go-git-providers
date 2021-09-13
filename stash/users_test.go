@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package gostash
+package stash
 
 import (
 	"context"
@@ -24,29 +24,32 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 // setup sets up a test HTTP server along with a Client configured to talk to that test server.
 // Tests should register handlers on mux which provide mock responses for the API method being tested.
-func setup(t *testing.T) (*http.ServeMux, *httptest.Server, *Client) {
+func setup(t *testing.T) (*http.ServeMux, *Client) {
 	mux := http.NewServeMux()
 	// Start a local HTTP server
 	server := httptest.NewServer(mux)
 	// declare a Client
-	berearHeader := &http.Header{
+	bearerHeader := &http.Header{
 		"WWW-Authenticate": []string{"Bearer"},
 	}
-	client, err := NewClient(nil, server.URL, berearHeader, initLogger(t))
+	client, err := NewClient(nil, server.URL, bearerHeader, initLogger(t))
 	if err != nil {
 		server.Close()
-		t.Errorf("unexpected error while declaring a client: %v", err)
+		t.Fatalf("unexpected error while declaring a client: %v", err)
 	}
-	return mux, server, client
-}
 
-// teardown closes the test HTTP server.
-func teardown(server *httptest.Server) {
-	server.Close()
+	// Register a function to close the test HTTP server.
+	t.Cleanup(func() {
+		server.Close()
+	})
+
+	return mux, client
 }
 
 func TestGetUser(t *testing.T) {
@@ -67,8 +70,7 @@ func TestGetUser(t *testing.T) {
 
 	validSlugs := []string{"jcitizen"}
 
-	mux, server, client := setup(t)
-	defer teardown(server)
+	mux, client := setup(t)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -92,15 +94,16 @@ func TestGetUser(t *testing.T) {
 			})
 
 			ctx := context.Background()
-			user, err := client.Users.GetUser(ctx, tt.slug)
+			user, err := client.Users.Get(ctx, tt.slug)
 			if err != nil {
 				if err != ErrNotFound {
 					t.Fatalf("Users.GetUser returned error: %v", err)
 				}
-			} else {
-				if user.Slug != tt.slug {
-					t.Errorf("Users.GetUser returned user %s, want %s", user.Slug, tt.slug)
-				}
+				return
+			}
+
+			if user.Slug != tt.slug {
+				t.Errorf("Users.GetUser returned user %s, want %s", user.Slug, tt.slug)
 			}
 
 		})
@@ -108,34 +111,25 @@ func TestGetUser(t *testing.T) {
 }
 
 func TestUserList(t *testing.T) {
-	slugs := []string{"jcitizen", "tstark", "rrichards", "rwilliams"}
+	wants := []*User{
+		{Name: "John Citizen", Slug: "jcitizen"},
+		{Name: "Tony Stark", Slug: "tstark"},
+		{Name: "Reed Richards", Slug: "rrichards"},
+		{Name: "Riri Williams", Slug: "rwilliams"}}
 
-	mux, server, client := setup(t)
-	defer teardown(server)
+	mux, client := setup(t)
 
 	path := fmt.Sprintf("%s/users", stashURIprefix)
 	mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 
 		w.WriteHeader(http.StatusOK)
 		u := struct {
-			Users []User `json:"values"`
-		}{[]User{
-			{
-				Name: "John Citizen",
-				Slug: slugs[0],
-			},
-			{
-				Name: "Tony Stark",
-				Slug: slugs[1],
-			},
-			{
-				Name: "Reed Richards",
-				Slug: slugs[2],
-			},
-			{
-				Name: "Riri Williams",
-				Slug: slugs[3],
-			},
+			Users []*User `json:"values"`
+		}{[]*User{
+			wants[0],
+			wants[1],
+			wants[2],
+			wants[3],
 		}}
 		json.NewEncoder(w).Encode(u)
 		return
@@ -145,11 +139,11 @@ func TestUserList(t *testing.T) {
 	list, err := client.Users.List(ctx, nil)
 	if err != nil {
 		if err != ErrNotFound {
-			t.Fatalf("Users.GetUser returned error: %v", err)
+			t.Fatalf("Users.List returned error: %v", err)
 		}
 	}
 
-	if len(list.Users) != len(slugs) {
-		t.Fatalf("Users.GetUser returned %d users, want %d", len(list.Users), len(slugs))
+	if diff := cmp.Diff(wants, list.Users); diff != "" {
+		t.Errorf("Users.List returned diff (want -> got):\n%s", diff)
 	}
 }

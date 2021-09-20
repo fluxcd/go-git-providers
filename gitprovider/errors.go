@@ -68,6 +68,8 @@ var (
 	ErrInvalidPermissionLevel = errors.New("invalid permission level")
 	// ErrMissingHeader is returned when an expected header is missing from the HTTP response.
 	ErrMissingHeader = errors.New("header is missing")
+	// ErrGroupNotFound is returned when the gitlab group does not exist
+	ErrGroupNotFound = errors.New("404 Group Not Found")
 )
 
 // HTTPError is an error that contains context about the HTTP request/response that failed.

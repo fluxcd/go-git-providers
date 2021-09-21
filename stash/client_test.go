@@ -86,11 +86,12 @@ func Test_NewClient(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var val string
-			c, err := NewClient(&http.Client{}, tt.host, tt.header, tt.log, func(c *Client) {
+			c, err := NewClient(&http.Client{}, tt.host, tt.header, tt.log, func(c *Client) error {
 				c.Client.HTTPClient = &http.Client{
 					Transport: tt.transport,
 					Timeout:   tt.timeout,
 				}
+				return nil
 			})
 			if err != nil {
 				val = fmt.Sprintf("%s", err)
@@ -301,10 +302,11 @@ func Test_DoWithRetry(t *testing.T) {
 					Body:       io.NopCloser(bytes.NewBufferString(fmt.Sprint(retries))),
 					Header:     make(http.Header),
 				}, nil
-			}, func(c *Client) {
+			}, func(c *Client) error {
 				c.Client.RetryWaitMin = tt.retryMin
 				c.Client.RetryWaitMax = tt.retryMax
 				c.Client.RetryMax = tt.retries
+				return nil
 			})
 
 			ctx, cancel := context.WithCancel(context.Background())

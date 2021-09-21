@@ -71,7 +71,7 @@ type Doer interface {
 
 // ClientOptionsFunc are options for the Client.
 // It can be used for example to setup a custom http Client.
-type ClientOptionsFunc func(Client *Client)
+type ClientOptionsFunc func(Client *Client) error
 
 type service struct{ Client *Client }
 
@@ -96,17 +96,39 @@ type Client struct {
 	HeaderFields *http.Header
 	// Logger is the logger used to log the request and response.
 	Logger *logr.Logger
+	// username is the username for Auth.
+	username string
+	// Token used to make authenticated API calls.
+	token string
 
 	// Services are used to communicate with the different stash endpoints.
 	Users    Users
 	Groups   Groups
 	Projects Projects
+	Git      Git
 }
 
 // RateLimiter is the interface that wraps the basic Wait method.
 // All rate limiters must implement this interface.
 type RateLimiter interface {
 	Wait(context.Context) error
+}
+
+// Auth is used to setup the client authentication.
+func Auth(username string, token string) ClientOptionsFunc {
+	return func(c *Client) error {
+		if username == "" {
+			return errors.New("user name is required")
+		}
+
+		if token == "" {
+			return errors.New("token is required")
+		}
+
+		c.username = username
+		c.token = token
+		return nil
+	}
 }
 
 // NewClient returns a new Client given a host name an optional http.Client, a logger, http.Header and ClientOptionsFunc.
@@ -157,7 +179,10 @@ func NewClient(httpClient *http.Client, host string, header *http.Header, logger
 	}
 
 	for _, opt := range opts {
-		opt(c)
+		err := opt(c)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	err := c.setBaseURL(host)
@@ -174,6 +199,7 @@ func NewClient(httpClient *http.Client, host string, header *http.Header, logger
 	c.Users = &UsersService{Client: c}
 	c.Groups = &GroupsService{Client: c}
 	c.Projects = &ProjectsService{Client: c}
+	c.Git = &GitService{Client: c}
 
 	return c, nil
 }

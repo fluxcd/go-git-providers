@@ -96,16 +96,17 @@ type Client struct {
 	HeaderFields *http.Header
 	// Logger is the logger used to log the request and response.
 	Logger *logr.Logger
-	// username is the username for Auth.
+	// username is the username for WithAuth.
 	username string
 	// Token used to make authenticated API calls.
 	token string
 
 	// Services are used to communicate with the different stash endpoints.
-	Users    Users
-	Groups   Groups
-	Projects Projects
-	Git      Git
+	Users        Users
+	Groups       Groups
+	Projects     Projects
+	Git          Git
+	Repositories Repositories
 }
 
 // RateLimiter is the interface that wraps the basic Wait method.
@@ -114,8 +115,8 @@ type RateLimiter interface {
 	Wait(context.Context) error
 }
 
-// Auth is used to setup the client authentication.
-func Auth(username string, token string) ClientOptionsFunc {
+// WithAuth is used to setup the client authentication.
+func WithAuth(username string, token string) ClientOptionsFunc {
 	return func(c *Client) error {
 		if username == "" {
 			return errors.New("user name is required")
@@ -200,6 +201,7 @@ func NewClient(httpClient *http.Client, host string, header *http.Header, logger
 	c.Groups = &GroupsService{Client: c}
 	c.Projects = &ProjectsService{Client: c}
 	c.Git = &GitService{Client: c}
+	c.Repositories = &RepositoriesService{Client: c}
 
 	return c, nil
 }
@@ -397,18 +399,6 @@ func (c *Client) NewRequest(ctx context.Context, method string, path string, opt
 	for _, opt := range opts {
 		opt(&r)
 	}
-
-	//var bodyReader io.ReadCloser
-	//if (method == http.MethodPost || method == http.MethodPut) && body != nil {
-	//	jsonBody, e := json.Marshal(body)
-	//	if e != nil {
-	//		return nil, fmt.Errorf("failed to marshall request body, %w", e)
-	//	}
-	//
-	//	bodyReader = io.NopCloser(bytes.NewReader(jsonBody))
-	//
-	//	c.Logger.V(2).Info("request", "body", string(jsonBody))
-	//}
 
 	if r.Query == nil {
 		r.Query = url.Values{}

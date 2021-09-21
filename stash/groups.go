@@ -71,8 +71,8 @@ func (g *GroupList) GetGroups() []*Group {
 // The authenticated user must have the LICENSED_USER permission to call this resource.
 // https://docs.atlassian.com/bitbucket-server/rest/5.16.0/bitbucket-rest.html
 func (s *GroupsService) List(ctx context.Context, opts *PagingOptions) (*GroupList, error) {
-	query := addPaging(&url.Values{}, opts)
-	req, err := s.Client.NewRequest(ctx, http.MethodGet, newURI(groupsURI), *query, nil, nil)
+	query := addPaging(url.Values{}, opts)
+	req, err := s.Client.NewRequest(ctx, http.MethodGet, newURI(groupsURI), WithQuery(query))
 	if err != nil {
 		return nil, fmt.Errorf("list groups failed: , %w", err)
 	}
@@ -81,9 +81,6 @@ func (s *GroupsService) List(ctx context.Context, opts *PagingOptions) (*GroupLi
 		return nil, fmt.Errorf("list groups failed: , %w", err)
 	}
 
-	// As nothing is done with the response body, it is safe to close here
-	// to avoid leaking connections
-	defer resp.Body.Close()
 	if resp != nil && resp.StatusCode == http.StatusNotFound {
 		return nil, ErrNotFound
 	}
@@ -107,11 +104,11 @@ func (s *GroupsService) List(ctx context.Context, opts *PagingOptions) (*GroupLi
 // The authenticated user must have the LICENSED_USER permission to call this resource.
 // https://docs.atlassian.com/bitbucket-server/rest/5.16.0/bitbucket-rest.html
 func (s *GroupsService) Get(ctx context.Context, groupName string) (*Group, error) {
-	query := &url.Values{
+	query := url.Values{
 		"filter": []string{groupName},
 	}
 
-	req, err := s.Client.NewRequest(ctx, http.MethodGet, newURI(groupsURI), *query, nil, nil)
+	req, err := s.Client.NewRequest(ctx, http.MethodGet, newURI(groupsURI), WithQuery(query))
 	if err != nil {
 		return nil, fmt.Errorf("list groups failed: , %w", err)
 	}
@@ -121,9 +118,6 @@ func (s *GroupsService) Get(ctx context.Context, groupName string) (*Group, erro
 		return nil, fmt.Errorf("get group failed: , %w", err)
 	}
 
-	// As nothing is done with the response body, it is safe to close here
-	// to avoid leaking connections
-	defer resp.Body.Close()
 	if resp != nil && resp.StatusCode == http.StatusNotFound {
 		return nil, ErrNotFound
 	}
@@ -162,11 +156,10 @@ func (m *GroupMembers) GetGroupMembers() []*User {
 // The authenticated user must have the LICENSED_USER permission to call this resource.
 // https://docs.atlassian.com/bitbucket-server/rest/5.16.0/bitbucket-rest.html
 func (s *GroupsService) ListGroupMembers(ctx context.Context, groupName string, opts *PagingOptions) (*GroupMembers, error) {
-	query := &url.Values{}
-	query = addPaging(query, opts)
+	query := addPaging(url.Values{}, opts)
 	// The group name is required as a parameter
 	query.Set(contextKey, groupName)
-	req, err := s.Client.NewRequest(ctx, http.MethodGet, newURI(groupMembersURI), *query, nil, nil)
+	req, err := s.Client.NewRequest(ctx, http.MethodGet, newURI(groupMembersURI), WithQuery(query))
 	if err != nil {
 		return nil, fmt.Errorf("list groups request creation failed: , %w", err)
 	}
@@ -175,9 +168,6 @@ func (s *GroupsService) ListGroupMembers(ctx context.Context, groupName string, 
 		return nil, fmt.Errorf("list group members failed: , %w", err)
 	}
 
-	// As nothing is done with the response body, it is safe to close here
-	// to avoid leaking connections
-	defer resp.Body.Close()
 	if resp != nil && resp.StatusCode == http.StatusNotFound {
 		return nil, ErrNotFound
 	}

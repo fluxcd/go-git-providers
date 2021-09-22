@@ -46,8 +46,6 @@ func TestGetCommit(t *testing.T) {
 
 	mux, client := setup(t)
 
-	fmt.Println("commit")
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := fmt.Sprintf("%s/%s/prj1/%s/repo1/%s/%s", stashURIprefix, projectsURI, RepositoriesURI, commitsURI, tt.commitID)

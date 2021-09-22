@@ -109,6 +109,7 @@ type Client struct {
 	Repositories Repositories
 	Branches     Branches
 	Commits      Commits
+	PullRequests PullRequests
 }
 
 // RateLimiter is the interface that wraps the basic Wait method.
@@ -206,6 +207,7 @@ func NewClient(httpClient *http.Client, host string, header *http.Header, logger
 	c.Repositories = &RepositoriesService{Client: c}
 	c.Branches = &BranchesService{Client: c}
 	c.Commits = &CommitsService{Client: c}
+	c.PullRequests = &PullRequestsService{Client: c}
 
 	return c, nil
 }

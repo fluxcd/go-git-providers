@@ -171,9 +171,9 @@ func (s *RepositoriesService) Get(ctx context.Context, projectKey, repoSlug stri
 	return repo, nil
 }
 
-func marshallRepository(repo *Repository) (io.ReadCloser, error) {
+func marshallBody(b interface{}) (io.ReadCloser, error) {
 	var body io.ReadCloser
-	jsonBody, err := json.Marshal(repo)
+	jsonBody, err := json.Marshal(b)
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +187,7 @@ func marshallRepository(repo *Repository) (io.ReadCloser, error) {
 // The authenticated user must have PROJECT_ADMIN permission for the context project to call this resource.
 func (s *RepositoriesService) Create(ctx context.Context, repository *Repository) (*Repository, error) {
 	header := http.Header{"Content-Type": []string{"application/json"}}
-	body, err := marshallRepository(repository)
+	body, err := marshallBody(repository)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshall repository: %v", err)
 	}
@@ -217,7 +217,7 @@ func (s *RepositoriesService) Create(ctx context.Context, repository *Repository
 // Update uses the endpoint "PUT /rest/api/1.0/projects/{projectKey}/repos/{repositorySlug}".
 func (s *RepositoriesService) Update(ctx context.Context, projectKey, repositorySlug string, repository *Repository) (*Repository, error) {
 	header := http.Header{"Content-Type": []string{"application/json"}}
-	body, err := marshallRepository(repository)
+	body, err := marshallBody(repository)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshall repository: %v", err)
 	}

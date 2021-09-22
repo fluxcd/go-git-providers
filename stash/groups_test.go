@@ -31,7 +31,6 @@ func TestGetGroup(t *testing.T) {
 	tests := []struct {
 		name      string
 		groupName string
-		output    string
 	}{
 		{
 			name:      "test group does not exist",

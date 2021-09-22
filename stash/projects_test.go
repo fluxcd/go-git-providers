@@ -31,7 +31,6 @@ func TestGetProject(t *testing.T) {
 	tests := []struct {
 		name        string
 		projectName string
-		output      string
 	}{
 		{
 			name:        "test project does not exist",

@@ -102,6 +102,10 @@ func (s *CommitsService) List(ctx context.Context, projectKey, repositorySlug st
 		return nil, ErrNotFound
 	}
 
+	if resp != nil && resp.StatusCode == http.StatusBadRequest {
+		return nil, fmt.Errorf("list commits failed: %s", resp.Status)
+	}
+
 	c := &CommitList{}
 	if err := json.Unmarshal(res, c); err != nil {
 		return nil, fmt.Errorf("list commits for repository failed, unable to unmarshall repository json: %w", err)
@@ -128,6 +132,10 @@ func (s *CommitsService) Get(ctx context.Context, projectKey, repositorySlug, co
 
 	if resp != nil && resp.StatusCode == http.StatusNotFound {
 		return nil, ErrNotFound
+	}
+
+	if resp != nil && resp.StatusCode == http.StatusBadRequest {
+		return nil, fmt.Errorf("get commits failed: %s", resp.Status)
 	}
 
 	c := &CommitObject{}

@@ -203,6 +203,10 @@ func (s *RepositoriesService) Create(ctx context.Context, repository *Repository
 		return nil, fmt.Errorf("create respository failed: %w", err)
 	}
 
+	if resp != nil && resp.StatusCode == http.StatusBadRequest {
+		return nil, fmt.Errorf("create repository failed: %s", resp.Status)
+	}
+
 	repo := &Repository{}
 	if err := json.Unmarshal(res, repo); err != nil {
 		return nil, fmt.Errorf("create repository failed, unable to unmarshall repository json: %w", err)
@@ -232,6 +236,10 @@ func (s *RepositoriesService) Update(ctx context.Context, projectKey, repository
 
 	if resp != nil && resp.StatusCode == http.StatusNotFound {
 		return nil, ErrNotFound
+	}
+
+	if resp != nil && resp.StatusCode == http.StatusBadRequest {
+		return nil, fmt.Errorf("create deploy key for repository failed: %s", resp.Status)
 	}
 
 	repo := &Repository{}
@@ -372,6 +380,10 @@ func (s *RepositoriesService) UpdateRepositoryGroupPermission(ctx context.Contex
 
 	if resp != nil && resp.StatusCode == http.StatusNotFound {
 		return ErrNotFound
+	}
+
+	if resp != nil && resp.StatusCode == http.StatusBadRequest {
+		return fmt.Errorf("add group permissions to repository failed: %s", resp.Status)
 	}
 
 	return nil

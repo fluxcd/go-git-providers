@@ -564,14 +564,12 @@ func TestUpdateRepositoryGroupsPermission(t *testing.T) {
 
 	mux, client := setup(t)
 
-	path := fmt.Sprintf("%s/%s/testProject/%s/repo1/%s", stashURIprefix, projectsURI, RepositoriesURI, groupPermisionsURI)
-	mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+	p := fmt.Sprintf("%s/%s/testProject/%s/repo1/%s", stashURIprefix, projectsURI, RepositoriesURI, groupPermisionsURI)
+	mux.HandleFunc(p, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPut {
-			req := &RepositoryGroupPermission{}
-			json.NewDecoder(r.Body).Decode(req)
-			switch req.Permission {
-			case "Writer":
-			case "Admin":
+			switch r.URL.Query().Get("permission") {
+			case "REPO_WRITE":
+			case "REPO_ADMIN":
 			default:
 				http.Error(w, "The request was malformed or the specified permission does not exist", http.StatusBadRequest)
 				return
@@ -593,7 +591,7 @@ func TestUpdateRepositoryGroupsPermission(t *testing.T) {
 			ctx := context.Background()
 			err := client.Repositories.UpdateRepositoryGroupPermission(ctx, "testProject", "repo1", &tt.group)
 			if err != nil {
-				if !strings.Contains(err.Error(), "The request was malformed") {
+				if !strings.Contains(err.Error(), "400 Bad Request") {
 					t.Fatalf("UpdateRepositoryGroupPermission returned error: %v", err)
 				}
 				return

@@ -99,6 +99,10 @@ func (s *ProjectsService) List(ctx context.Context, opts *PagingOptions) (*Proje
 		return nil, ErrNotFound
 	}
 
+	if resp != nil && resp.StatusCode == http.StatusBadRequest {
+		return nil, fmt.Errorf("list projects failed: %s", resp.Status)
+	}
+
 	p := &ProjectsList{
 		Projects: []*Project{},
 	}

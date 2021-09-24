@@ -24,7 +24,6 @@ const (
 	contextKey     = "context"
 	filterKey      = "filter"
 	stashURIprefix = "/rest/api/1.0"
-	stashURIkeys   = "/rest/keys/1.0"
 )
 
 // Session keeps a record of a request for a given user.

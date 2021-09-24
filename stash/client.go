@@ -110,6 +110,7 @@ type Client struct {
 	Branches     Branches
 	Commits      Commits
 	PullRequests PullRequests
+	DeployKeys   DeployKeys
 }
 
 // RateLimiter is the interface that wraps the basic Wait method.
@@ -208,6 +209,7 @@ func NewClient(httpClient *http.Client, host string, header *http.Header, logger
 	c.Branches = &BranchesService{Client: c}
 	c.Commits = &CommitsService{Client: c}
 	c.PullRequests = &PullRequestsService{Client: c}
+	c.DeployKeys = &DeployKeysService{Client: c}
 
 	return c, nil
 }

@@ -214,6 +214,12 @@ type CommitFile struct {
 }
 
 type PullRequestInfo struct {
+	// Merged specifes whether or not this pull request has been merged
+	Merged bool `json:"merged"`
+
+	// Number is the number of the pull request that can be used to merge
+	Number int `json:"number"`
+
 	// WebURL is the URL of the pull request in the git provider web interface.
 	// +required
 	WebURL string `json:"web_url"`

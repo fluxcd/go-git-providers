@@ -168,3 +168,13 @@ const (
 	// Read/Write permission for public/private repositories.
 	TokenPermissionRWRepository TokenPermission = iota + 1
 )
+
+type MergeMethod string
+
+const (
+	// MergeMethodMerge causes a pull request merge to create a simple merge commit
+	MergeMethodMerge = MergeMethod("merge")
+
+	// MergeMethodMerge causes a pull request merge to first squash commits
+	MergeMethodSquash = MergeMethod("squash")
+)

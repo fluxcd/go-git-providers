@@ -21,6 +21,9 @@ import (
 	"github.com/xanzy/go-gitlab"
 )
 
+// The value of the "State" field of a gitlab merge request after it has been merged"
+const mergedState = "merged"
+
 func newPullRequest(ctx *clientContext, apiObj *gitlab.MergeRequest) *pullrequest {
 	return &pullrequest{
 		clientContext: ctx,
@@ -46,6 +49,8 @@ func (pr *pullrequest) APIObject() interface{} {
 
 func pullrequestFromAPI(apiObj *gitlab.MergeRequest) gitprovider.PullRequestInfo {
 	return gitprovider.PullRequestInfo{
+		Merged: apiObj.State == mergedState,
+		Number: apiObj.IID,
 		WebURL: apiObj.WebURL,
 	}
 }

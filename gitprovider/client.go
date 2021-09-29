@@ -229,4 +229,8 @@ type BranchClient interface {
 type PullRequestClient interface {
 	// Create creates a pull request with the given specifications.
 	Create(ctx context.Context, title, branch, baseBranch, description string) (PullRequest, error)
+	// Get retrieves an existing pull request by number
+	Get(ctx context.Context, number int) (PullRequest, error)
+	// Merge merges a pull request with via either the "Squash" or "Merge" method
+	Merge(ctx context.Context, number int, mergeMethod MergeMethod, message string) error
 }

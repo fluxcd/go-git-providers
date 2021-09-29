@@ -18,10 +18,15 @@ package gitlab
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/xanzy/go-gitlab"
 )
+
+// mergeStatusChecking indicates that gitlab has not yet asynchronously updated the merge status for a merge request
+const mergeStatusChecking = "checking"
 
 // PullRequestClient implements the gitprovider.PullRequestClient interface.
 var _ gitprovider.PullRequestClient = &PullRequestClient{}
@@ -48,4 +53,68 @@ func (c *PullRequestClient) Create(ctx context.Context, title, branch, baseBranc
 	}
 
 	return newPullRequest(c.clientContext, mr), nil
+}
+
+// Get retrieves an existing pull request by number
+func (c *PullRequestClient) Get(ctx context.Context, number int) (gitprovider.PullRequest, error) {
+
+	mr, _, err := c.c.Client().MergeRequests.GetMergeRequest(getRepoPath(c.ref), number, &gitlab.GetMergeRequestsOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	return newPullRequest(c.clientContext, mr), nil
+}
+
+// Merge merges a pull request with the given specifications.
+func (c *PullRequestClient) Merge(ctx context.Context, number int, mergeMethod gitprovider.MergeMethod, message string) error {
+	if err := c.waitForMergeRequestToBeMergeable(number); err != nil {
+		return err
+	}
+
+	var squash bool
+
+	var mergeCommitMessage *string
+	var squashCommitMessage *string
+
+	switch mergeMethod {
+	case gitprovider.MergeMethodSquash:
+		squashCommitMessage = &message
+		squash = true
+	case gitprovider.MergeMethodMerge:
+		mergeCommitMessage = &message
+	default:
+		return fmt.Errorf("unknown merge method: %s", mergeMethod)
+	}
+
+	amrOpts := &gitlab.AcceptMergeRequestOptions{
+		MergeCommitMessage:        mergeCommitMessage,
+		SquashCommitMessage:       squashCommitMessage,
+		Squash:                    &squash,
+		ShouldRemoveSourceBranch:  nil,
+		MergeWhenPipelineSucceeds: nil,
+		SHA:                       nil,
+	}
+
+	_, _, err := c.c.Client().MergeRequests.AcceptMergeRequest(getRepoPath(c.ref), number, amrOpts)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *PullRequestClient) waitForMergeRequestToBeMergeable(number int) error {
+	// gitlab says to poll for merge status
+	for retries := 0; retries < 10; retries++ {
+		mr, _, err := c.c.Client().MergeRequests.GetMergeRequest(getRepoPath(c.ref), number, &gitlab.GetMergeRequestsOptions{})
+		if err != nil || mr.MergeStatus == mergeStatusChecking {
+			time.Sleep(time.Second * 2)
+			continue
+		}
+
+		return nil
+	}
+
+	return fmt.Errorf("merge status unavailable for pull request number: %d", number)
 }

@@ -96,9 +96,8 @@ func (u *UserList) GetUsers() []*User {
 // A pointer to a paging struct is returned to retrieve the next page of results.
 // List uses the endpoint "GET /rest/api/1.0/users".
 func (s *UsersService) List(ctx context.Context, opts *PagingOptions) (*UserList, error) {
-	var query *url.Values
-	query = addPaging(query, opts)
-	req, err := s.Client.NewRequest(ctx, http.MethodGet, newURI(usersURI), *query, nil, nil)
+	query := addPaging(url.Values{}, opts)
+	req, err := s.Client.NewRequest(ctx, http.MethodGet, newURI(usersURI), WithQuery(query))
 	if err != nil {
 		return nil, fmt.Errorf("list users request creation failed, %w", err)
 	}
@@ -107,10 +106,6 @@ func (s *UsersService) List(ctx context.Context, opts *PagingOptions) (*UserList
 	if err != nil {
 		return nil, fmt.Errorf("list users failed, %w", err)
 	}
-
-	// As nothing is done with the response body, it is safe to close here
-	// to avoid leaking connections
-	defer resp.Body.Close()
 
 	if resp != nil && resp.StatusCode == http.StatusNotFound {
 		return nil, ErrNotFound
@@ -133,9 +128,7 @@ func (s *UsersService) List(ctx context.Context, opts *PagingOptions) (*UserList
 // Get retrieves a user by name.
 // Get uses the endpoint "GET /rest/api/1.0/users/{userSlug}".
 func (s *UsersService) Get(ctx context.Context, userSlug string) (*User, error) {
-	var query *url.Values
-	query = addPaging(query, &PagingOptions{})
-	req, err := s.Client.NewRequest(ctx, http.MethodGet, newURI(usersURI, userSlug), *query, nil, nil)
+	req, err := s.Client.NewRequest(ctx, http.MethodGet, newURI(usersURI, userSlug))
 	if err != nil {
 		return nil, fmt.Errorf("get user request creation failed, %w", err)
 	}
@@ -143,10 +136,6 @@ func (s *UsersService) Get(ctx context.Context, userSlug string) (*User, error) 
 	if err != nil {
 		return nil, fmt.Errorf("get user failed, %w", err)
 	}
-
-	// As nothing is done with the response body, it is safe to close here
-	// to avoid leaking connections
-	defer resp.Body.Close()
 
 	if resp != nil && resp.StatusCode == http.StatusNotFound {
 		return nil, ErrNotFound
@@ -164,9 +153,9 @@ func (s *UsersService) Get(ctx context.Context, userSlug string) (*User, error) 
 }
 
 // addPaging adds paging elements to URI query
-func addPaging(query *url.Values, opts *PagingOptions) *url.Values {
+func addPaging(query url.Values, opts *PagingOptions) url.Values {
 	if query == nil {
-		query = &url.Values{}
+		query = url.Values{}
 	}
 
 	if opts == nil {

@@ -35,7 +35,7 @@ import (
 	"go.uber.org/zap/zaptest"
 )
 
-func Test_NewRequester(t *testing.T) {
+func Test_NewClient(t *testing.T) {
 	tests := []struct {
 		name      string
 		host      string
@@ -86,11 +86,12 @@ func Test_NewRequester(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var val string
-			c, err := NewClient(&http.Client{}, tt.host, tt.header, tt.log, func(c *Client) {
+			c, err := NewClient(&http.Client{}, tt.host, tt.header, tt.log, func(c *Client) error {
 				c.Client.HTTPClient = &http.Client{
 					Transport: tt.transport,
 					Timeout:   tt.timeout,
 				}
+				return nil
 			})
 			if err != nil {
 				val = fmt.Sprintf("%s", err)
@@ -176,7 +177,7 @@ func Test_Do(t *testing.T) {
 	// declare a Client
 	c, err := NewClient(nil, defaultHost, berearHeader, initLogger(t))
 	if err != nil {
-		t.Errorf("unexpected error while declaring a client: %v", err)
+		t.Fatalf("unexpected error while declaring a client: %v", err)
 	}
 
 	for _, tt := range tests {
@@ -214,9 +215,6 @@ func Test_Do(t *testing.T) {
 				w.Write(resp)
 			}))
 
-			// Close the server when test finishes
-			defer server.Close()
-
 			url, _ := url.ParseRequestURI(server.URL)
 			// tie Requester url and client to the fake server
 			c.BaseURL = url
@@ -225,16 +223,26 @@ func Test_Do(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			req, err := c.NewRequest(ctx, tt.method, tt.path, tt.query, tt.body, tt.header)
+			var bodyReader io.ReadCloser
+			jsonBody, err := json.Marshal(tt.body)
+			if err != nil {
+				t.Fatalf("failed to marshall request body: %v", err)
+			}
+
+			bodyReader = io.NopCloser(bytes.NewReader(jsonBody))
+			req, err := c.NewRequest(ctx, tt.method, tt.path,
+				WithQuery(tt.query),
+				WithBody(bodyReader),
+				WithHeader(tt.header))
+
 			if err != nil {
 				t.Fatalf("request generation failed with error: %v", err)
 			}
 
-			res, resp, err := c.Do(req)
+			res, _, err := c.Do(req)
 			if err != nil {
 				t.Fatalf("request failed with error: %v", err)
 			}
-			defer resp.Body.Close()
 
 			if tt.method == http.MethodGet {
 				user := user{}
@@ -294,21 +302,21 @@ func Test_DoWithRetry(t *testing.T) {
 					Body:       io.NopCloser(bytes.NewBufferString(fmt.Sprint(retries))),
 					Header:     make(http.Header),
 				}, nil
-			}, func(c *Client) {
+			}, func(c *Client) error {
 				c.Client.RetryWaitMin = tt.retryMin
 				c.Client.RetryWaitMax = tt.retryMax
 				c.Client.RetryMax = tt.retries
+				return nil
 			})
 
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
-			request, err := c.NewRequest(ctx, http.MethodGet, "", nil, nil, nil)
+			request, err := c.NewRequest(ctx, http.MethodGet, "")
 			if err != nil {
 				t.Fatalf("failed to create request: %v", err)
 			}
 
-			res, resp, err := c.Do(request)
-			defer resp.Body.Close()
+			res, _, err := c.Do(request)
 			if err != nil {
 				if !strings.Contains(err.Error(), string(tt.output)) {
 					t.Fatalf("request failed: %v", err)

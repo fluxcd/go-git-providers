@@ -17,9 +17,7 @@ limitations under the License.
 package stash
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -73,7 +71,7 @@ type Doer interface {
 
 // ClientOptionsFunc are options for the Client.
 // It can be used for example to setup a custom http Client.
-type ClientOptionsFunc func(Client *Client)
+type ClientOptionsFunc func(Client *Client) error
 
 type service struct{ Client *Client }
 
@@ -98,16 +96,40 @@ type Client struct {
 	HeaderFields *http.Header
 	// Logger is the logger used to log the request and response.
 	Logger *logr.Logger
+	// username is the username for WithAuth.
+	username string
+	// Token used to make authenticated API calls.
+	token string
 
 	// Services are used to communicate with the different stash endpoints.
-	Users  Users
-	Groups Groups
+	Users        Users
+	Groups       Groups
+	Projects     Projects
+	Git          Git
+	Repositories Repositories
 }
 
 // RateLimiter is the interface that wraps the basic Wait method.
 // All rate limiters must implement this interface.
 type RateLimiter interface {
 	Wait(context.Context) error
+}
+
+// WithAuth is used to setup the client authentication.
+func WithAuth(username string, token string) ClientOptionsFunc {
+	return func(c *Client) error {
+		if username == "" {
+			return errors.New("user name is required")
+		}
+
+		if token == "" {
+			return errors.New("token is required")
+		}
+
+		c.username = username
+		c.token = token
+		return nil
+	}
 }
 
 // NewClient returns a new Client given a host name an optional http.Client, a logger, http.Header and ClientOptionsFunc.
@@ -158,7 +180,10 @@ func NewClient(httpClient *http.Client, host string, header *http.Header, logger
 	}
 
 	for _, opt := range opts {
-		opt(c)
+		err := opt(c)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	err := c.setBaseURL(host)
@@ -174,6 +199,9 @@ func NewClient(httpClient *http.Client, host string, header *http.Header, logger
 
 	c.Users = &UsersService{Client: c}
 	c.Groups = &GroupsService{Client: c}
+	c.Projects = &ProjectsService{Client: c}
+	c.Git = &GitService{Client: c}
+	c.Repositories = &RepositoriesService{Client: c}
 
 	return c, nil
 }
@@ -307,12 +335,52 @@ func (c *Client) configureLimiter() error {
 	return nil
 }
 
+// RequestOptions defines the optional parameters for the request.
+type RequestOptions struct {
+	// Body is the request body.
+	Body io.Reader
+	// Header is the request header.
+	Header http.Header
+	// Query is the request query.
+	Query url.Values
+}
+
+// RequestOptionFunc is a function that set request options.
+type RequestOptionFunc func(*RequestOptions)
+
+// WithQuery adds the query parameters to the request.
+func WithQuery(query url.Values) RequestOptionFunc {
+	return func(r *RequestOptions) {
+		if query != nil {
+			r.Query = query
+		}
+	}
+}
+
+// WithBody adds the body to the request.
+func WithBody(body io.Reader) RequestOptionFunc {
+	return func(r *RequestOptions) {
+		if body != nil {
+			r.Body = body
+		}
+	}
+}
+
+// WithHeader adds the headers to the request.
+func WithHeader(header http.Header) RequestOptionFunc {
+	return func(r *RequestOptions) {
+		if header != nil {
+			r.Header = header
+		}
+	}
+}
+
 // NewRequest creates a request, and returns an http.Request and an error,
-// given a path and optional method, query, body, and header.
+// given a path and optional query, body, and header. Use the currying functions provided to pass in the request options
 // A relative URL path can be provided in path, in which case it is resolved relative to the base URL of the Client.
 // Relative URL paths should always be specified without a preceding slash.
 // If specified, the value pointed to by body is JSON encoded and included as the request body.
-func (c *Client) NewRequest(ctx context.Context, method string, path string, query url.Values, body interface{}, header http.Header) (*http.Request, error) {
+func (c *Client) NewRequest(ctx context.Context, method string, path string, opts ...RequestOptionFunc) (*http.Request, error) {
 	u := *c.BaseURL
 	unescaped, err := url.PathUnescape(path)
 	if err != nil {
@@ -327,25 +395,18 @@ func (c *Client) NewRequest(ctx context.Context, method string, path string, que
 		method = http.MethodGet
 	}
 
-	var bodyReader io.ReadCloser
-	if (method == http.MethodPost || method == http.MethodPut) && body != nil {
-		jsonBody, e := json.Marshal(body)
-		if e != nil {
-			return nil, fmt.Errorf("failed to marshall request body, %w", e)
-		}
-
-		bodyReader = io.NopCloser(bytes.NewReader(jsonBody))
-
-		c.Logger.V(2).Info("request", "body", string(jsonBody))
+	r := RequestOptions{}
+	for _, opt := range opts {
+		opt(&r)
 	}
 
-	if query == nil {
-		query = url.Values{}
+	if r.Query == nil {
+		r.Query = url.Values{}
 	}
 
-	u.RawQuery = query.Encode()
+	u.RawQuery = r.Query.Encode()
 
-	req, err := http.NewRequest(method, u.String(), bodyReader)
+	req, err := http.NewRequest(method, u.String(), r.Body)
 	if err != nil {
 		return req, fmt.Errorf("failed create request for %s %s, %w", method, u.String(), err)
 	}
@@ -360,8 +421,8 @@ func (c *Client) NewRequest(ctx context.Context, method string, path string, que
 		}
 	}
 
-	if header != nil {
-		for k, v := range header {
+	if r.Header != nil {
+		for k, v := range r.Header {
 			for _, s := range v {
 				req.Header.Add(k, s)
 			}
@@ -374,7 +435,7 @@ func (c *Client) NewRequest(ctx context.Context, method string, path string, que
 // Do performs a request, and returns an http.Response and an error given an http.Request.
 // For an outgoing Client request, the context controls the entire lifetime of a reques:
 // obtaining a connection, sending the request, checking errors and retrying.
-// The response body is not closed.
+// The response body is closed.
 func (c *Client) Do(request *http.Request) ([]byte, *http.Response, error) {
 	// If not yet configured, try to configure the rate limiter. Fail
 	// silently as the limiter will be disabled in case of an error.
@@ -421,6 +482,8 @@ func getRespBody(resp *http.Response) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	resp.Body.Close()
 
 	return data, nil
 }

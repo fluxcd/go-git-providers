@@ -37,6 +37,22 @@ type PullRequestClient struct {
 	ref gitprovider.RepositoryRef
 }
 
+// List lists all pull requests in the repository
+func (c *PullRequestClient) List(ctx context.Context) ([]gitprovider.PullRequest, error) {
+	mrs, _, err := c.c.Client().MergeRequests.ListMergeRequests(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	requests := make([]gitprovider.PullRequest, len(mrs))
+
+	for idx, mr := range mrs {
+		requests[idx] = newPullRequest(c.clientContext, mr)
+	}
+
+	return requests, nil
+}
+
 // Create creates a pull request with the given specifications.
 func (c *PullRequestClient) Create(ctx context.Context, title, branch, baseBranch, description string) (gitprovider.PullRequest, error) {
 

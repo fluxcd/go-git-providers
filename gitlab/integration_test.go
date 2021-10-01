@@ -785,6 +785,11 @@ var _ = Describe("GitLab Provider", func() {
 
 		pr, err := userRepo.PullRequests().Create(ctx, "Added config file", branchName, defaultBranch, "added config file")
 		Expect(err).ToNot(HaveOccurred())
+
+		prs, err := userRepo.PullRequests().List(ctx)
+		Expect(len(prs)).To(Equal(1))
+		Expect(prs[0].Get().WebURL).To(Equal(pr.Get().WebURL))
+
 		Expect(pr.Get().WebURL).ToNot(BeEmpty())
 		Expect(pr.Get().Merged).To(BeFalse())
 		err = userRepo.PullRequests().Merge(ctx, pr.Get().Number, gitprovider.MergeMethodSquash, "squash merged")

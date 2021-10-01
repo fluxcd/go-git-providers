@@ -478,6 +478,10 @@ var _ = Describe("GitHub Provider", func() {
 		Expect(pr.Get().WebURL).ToNot(BeEmpty())
 		Expect(pr.Get().Merged).To(BeFalse())
 
+		prs, err := userRepo.PullRequests().List(ctx)
+		Expect(len(prs)).To(Equal(1))
+		Expect(prs[0].Get().WebURL).To(Equal(pr.Get().WebURL))
+
 		err = userRepo.PullRequests().Merge(ctx, pr.Get().Number, gitprovider.MergeMethodSquash, "squash merged")
 		Expect(err).ToNot(HaveOccurred())
 

@@ -227,6 +227,12 @@ type BranchClient interface {
 // PullRequestClient operates on the pull requests for a specific repository.
 // This client can be accessed through Repository.PullRequests().
 type PullRequestClient interface {
+	// List lists all pull requests in the repository
+	List(ctx context.Context) ([]PullRequest, error)
 	// Create creates a pull request with the given specifications.
 	Create(ctx context.Context, title, branch, baseBranch, description string) (PullRequest, error)
+	// Get retrieves an existing pull request by number
+	Get(ctx context.Context, number int) (PullRequest, error)
+	// Merge merges a pull request with via either the "Squash" or "Merge" method
+	Merge(ctx context.Context, number int, mergeMethod MergeMethod, message string) error
 }

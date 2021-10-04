@@ -139,6 +139,7 @@ type Commit interface {
 	Get() CommitInfo
 }
 
+// PullRequest represents a pull request.
 type PullRequest interface {
 	// Object implements the Object interface,
 	// allowing access to the underlying object returned from the API.

@@ -154,39 +154,33 @@ func TestListRepositories(t *testing.T) {
 func TestCreateRepository(t *testing.T) {
 	tests := []struct {
 		name       string
+		projectKey string
 		repository Repository
 	}{
 		{
-			name: "repository 1",
+			name:       "repository 1",
+			projectKey: "prj1",
 			repository: Repository{
 				Name:     "repo1",
 				ScmID:    "git",
 				Forkable: true,
 				Public:   true,
-				Project: Project{
-					Key: "prj1",
-				},
 			},
 		},
 		{
-			name: "repository 2",
+			name:       "repository 2",
+			projectKey: "prj2",
 			repository: Repository{
 				Name:     "repo2",
 				ScmID:    "git",
 				Forkable: true,
 				Public:   true,
-				Project: Project{
-					Key: "prj2",
-				},
 			},
 		},
 		{
-			name: "nil repo",
-			repository: Repository{
-				Project: Project{
-					Key: "prj3",
-				},
-			},
+			name:       "nil repo",
+			projectKey: "prj3",
+			repository: Repository{},
 		},
 	}
 
@@ -195,7 +189,7 @@ func TestCreateRepository(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// /rest/api/1.0/projects/{projectKey}/repos".
-			path := fmt.Sprintf("%s/%s/%s/%s", stashURIprefix, projectsURI, tt.repository.Project.Key, RepositoriesURI)
+			path := fmt.Sprintf("%s/%s/%s/%s", stashURIprefix, projectsURI, tt.projectKey, RepositoriesURI)
 			mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 				if r.Method == http.MethodPost {
 					req := &Repository{}
@@ -225,7 +219,7 @@ func TestCreateRepository(t *testing.T) {
 			})
 
 			ctx := context.Background()
-			r, err := client.Repositories.Create(ctx, &tt.repository)
+			r, err := client.Repositories.Create(ctx, tt.projectKey, &tt.repository)
 			if err != nil {
 				if !strings.Contains(err.Error(), "validation error") {
 					t.Fatalf("Repositories.Create returned error: %v", err)

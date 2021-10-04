@@ -32,7 +32,7 @@ const (
 
 var (
 	// ErrNotFound is returned when a resource is not found.
-	ErrNotFound = fmt.Errorf("not found")
+	ErrNotFound = fmt.Errorf("the requested resource was not found")
 )
 
 // Users interface defines the methods that can be used to

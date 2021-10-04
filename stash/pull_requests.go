@@ -190,7 +190,7 @@ func (s *PullRequestsService) List(ctx context.Context, projectKey, repositorySl
 
 	p := &PullRequestList{}
 	if err := json.Unmarshal(res, p); err != nil {
-		return nil, fmt.Errorf("list pull requests failed, unable to unmarshal repository list json: %w", err)
+		return nil, fmt.Errorf("list pull requests failed, unable to unmarshal pull request list json: %w", err)
 	}
 
 	for _, r := range p.GetPullRequests() {
@@ -219,7 +219,7 @@ func (s *PullRequestsService) Get(ctx context.Context, projectKey, repositorySlu
 
 	p := &PullRequest{}
 	if err := json.Unmarshal(res, p); err != nil {
-		return nil, fmt.Errorf("get pull request failed, unable to unmarshal repository list json: %w", err)
+		return nil, fmt.Errorf("get pull request failed, unable to unmarshal pull request json: %w", err)
 	}
 
 	p.Session.set(resp)
@@ -246,7 +246,7 @@ func (s *PullRequestsService) Create(ctx context.Context, projectKey, repository
 
 	p := &PullRequest{}
 	if err := json.Unmarshal(res, p); err != nil {
-		return nil, fmt.Errorf("create pull request failed, unable to unmarshal repository list json: %w", err)
+		return nil, fmt.Errorf("create pull request failed, unable to unmarshal pull json: %w", err)
 	}
 
 	p.Session.set(resp)
@@ -277,7 +277,7 @@ func (s *PullRequestsService) Update(ctx context.Context, projectKey, repository
 
 	p := &PullRequest{}
 	if err := json.Unmarshal(res, p); err != nil {
-		return nil, fmt.Errorf("create pull request failed, unable to unmarshal repository list json: %w", err)
+		return nil, fmt.Errorf("create pull request failed, unable to unmarshal pull request json: %w", err)
 	}
 
 	p.Session.set(resp)

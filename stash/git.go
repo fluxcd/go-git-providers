@@ -76,12 +76,12 @@ type Cleaner interface {
 
 // Committer interface defines the methods that can be used to commit to a repository
 type Committer interface {
-	CreateCommit(ctx context.Context, rPath string, r *git.Repository, c *CreateCommit) (*Commit, error)
+	CreateCommit(ctx context.Context, rPath string, r *git.Repository, branchName string, c *CreateCommit) (*Commit, error)
 }
 
 // Brancher interface defines the methods that can be used to create a new branch
 type Brancher interface {
-	CreateBranch(branchName string, r *git.Repository) error
+	CreateBranch(branchName string, r *git.Repository, commitID string) error
 }
 
 // Pusher interface defines the methods that can be used to push to a repository
@@ -238,9 +238,6 @@ func NewCommit(opts ...GitCommitOptionsFunc) (*CreateCommit, error) {
 	if c.URL == "" {
 		return nil, errors.New("commit url: invalid parameters")
 	}
-	if c.Files == nil {
-		return nil, errors.New("commit files: invalid parameters... Nothing to commit")
-	}
 
 	return c, nil
 }
@@ -248,7 +245,8 @@ func NewCommit(opts ...GitCommitOptionsFunc) (*CreateCommit, error) {
 // CreateCommit creates a commit for the given CommitFiles. The commit is not pushed.
 // The commit is signed with the given SignKey when provided.
 // When committer is nil, author is used as the committer.
-func (s *GitService) CreateCommit(ctx context.Context, rPath string, r *git.Repository, c *CreateCommit) (*Commit, error) {
+// An optional branch name can be provided to checkout the branch before committing.
+func (s *GitService) CreateCommit(ctx context.Context, rPath string, r *git.Repository, branchName string, c *CreateCommit) (*Commit, error) {
 	if c == nil {
 		return nil, errors.New("commit must be provided")
 	}
@@ -268,6 +266,13 @@ func (s *GitService) CreateCommit(ctx context.Context, rPath string, r *git.Repo
 	c.Author.Date = now
 	if c.Committer != nil {
 		c.Committer.Date = now
+	}
+
+	if branchName != "" {
+		err := s.CreateBranch(branchName, r, "")
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	obj, err := s.commit(w, r, c)
@@ -316,7 +321,16 @@ func (s *GitService) CloneRepository(ctx context.Context, URL string) (r *git.Re
 		Auth: &githttp.BasicAuth{Username: s.Client.username, Password: s.Client.token},
 	})
 	if err != nil {
-		return nil, "", err
+		return nil, "", fmt.Errorf("failed to clone repository: %v", err)
+	}
+
+	err = r.Fetch(&git.FetchOptions{
+		RefSpecs: []config.RefSpec{"refs/*:refs/*", "HEAD:refs/heads/HEAD"},
+		Auth:     &githttp.BasicAuth{Username: s.Client.username, Password: s.Client.token},
+	})
+
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to fetch repository: %v", err)
 	}
 
 	return r, dir, nil
@@ -365,7 +379,8 @@ func (s *GitService) Cleanup(dir string) error {
 }
 
 // CreateBranch creates a new branch with the given name and checkout the branch.
-func (s *GitService) CreateBranch(branchName string, r *git.Repository) error {
+// An optional commit id can be provided to checkout the branch at the given commit.
+func (s *GitService) CreateBranch(branchName string, r *git.Repository, commitID string) error {
 	w, err := r.Worktree()
 	if err != nil {
 		return err
@@ -373,6 +388,36 @@ func (s *GitService) CreateBranch(branchName string, r *git.Repository) error {
 
 	branch := fmt.Sprintf("refs/heads/%s", branchName)
 	b := plumbing.ReferenceName(branch)
+
+	if commitID != "" {
+		commitHash := plumbing.NewHash(commitID)
+		err = w.Checkout(&git.CheckoutOptions{
+			Hash: commitHash,
+		})
+
+		if err != nil {
+			return fmt.Errorf("failed to checkout commit: %v", err)
+		}
+
+		// make we are on the correct Head
+		head, err := r.Head()
+		if err != nil {
+			return fmt.Errorf("failed to get head: %v", err)
+		}
+
+		if head.Hash() != commitHash {
+			return fmt.Errorf("commit %s not found", commitID)
+		}
+
+		ref := plumbing.NewHashReference(b, plumbing.NewHash(commitID))
+		err = w.Checkout(&git.CheckoutOptions{Create: true, Force: false, Branch: plumbing.ReferenceName(ref.Name().String())})
+		if err != nil {
+			return err
+		}
+
+		return nil
+
+	}
 
 	// First try to checkout branch
 	err = w.Checkout(&git.CheckoutOptions{Create: false, Force: false, Branch: b})
@@ -464,7 +509,7 @@ func (s *GitService) commit(w *git.Worktree, r *git.Repository, c *CreateCommit)
 		}
 	}
 
-	gitClient, err := w.Commit(c.Message, &git.CommitOptions{
+	commitHash, err := w.Commit(c.Message, &git.CommitOptions{
 		Author: &object.Signature{
 			Name:  c.Author.Name,
 			Email: c.Author.Email,
@@ -479,7 +524,7 @@ func (s *GitService) commit(w *git.Worktree, r *git.Repository, c *CreateCommit)
 		return nil, err
 	}
 
-	obj, err := r.CommitObject(gitClient)
+	obj, err := r.CommitObject(commitHash)
 	if err != nil {
 		return nil, err
 	}
@@ -497,7 +542,7 @@ func (s *GitService) Push(ctx context.Context, r *git.Repository) error {
 
 	err := r.PushContext(ctx, options)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to push to remote: %v", err)
 	}
 
 	return nil

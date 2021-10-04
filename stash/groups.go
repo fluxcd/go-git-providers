@@ -35,6 +35,7 @@ type Groups interface {
 	List(ctx context.Context, opts *PagingOptions) (*GroupList, error)
 	Get(ctx context.Context, groupName string) (*Group, error)
 	ListGroupMembers(ctx context.Context, groupName string, opts *PagingOptions) (*GroupMembers, error)
+	AllGroupMembers(ctx context.Context, groupName string, maxPages int) ([]*User, error)
 }
 
 // GroupsService is a client for communicating with stash groups endpoint
@@ -186,4 +187,28 @@ func (s *GroupsService) ListGroupMembers(ctx context.Context, groupName string, 
 	}
 
 	return m, nil
+}
+
+// AllGroupMembers retrieves all group members.
+// This function handles pagination, HTTP error wrapping, and validates the server result.
+func (s *GroupsService) AllGroupMembers(ctx context.Context, groupName string, maxPages int) ([]*User, error) {
+	if maxPages < 1 {
+		maxPages = defaultMaxPages
+	}
+
+	p := []*User{}
+	opts := &PagingOptions{Limit: perPageLimit}
+	err := allPages(opts, maxPages, func() (*Paging, error) {
+		list, err := s.ListGroupMembers(ctx, groupName, opts)
+		if err != nil {
+			return nil, err
+		}
+		p = append(p, list.GetGroupMembers()...)
+		return &list.Paging, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return p, nil
 }

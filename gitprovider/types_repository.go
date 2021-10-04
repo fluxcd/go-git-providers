@@ -213,6 +213,7 @@ type CommitFile struct {
 	Content *string `json:"content"`
 }
 
+// PullRequestInfo contains high-level information about a pull request.
 type PullRequestInfo struct {
 	// Merged specifes whether or not this pull request has been merged
 	Merged bool `json:"merged"`

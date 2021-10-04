@@ -207,14 +207,14 @@ func TestCreateCommit(t *testing.T) {
 	}
 	defer c.Git.Cleanup(dir)
 
-	//Create a branch
-	err = c.Git.CreateBranch("testbranch", r)
-	if err != nil {
-		t.Fatalf("unexpected error while creating a branch: %v", err)
-	}
+	////Create a branch
+	//err = c.Git.CreateBranch("testbranch", r, "")
+	//if err != nil {
+	//	t.Fatalf("unexpected error while creating a branch: %v", err)
+	//}
 
 	// create a commit
-	obj, err := c.Git.CreateCommit(ctx, dir, r, &testCommit)
+	obj, err := c.Git.CreateCommit(ctx, dir, r, "testbranch", &testCommit)
 
 	if diff := cmp.Diff(testCommit.Author, obj.Author); diff != "" {
 		t.Errorf("Author mismatch (-want +got):\n%s", diff)

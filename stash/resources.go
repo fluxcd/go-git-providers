@@ -21,9 +21,11 @@ import (
 )
 
 const (
-	contextKey     = "context"
-	filterKey      = "filter"
-	stashURIprefix = "/rest/api/1.0"
+	contextKey      = "context"
+	filterKey       = "filter"
+	stashURIprefix  = "/rest/api/1.0"
+	defaultMaxPages = 6
+	perPageLimit    = 25
 )
 
 // Session keeps a record of a request for a given user.
@@ -101,4 +103,23 @@ type Links struct {
 	Self []Self `json:"self,omitempty"`
 	// Clone is a set of hyperlinks to other REST resources.
 	Clone []Clone `json:"clone,omitempty"`
+}
+
+func allPages(opts *PagingOptions, maxPages int, fn func() (*Paging, error)) error {
+	counter := 0
+	for counter <= maxPages {
+		// increment page Counter
+		counter++
+		resp, err := fn()
+		if err != nil {
+			return err
+		}
+		if resp.IsLast() {
+			return nil
+		}
+		// get Next start
+		opts.Start = resp.NextPageStart
+	}
+
+	return nil
 }

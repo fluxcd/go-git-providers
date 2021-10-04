@@ -774,7 +774,7 @@ var _ = Describe("GitLab Provider", func() {
 		path := "setup/config.txt"
 		content := "yaml content"
 		files := []gitprovider.CommitFile{
-			gitprovider.CommitFile{
+			{
 				Path:    &path,
 				Content: &content,
 			},

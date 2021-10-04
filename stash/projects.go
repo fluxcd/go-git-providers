@@ -35,7 +35,10 @@ const (
 type Projects interface {
 	List(ctx context.Context, opts *PagingOptions) (*ProjectsList, error)
 	Get(ctx context.Context, projectName string) (*Project, error)
+	All(ctx context.Context, maxPages int) ([]*Project, error)
+	GetProjectGroupPermission(ctx context.Context, projectKey, groupName string) (*ProjectGroupPermission, error)
 	ListProjectGroupsPermission(ctx context.Context, projectKey string, opts *PagingOptions) (*ProjectGroups, error)
+	AllGroupsPermission(ctx context.Context, projectKey string, maxPages int) ([]*ProjectGroupPermission, error)
 	ListProjectUsersPermission(ctx context.Context, projectKey string, opts *PagingOptions) (*ProjectUsers, error)
 }
 
@@ -117,8 +120,32 @@ func (s *ProjectsService) List(ctx context.Context, opts *PagingOptions) (*Proje
 	return p, nil
 }
 
+// All retrieves all projects.
+// This function handles pagination, HTTP error wrapping, and validates the server result.
+func (s *ProjectsService) All(ctx context.Context, maxPages int) ([]*Project, error) {
+	if maxPages < 1 {
+		maxPages = defaultMaxPages
+	}
+
+	p := []*Project{}
+	opts := &PagingOptions{Limit: perPageLimit}
+	err := allPages(opts, maxPages, func() (*Paging, error) {
+		list, err := s.List(ctx, opts)
+		if err != nil {
+			return nil, err
+		}
+		p = append(p, list.GetProjects()...)
+		return &list.Paging, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return p, nil
+}
+
 // Get retrieves a project by Name.
-// Get uses the endpoint "GET /rest/api/1.0/projects/{projectKey}".
+// Get uses the endpoint "GET /rest/api/1.0/projects/?name&permission".
 // The authenticated user must have PROJECT_VIEW permission for the specified project to call this resource.
 // bitbucket-server API docs: https://docs.atlassian.com/bitbucket-server/rest/5.16.0/bitbucket-rest.html
 func (s *ProjectsService) Get(ctx context.Context, projectName string) (*Project, error) {
@@ -138,13 +165,15 @@ func (s *ProjectsService) Get(ctx context.Context, projectName string) (*Project
 		return nil, ErrNotFound
 	}
 
-	p := &Project{}
+	p := &ProjectsList{
+		Projects: []*Project{},
+	}
 	if err := json.Unmarshal(res, &p); err != nil {
 		return nil, fmt.Errorf("get project failed, unable to unmarshal repository list json: %w", err)
 	}
 
-	p.Session.set(resp)
-	return p, nil
+	p.Projects[0].Session.set(resp)
+	return p.Projects[0], nil
 
 }
 
@@ -180,6 +209,39 @@ func (p *ProjectGroups) GetGroups() []*ProjectGroupPermission {
 	return p.Groups
 }
 
+// GetProjectGroupPermission retrieve a group that have been granted at least one permission for the specified project.
+// GetRepositoryGroupPermission uses the endpoint "GET /rest/api/1.0/projects/{projectKey}/permissions/groups?filter".
+// The authenticated user must have PROJECT_ADMIN permission for the specified project
+func (s *ProjectsService) GetProjectGroupPermission(ctx context.Context, projectKey, groupName string) (*ProjectGroupPermission, error) {
+	query := url.Values{
+		filterKey: []string{groupName},
+	}
+	req, err := s.Client.NewRequest(ctx, http.MethodGet, newURI(projectsURI, projectKey, groupPermisionsURI), WithQuery(query))
+	if err != nil {
+		return nil, fmt.Errorf("get group permissions request creation failed: %w", err)
+	}
+	res, resp, err := s.Client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("get group permissions to project failed: %w", err)
+	}
+
+	if resp != nil && resp.StatusCode == http.StatusNotFound {
+		return nil, ErrNotFound
+	}
+
+	permissions := &ProjectGroups{}
+	if err := json.Unmarshal(res, permissions); err != nil {
+		return nil, fmt.Errorf("get group permissions for project failed, unable to unmarshall project group json: %w", err)
+	}
+
+	if len(permissions.Groups) == 0 {
+		return nil, ErrNotFound
+	}
+
+	permissions.Groups[0].Session.set(resp)
+	return permissions.Groups[0], nil
+}
+
 // ListProjectGroupsPermission retrieves a list of groups and their permissions for a given project.
 // Paging is optional and is enabled by providing a PagingOptions struct.
 // A pointer to a ProjectGroups struct is returned. It contains paging information to retrieve the next page of results.
@@ -207,7 +269,7 @@ func (s *ProjectsService) ListProjectGroupsPermission(ctx context.Context, proje
 		Groups:     []*ProjectGroupPermission{},
 	}
 	if err := json.Unmarshal(res, gp); err != nil {
-		return nil, fmt.Errorf("list project groups permission failed, unable to unmarshal repository list json: %w", err)
+		return nil, fmt.Errorf("list project groups permission failed, unable to unmarshal project groups json: %w", err)
 	}
 
 	for _, r := range gp.GetGroups() {
@@ -215,6 +277,30 @@ func (s *ProjectsService) ListProjectGroupsPermission(ctx context.Context, proje
 	}
 
 	return gp, nil
+}
+
+// AllGroupsPermission retrieves all projects groups permission.
+// This function handles pagination, HTTP error wrapping, and validates the server result.
+func (s *ProjectsService) AllGroupsPermission(ctx context.Context, projectKey string, maxPages int) ([]*ProjectGroupPermission, error) {
+	if maxPages < 1 {
+		maxPages = defaultMaxPages
+	}
+
+	p := []*ProjectGroupPermission{}
+	opts := &PagingOptions{Limit: perPageLimit}
+	err := allPages(opts, maxPages, func() (*Paging, error) {
+		list, err := s.ListProjectGroupsPermission(ctx, projectKey, opts)
+		if err != nil {
+			return nil, err
+		}
+		p = append(p, list.GetGroups()...)
+		return &list.Paging, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return p, nil
 }
 
 // ProjectUserPermission is a permission for a given User.

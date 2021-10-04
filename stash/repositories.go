@@ -48,8 +48,9 @@ type Repositories interface {
 // RepositoryManager interface defines the CRUD operations for repositories.
 type RepositoryManager interface {
 	List(ctx context.Context, projectKey string, opts *PagingOptions) (*RepositoryList, error)
+	All(ctx context.Context, projectKey string, maxPages int) ([]*Repository, error)
 	Get(ctx context.Context, projectKey, repoSlug string) (*Repository, error)
-	Create(ctx context.Context, repository *Repository) (*Repository, error)
+	Create(ctx context.Context, projectKey string, repository *Repository) (*Repository, error)
 	Update(ctx context.Context, projectKey, repositorySlug string, repository *Repository) (*Repository, error)
 	Delete(ctx context.Context, projectKey, repoSlug string) error
 }
@@ -58,6 +59,7 @@ type RepositoryManager interface {
 type RepositoryPermissionManager interface {
 	GetRepositoryGroupPermission(ctx context.Context, projectKey, repositorySlug, groupName string) (*RepositoryGroupPermission, error)
 	ListRepositoryGroupsPermission(ctx context.Context, projectKey, repositorySlug string, opts *PagingOptions) (*RepositoryGroups, error)
+	AllGroupsPermission(ctx context.Context, projectKey, repositorySlug string, maxPages int) ([]*RepositoryGroupPermission, error)
 	UpdateRepositoryGroupPermission(ctx context.Context, projectKey, repositorySlug string, permission *RepositoryGroupPermission) error
 	ListRepositoryUsersPermission(ctx context.Context, projectKey, repositorySlug string, opts *PagingOptions) (*RepositoryUsers, error)
 }
@@ -146,8 +148,34 @@ func (s *RepositoriesService) List(ctx context.Context, projectKey string, opts 
 	return repos, nil
 }
 
+// All retrieves all repositories for a given project.
+// This function handles pagination, HTTP error wrapping, and validates the server result.
+func (s *RepositoriesService) All(ctx context.Context, projectKey string, maxPages int) ([]*Repository, error) {
+	if maxPages < 1 {
+		maxPages = defaultMaxPages
+	}
+
+	r := []*Repository{}
+	opts := &PagingOptions{Limit: perPageLimit}
+	err := allPages(opts, maxPages, func() (*Paging, error) {
+		list, err := s.List(ctx, projectKey, opts)
+		if err != nil {
+			return nil, err
+		}
+		r = append(r, list.GetRepositories()...)
+		return &list.Paging, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return r, nil
+}
+
 // Get returns the repository with the given slug
-// Get uses the endpoint "GET /rest/api/1.0/projects/{projectKey}/repos/{repositorySlug}".
+// Accessing personal repositories via REST is achieved through the normal project-centric REST URLs using
+// the user's slug prefixed by tilde as the project key.
+// example: http://example.com/rest/api/1.0/projects/~johnsmith/repos/{repositorySlug}
 func (s *RepositoriesService) Get(ctx context.Context, projectKey, repoSlug string) (*Repository, error) {
 	req, err := s.Client.NewRequest(ctx, http.MethodGet, newURI(projectsURI, projectKey, RepositoriesURI, repoSlug))
 	if err != nil {
@@ -185,13 +213,13 @@ func marshallBody(b interface{}) (io.ReadCloser, error) {
 // Create creates a new repository
 // Create uses the endpoint "POST /rest/api/1.0/projects/{projectKey}/repos".
 // The authenticated user must have PROJECT_ADMIN permission for the context project to call this resource.
-func (s *RepositoriesService) Create(ctx context.Context, repository *Repository) (*Repository, error) {
+func (s *RepositoriesService) Create(ctx context.Context, projectKey string, repository *Repository) (*Repository, error) {
 	header := http.Header{"Content-Type": []string{"application/json"}}
 	body, err := marshallBody(repository)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshall repository: %v", err)
 	}
-	req, err := s.Client.NewRequest(ctx, http.MethodPost, newURI(projectsURI, repository.Project.Key, RepositoriesURI), WithBody(body), WithHeader(header))
+	req, err := s.Client.NewRequest(ctx, http.MethodPost, newURI(projectsURI, projectKey, RepositoriesURI), WithBody(body), WithHeader(header))
 	if err != nil {
 		return nil, fmt.Errorf("create respository request creation failed: %w", err)
 	}
@@ -218,6 +246,7 @@ func (s *RepositoriesService) Create(ctx context.Context, repository *Repository
 }
 
 // Update updates the repository with the given slug
+// The repository's slug is derived from its name. If the name changes the slug may also change.
 // Update uses the endpoint "PUT /rest/api/1.0/projects/{projectKey}/repos/{repositorySlug}".
 func (s *RepositoriesService) Update(ctx context.Context, projectKey, repositorySlug string, repository *Repository) (*Repository, error) {
 	header := http.Header{"Content-Type": []string{"application/json"}}
@@ -310,7 +339,7 @@ func (s *RepositoriesService) GetRepositoryGroupPermission(ctx context.Context, 
 	query := url.Values{
 		filterKey: []string{groupName},
 	}
-	req, err := s.Client.NewRequest(ctx, http.MethodPut, newURI(projectsURI, projectKey, RepositoriesURI, repositorySlug, groupPermisionsURI), WithQuery(query))
+	req, err := s.Client.NewRequest(ctx, http.MethodGet, newURI(projectsURI, projectKey, RepositoriesURI, repositorySlug, groupPermisionsURI), WithQuery(query))
 	if err != nil {
 		return nil, fmt.Errorf("get group permissions request creation failed: %w", err)
 	}
@@ -326,6 +355,10 @@ func (s *RepositoriesService) GetRepositoryGroupPermission(ctx context.Context, 
 	permissions := &RepositoryGroups{}
 	if err := json.Unmarshal(res, permissions); err != nil {
 		return nil, fmt.Errorf("get group permissions for repository failed, unable to unmarshall repository json: %w", err)
+	}
+
+	if len(permissions.Groups) == 0 {
+		return nil, ErrNotFound
 	}
 
 	permissions.Groups[0].Session.set(resp)
@@ -360,6 +393,30 @@ func (s *RepositoriesService) ListRepositoryGroupsPermission(ctx context.Context
 	}
 
 	return perms, nil
+}
+
+// AllGroupsPermission retrieves all repository groups permission.
+// This function handles pagination, HTTP error wrapping, and validates the server result.
+func (s *RepositoriesService) AllGroupsPermission(ctx context.Context, projectKey, repositorySlug string, maxPages int) ([]*RepositoryGroupPermission, error) {
+	if maxPages < 1 {
+		maxPages = defaultMaxPages
+	}
+
+	p := []*RepositoryGroupPermission{}
+	opts := &PagingOptions{Limit: perPageLimit}
+	err := allPages(opts, maxPages, func() (*Paging, error) {
+		list, err := s.ListRepositoryGroupsPermission(ctx, projectKey, repositorySlug, opts)
+		if err != nil {
+			return nil, err
+		}
+		p = append(p, list.GetGroups()...)
+		return &list.Paging, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return p, nil
 }
 
 // UpdateRepositoryGroupPermission Promote or demote a group's permission level for the specified repository.

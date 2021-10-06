@@ -39,7 +39,7 @@ type PullRequestClient struct {
 
 // List lists all pull requests in the repository
 func (c *PullRequestClient) List(ctx context.Context) ([]gitprovider.PullRequest, error) {
-	mrs, _, err := c.c.Client().MergeRequests.ListMergeRequests(nil)
+	mrs, _, err := c.c.Client().MergeRequests.ListProjectMergeRequests(getRepoPath(c.ref), nil)
 	if err != nil {
 		return nil, err
 	}

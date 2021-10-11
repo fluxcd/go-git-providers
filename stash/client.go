@@ -107,6 +107,10 @@ type Client struct {
 	Projects     Projects
 	Git          Git
 	Repositories Repositories
+	Branches     Branches
+	Commits      Commits
+	PullRequests PullRequests
+	DeployKeys   DeployKeys
 }
 
 // RateLimiter is the interface that wraps the basic Wait method.
@@ -202,6 +206,10 @@ func NewClient(httpClient *http.Client, host string, header *http.Header, logger
 	c.Projects = &ProjectsService{Client: c}
 	c.Git = &GitService{Client: c}
 	c.Repositories = &RepositoriesService{Client: c}
+	c.Branches = &BranchesService{Client: c}
+	c.Commits = &CommitsService{Client: c}
+	c.PullRequests = &PullRequestsService{Client: c}
+	c.DeployKeys = &DeployKeysService{Client: c}
 
 	return c, nil
 }
@@ -335,42 +343,42 @@ func (c *Client) configureLimiter() error {
 	return nil
 }
 
-// RequestOptions defines the optional parameters for the request.
-type RequestOptions struct {
-	// Body is the request body.
-	Body io.Reader
-	// Header is the request header.
-	Header http.Header
-	// Query is the request query.
-	Query url.Values
+// requestOptions defines the optional parameters for the request.
+type requestOptions struct {
+	// body is the request body.
+	body io.Reader
+	// header is the request header.
+	header http.Header
+	// query is the request query.
+	query url.Values
 }
 
 // RequestOptionFunc is a function that set request options.
-type RequestOptionFunc func(*RequestOptions)
+type RequestOptionFunc func(*requestOptions)
 
 // WithQuery adds the query parameters to the request.
 func WithQuery(query url.Values) RequestOptionFunc {
-	return func(r *RequestOptions) {
+	return func(r *requestOptions) {
 		if query != nil {
-			r.Query = query
+			r.query = query
 		}
 	}
 }
 
 // WithBody adds the body to the request.
 func WithBody(body io.Reader) RequestOptionFunc {
-	return func(r *RequestOptions) {
+	return func(r *requestOptions) {
 		if body != nil {
-			r.Body = body
+			r.body = body
 		}
 	}
 }
 
 // WithHeader adds the headers to the request.
 func WithHeader(header http.Header) RequestOptionFunc {
-	return func(r *RequestOptions) {
+	return func(r *requestOptions) {
 		if header != nil {
-			r.Header = header
+			r.header = header
 		}
 	}
 }
@@ -395,18 +403,18 @@ func (c *Client) NewRequest(ctx context.Context, method string, path string, opt
 		method = http.MethodGet
 	}
 
-	r := RequestOptions{}
+	r := requestOptions{}
 	for _, opt := range opts {
 		opt(&r)
 	}
 
-	if r.Query == nil {
-		r.Query = url.Values{}
+	if r.query == nil {
+		r.query = url.Values{}
 	}
 
-	u.RawQuery = r.Query.Encode()
+	u.RawQuery = r.query.Encode()
 
-	req, err := http.NewRequest(method, u.String(), r.Body)
+	req, err := http.NewRequest(method, u.String(), r.body)
 	if err != nil {
 		return req, fmt.Errorf("failed create request for %s %s, %w", method, u.String(), err)
 	}
@@ -421,8 +429,8 @@ func (c *Client) NewRequest(ctx context.Context, method string, path string, opt
 		}
 	}
 
-	if r.Header != nil {
-		for k, v := range r.Header {
+	if r.header != nil {
+		for k, v := range r.header {
 			for _, s := range v {
 				req.Header.Add(k, s)
 			}

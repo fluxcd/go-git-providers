@@ -54,9 +54,8 @@ func setup(t *testing.T) (*http.ServeMux, *Client) {
 
 func TestGetUser(t *testing.T) {
 	tests := []struct {
-		name   string
-		slug   string
-		output string
+		name string
+		slug string
 	}{
 		{
 			name: "test user does not exist",

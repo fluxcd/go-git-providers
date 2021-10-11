@@ -22,6 +22,7 @@ import (
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/fluxcd/go-git-providers/validation"
+	"github.com/hashicorp/go-multierror"
 )
 
 // TeamsClient implements the gitprovider.TeamsClient interface.
@@ -46,16 +47,21 @@ func getGroupMemberSlugs(users []*User) []string {
 // teamName must not be an empty string.
 // ErrNotFound is returned if the resource does not exist.
 func (c *TeamsClient) Get(ctx context.Context, teamName string) (gitprovider.Team, error) {
-	users, err := c.client.Groups.AllGroupMembers(ctx, teamName, c.maxPages)
+	users, err := c.client.Groups.AllGroupMembers(ctx, teamName)
 	if err != nil {
 		return nil, err
 	}
 
 	// Validate the API objects
+	var errs error
 	for _, apiObj := range users {
 		if err := validateUserAPI(apiObj); err != nil {
-			return nil, err
+			errs = multierror.Append(errs, err)
 		}
+	}
+
+	if errs != nil {
+		return nil, errs
 	}
 
 	team := &Team{
@@ -77,16 +83,21 @@ func (c *TeamsClient) Get(ctx context.Context, teamName string) (gitprovider.Tea
 func (c *TeamsClient) List(ctx context.Context) ([]gitprovider.Team, error) {
 	// Retrieve all groups for a given project
 	// pagination happens in ListProjectGroups
-	apiObjs, err := c.client.Projects.AllGroupsPermission(ctx, c.ref.GetKey(), c.maxPages)
+	apiObjs, err := c.client.Projects.AllGroupsPermission(ctx, c.ref.Key())
 	if err != nil {
-		return nil, fmt.Errorf("failed to list groups for project %s: %w", c.ref.GetKey(), err)
+		return nil, fmt.Errorf("failed to list groups for project %s: %w", c.ref.Key(), err)
 	}
 
 	// Validate the API objects
+	var errs error
 	for _, apiObj := range apiObjs {
 		if err := validateProjectGroupPermissionAPI(apiObj); err != nil {
-			return nil, err
+			errs = multierror.Append(errs, err)
 		}
+	}
+
+	if errs != nil {
+		return nil, errs
 	}
 
 	teams := make([]gitprovider.Team, len(apiObjs))
@@ -95,10 +106,14 @@ func (c *TeamsClient) List(ctx context.Context) ([]gitprovider.Team, error) {
 		// Slug is validated to be non-nil in ListGroupMembers.
 		team, err := c.Get(ctx, apiObj.Group.Name)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get team %s: %w", apiObj.Group.Name, err)
+			errs = multierror.Append(errs, fmt.Errorf("failed to get team %s: %w", apiObj.Group.Name, err))
+		} else {
+			teams[i] = team
 		}
+	}
 
-		teams[i] = team
+	if errs != nil {
+		return nil, errs
 	}
 
 	return teams, nil

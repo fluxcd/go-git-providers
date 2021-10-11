@@ -115,7 +115,7 @@ func customTransportFactory(transport http.RoundTripper) http.RoundTripper {
 		transport:      transport,
 		countCacheHits: false,
 		cacheHits:      0,
-		mux:            &sync.Mutex{},
+		mu:             &sync.Mutex{},
 	}
 	return customTransportImpl
 }
@@ -124,12 +124,12 @@ type customTransport struct {
 	transport      http.RoundTripper
 	countCacheHits bool
 	cacheHits      int
-	mux            *sync.Mutex
+	mu             *sync.Mutex
 }
 
 func (t *customTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	t.mux.Lock()
-	defer t.mux.Unlock()
+	t.mu.Lock()
+	defer t.mu.Unlock()
 
 	resp, err := t.transport.RoundTrip(req)
 	// If we should count, count all cache hits whenever found
@@ -142,22 +142,22 @@ func (t *customTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func (t *customTransport) resetCounter() {
-	t.mux.Lock()
-	defer t.mux.Unlock()
+	t.mu.Lock()
+	defer t.mu.Unlock()
 
 	t.cacheHits = 0
 }
 
 func (t *customTransport) setCounter(state bool) {
-	t.mux.Lock()
-	defer t.mux.Unlock()
+	t.mu.Lock()
+	defer t.mu.Unlock()
 
 	t.countCacheHits = state
 }
 
 func (t *customTransport) getCacheHits() int {
-	t.mux.Lock()
-	defer t.mux.Unlock()
+	t.mu.Lock()
+	defer t.mu.Unlock()
 
 	return t.cacheHits
 }
@@ -266,14 +266,14 @@ func cleanupOrgRepos(ctx context.Context, prefix string) {
 	for _, repo := range repos {
 		// Delete the test org repo used
 		name := repo.Repository().GetRepository()
-		slug := repo.Repository().(gitprovider.Slugger).GetSlug()
-		key := repo.Repository().(gitprovider.Keyer).GetKey()
+		slug := repo.Repository().(gitprovider.Slugger).Slug()
+		key := repo.Repository().(gitprovider.Keyer).Key()
 		if !strings.HasPrefix(name, prefix) {
 			continue
 		}
 		fmt.Printf("Deleting the %s organization's repository: %s with slug %s\n", key, name, slug)
 		repo.Delete(ctx)
-		Expect(err).ToNot(HaveOccurred())
+		Expect(repo.Delete(ctx)).To(Succeed())
 	}
 }
 
@@ -288,7 +288,6 @@ func cleanupUserRepos(ctx context.Context, prefix string) {
 			continue
 		}
 		fmt.Printf("Deleting the user repo: %s\n", name)
-		repo.Delete(ctx)
-		Expect(err).ToNot(HaveOccurred())
+		Expect(repo.Delete(ctx)).To(Succeed())
 	}
 }

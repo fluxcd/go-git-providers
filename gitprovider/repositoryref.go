@@ -61,8 +61,8 @@ type IdentityRef interface {
 
 // Keyer is an interface that can be used to get a unique key for an object.
 type Keyer interface {
-	// GetKey returns a unique key for this object.
-	GetKey() string
+	// Key returns a unique key for this object.
+	Key() string
 }
 
 // RepositoryRef describes a reference to a repository owned by either a user account or organization.
@@ -79,8 +79,8 @@ type RepositoryRef interface {
 
 // Slugger is an interface that can be used to get a unique slug for an object.
 type Slugger interface {
-	// GetSlug returns the unique slug for this object.
-	GetSlug() string
+	// Slug returns the unique slug for this object.
+	Slug() string
 }
 
 // UserRef represents a user account in a Git provider.
@@ -145,10 +145,10 @@ type OrganizationRef struct {
 	// +required
 	Organization string `json:"organization"`
 
-	// Key specifies the URL-friendly, lowercase key of the organization,
+	// key specifies the URL-friendly, lowercase key of the organization,
 	// e.g. "fluxcd" or "kubernetes-sigs".
 	// +optional
-	Key string `json:"key"`
+	key string
 
 	// SubOrganizations point to optional sub-organizations (or sub-groups) of the given top-level organization
 	// in the Organization field. E.g. "gitlab.com/fluxcd/engineering/frontend" would yield ["engineering", "frontend"]
@@ -167,9 +167,14 @@ func (o OrganizationRef) GetIdentity() string {
 	return strings.Join(orgParts, "/")
 }
 
-// GetKey returns the unique key for this OrganizationRef.
-func (o OrganizationRef) GetKey() string {
-	return o.Key
+// Key returns the unique key for this OrganizationRef.
+func (o OrganizationRef) Key() string {
+	return o.key
+}
+
+// SetKey sets the unique key for this OrganizationRef.
+func (o *OrganizationRef) SetKey(key string) {
+	o.key = key
 }
 
 // GetType marks this UserRef as being a IdentityTypeUser.
@@ -207,10 +212,10 @@ type OrgRepositoryRef struct {
 	// +required
 	RepositoryName string `json:"repositoryName"`
 
-	// RepositorySlug specifies the Git repository slug. This field is URL-friendly,
+	// slug specifies the Git repository slug. This field is URL-friendly,
 	// e.g. "kubernetes" or "cluster-api-provider-aws".
 	// +optional
-	RepositorySlug string `json:"repositorySlug"`
+	slug string
 }
 
 // String returns the HTTPS URL to access the repository.
@@ -223,9 +228,14 @@ func (r OrgRepositoryRef) GetRepository() string {
 	return r.RepositoryName
 }
 
-// GetSlug returns the unique slug for this object.
-func (r OrgRepositoryRef) GetSlug() string {
-	return r.RepositorySlug
+// Slug returns the unique slug for this object.
+func (r OrgRepositoryRef) Slug() string {
+	return r.slug
+}
+
+// SetSlug sets the unique slug for this object.
+func (r *OrgRepositoryRef) SetSlug(slug string) {
+	r.slug = slug
 }
 
 // ValidateFields validates its own fields for a given validator.
@@ -253,10 +263,10 @@ type UserRepositoryRef struct {
 	// +required
 	RepositoryName string `json:"repositoryName"`
 
-	// RepositorySlug specifies the Git repository slug. This field is URL-friendly,
+	// slug specifies the Git repository slug. This field is URL-friendly,
 	// e.g. "kubernetes" or "cluster-api-provider-aws".
 	// +optional
-	RepositorySlug string `json:"repositorySlug"`
+	slug string
 }
 
 // String returns the URL to access the repository.
@@ -271,7 +281,12 @@ func (r UserRepositoryRef) GetRepository() string {
 
 // GetSlug returns the unique slug for this object.
 func (r UserRepositoryRef) GetSlug() string {
-	return r.RepositorySlug
+	return r.slug
+}
+
+// SetSlug sets the unique slug for this object.
+func (r *UserRepositoryRef) SetSlug(slug string) {
+	r.slug = slug
 }
 
 // ValidateFields validates its own fields for a given validator.

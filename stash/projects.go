@@ -35,10 +35,10 @@ const (
 type Projects interface {
 	List(ctx context.Context, opts *PagingOptions) (*ProjectsList, error)
 	Get(ctx context.Context, projectName string) (*Project, error)
-	All(ctx context.Context, maxPages int) ([]*Project, error)
+	All(ctx context.Context) ([]*Project, error)
 	GetProjectGroupPermission(ctx context.Context, projectKey, groupName string) (*ProjectGroupPermission, error)
 	ListProjectGroupsPermission(ctx context.Context, projectKey string, opts *PagingOptions) (*ProjectGroups, error)
-	AllGroupsPermission(ctx context.Context, projectKey string, maxPages int) ([]*ProjectGroupPermission, error)
+	AllGroupsPermission(ctx context.Context, projectKey string) ([]*ProjectGroupPermission, error)
 	ListProjectUsersPermission(ctx context.Context, projectKey string, opts *PagingOptions) (*ProjectUsers, error)
 }
 
@@ -122,14 +122,10 @@ func (s *ProjectsService) List(ctx context.Context, opts *PagingOptions) (*Proje
 
 // All retrieves all projects.
 // This function handles pagination, HTTP error wrapping, and validates the server result.
-func (s *ProjectsService) All(ctx context.Context, maxPages int) ([]*Project, error) {
-	if maxPages < 1 {
-		maxPages = defaultMaxPages
-	}
-
+func (s *ProjectsService) All(ctx context.Context) ([]*Project, error) {
 	p := []*Project{}
 	opts := &PagingOptions{Limit: perPageLimit}
-	err := allPages(opts, maxPages, func() (*Paging, error) {
+	err := allPages(opts, func() (*Paging, error) {
 		list, err := s.List(ctx, opts)
 		if err != nil {
 			return nil, err
@@ -281,14 +277,10 @@ func (s *ProjectsService) ListProjectGroupsPermission(ctx context.Context, proje
 
 // AllGroupsPermission retrieves all projects groups permission.
 // This function handles pagination, HTTP error wrapping, and validates the server result.
-func (s *ProjectsService) AllGroupsPermission(ctx context.Context, projectKey string, maxPages int) ([]*ProjectGroupPermission, error) {
-	if maxPages < 1 {
-		maxPages = defaultMaxPages
-	}
-
+func (s *ProjectsService) AllGroupsPermission(ctx context.Context, projectKey string) ([]*ProjectGroupPermission, error) {
 	p := []*ProjectGroupPermission{}
 	opts := &PagingOptions{Limit: perPageLimit}
-	err := allPages(opts, maxPages, func() (*Paging, error) {
+	err := allPages(opts, func() (*Paging, error) {
 		list, err := s.ListProjectGroupsPermission(ctx, projectKey, opts)
 		if err != nil {
 			return nil, err

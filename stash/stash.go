@@ -22,7 +22,6 @@ import (
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/fluxcd/go-git-providers/validation"
 	"github.com/go-logr/logr"
-	"github.com/kelseyhightower/envconfig"
 )
 
 // ProviderID is the provider ID for BitBucket Server a.k.a Stash.
@@ -37,13 +36,9 @@ func newClient(c *Client, host, token string, destructiveActions bool, logger lo
 		host:               host,
 		token:              token,
 		destructiveActions: destructiveActions,
-		log:                logger}
-
-	err := envconfig.Process("", &ctx)
-	if err != nil {
-		// discard any error and use default value
-		ctx.maxPages = defaultMaxPages
+		log:                logger,
 	}
+
 	return &ProviderClient{
 		clientContext: ctx,
 		orgs: &OrganizationsClient{
@@ -63,9 +58,7 @@ type clientContext struct {
 	host               string
 	token              string
 	destructiveActions bool
-	// maxPages is expected and is used as a hard limit when dealingg with paged APIs.
-	maxPages int `envconfig:"STASH_MAX_PAGES"`
-	log      logr.Logger
+	log                logr.Logger
 }
 
 // Client implements the gitprovider.Client interface.

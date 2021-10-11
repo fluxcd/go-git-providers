@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
+	"github.com/google/go-cmp/cmp"
 )
 
 func Test_DomainVariations(t *testing.T) {
@@ -53,13 +54,9 @@ func Test_DomainVariations(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c2, _ := NewStashClient("user1", "token", tt.opts)
-			assertEqual(t, tt.want, c2.SupportedDomain())
+			if diff := cmp.Diff(tt.want, c2.SupportedDomain()); diff != "" {
+				t.Errorf("New Stash client returned domain (want -> got): %s", diff)
+			}
 		})
-	}
-}
-
-func assertEqual(t *testing.T, a interface{}, b interface{}) {
-	if a != b {
-		t.Fatalf("%s != %s", a, b)
 	}
 }

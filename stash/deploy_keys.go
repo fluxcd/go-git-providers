@@ -41,7 +41,7 @@ var (
 // repository access keys
 type DeployKeys interface {
 	List(ctx context.Context, projectKey, repositorySlug string, opts *PagingOptions) (*DeployKeyList, error)
-	All(ctx context.Context, projectKey, repositorySlug string, maxPages int) ([]*DeployKey, error)
+	All(ctx context.Context, projectKey, repositorySlug string) ([]*DeployKey, error)
 	Get(ctx context.Context, projectKey, repositorySlug string, keyID int) (*DeployKey, error)
 	Create(ctx context.Context, deployKey *DeployKey) (*DeployKey, error)
 	Delete(ctx context.Context, projectKey, repositorySlug string, keyID int) error
@@ -124,14 +124,10 @@ func (s *DeployKeysService) List(ctx context.Context, projectKey, repositorySlug
 
 // All retrieves all repository keys.
 // This function handles pagination, HTTP error wrapping, and validates the server result.
-func (s *DeployKeysService) All(ctx context.Context, projectKey, repositorySlug string, maxPages int) ([]*DeployKey, error) {
-	if maxPages < 1 {
-		maxPages = defaultMaxPages
-	}
-
+func (s *DeployKeysService) All(ctx context.Context, projectKey, repositorySlug string) ([]*DeployKey, error) {
 	k := []*DeployKey{}
 	opts := &PagingOptions{Limit: perPageLimit}
-	err := allPages(opts, maxPages, func() (*Paging, error) {
+	err := allPages(opts, func() (*Paging, error) {
 		list, err := s.List(ctx, projectKey, repositorySlug, opts)
 		if err != nil {
 			return nil, err

@@ -542,7 +542,7 @@ func (s *GitService) Push(ctx context.Context, r *git.Repository) error {
 
 	err := r.PushContext(ctx, options)
 	if err != nil {
-		return fmt.Errorf("failed to push to remote: %v", err)
+		return fmt.Errorf("failed to push to remote: %w", err)
 	}
 
 	return nil

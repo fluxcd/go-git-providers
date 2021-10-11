@@ -27,6 +27,7 @@ import (
 
 const (
 	pullRequestsURI = "pull-requests"
+	mergeURI        = "merge"
 )
 
 // PullRequests interface defines the methods that can be used to
@@ -34,8 +35,10 @@ const (
 type PullRequests interface {
 	Get(ctx context.Context, projectKey, repositorySlug string, prID int) (*PullRequest, error)
 	List(ctx context.Context, projectKey, repositorySlug string, opts *PagingOptions) (*PullRequestList, error)
+	All(ctx context.Context, projectKey, repositorySlug string) ([]*PullRequest, error)
 	Create(ctx context.Context, projectKey, repositorySlug string, pr *CreatePullRequest) (*PullRequest, error)
 	Update(ctx context.Context, projectKey, repositorySlug string, pr *PullRequest) (*PullRequest, error)
+	Merge(ctx context.Context, projectKey, repositorySlug string, prID int, version int) (*PullRequest, error)
 	Delete(ctx context.Context, projectKey, repositorySlug string, IDVersion IDVersion) error
 }
 
@@ -200,6 +203,26 @@ func (s *PullRequestsService) List(ctx context.Context, projectKey, repositorySl
 	return p, nil
 }
 
+// All retrieves all pull requests for a given repository.
+// This function handles pagination, HTTP error wrapping, and validates the server result.
+func (s *PullRequestsService) All(ctx context.Context, projectKey, repositorySlug string) ([]*PullRequest, error) {
+	pr := []*PullRequest{}
+	opts := &PagingOptions{Limit: perPageLimit}
+	err := allPages(opts, func() (*Paging, error) {
+		list, err := s.List(ctx, projectKey, repositorySlug, opts)
+		if err != nil {
+			return nil, err
+		}
+		pr = append(pr, list.GetPullRequests()...)
+		return &list.Paging, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return pr, nil
+}
+
 // Get retrieves a pull request given it's ID.
 // Get uses the endpoint "GET /rest/api/1.0/projects/{projectKey}/repos/{repositorySlug}/pull-requests/{pullRequestId}".
 // https://docs.atlassian.com/bitbucket-server/rest/5.16.0/bitbucket-rest.html
@@ -278,6 +301,42 @@ func (s *PullRequestsService) Update(ctx context.Context, projectKey, repository
 	p := &PullRequest{}
 	if err := json.Unmarshal(res, p); err != nil {
 		return nil, fmt.Errorf("create pull request failed, unable to unmarshal pull request json: %w", err)
+	}
+
+	p.Session.set(resp)
+
+	return p, nil
+}
+
+// Merge the pull request with the given ID and version.
+// Merge uses the endpoint "POST /rest/api/1.0/projects/{projectKey}/repos/{repositorySlug}/pull-requests/{pullRequestId}/merge?version".
+func (s *PullRequestsService) Merge(ctx context.Context, projectKey, repositorySlug string, prID int, version int) (*PullRequest, error) {
+	query := url.Values{
+		"version": []string{strconv.Itoa(version)},
+	}
+
+	header := http.Header{"X-Atlassian-Token": []string{"no-check"}}
+
+	req, err := s.Client.NewRequest(ctx, http.MethodPost, newURI(projectsURI, projectKey, RepositoriesURI, repositorySlug, pullRequestsURI, strconv.Itoa(prID), mergeURI), WithQuery(query), WithHeader(header))
+	if err != nil {
+		return nil, fmt.Errorf("merge pull request request creation failed: %w", err)
+	}
+	res, resp, err := s.Client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("merge pull request failed: %w", err)
+	}
+
+	if resp != nil && resp.StatusCode == http.StatusNotFound {
+		return nil, ErrNotFound
+	}
+
+	if resp != nil && resp.StatusCode == http.StatusBadRequest {
+		return nil, fmt.Errorf("list commits failed: %s", resp.Status)
+	}
+
+	p := &PullRequest{}
+	if err := json.Unmarshal(res, p); err != nil {
+		return nil, fmt.Errorf("merge pull  request failed, unable to unmarshal pull request json: %w", err)
 	}
 
 	p.Session.set(resp)

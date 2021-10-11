@@ -207,12 +207,6 @@ func TestCreateCommit(t *testing.T) {
 	}
 	defer c.Git.Cleanup(dir)
 
-	////Create a branch
-	//err = c.Git.CreateBranch("testbranch", r, "")
-	//if err != nil {
-	//	t.Fatalf("unexpected error while creating a branch: %v", err)
-	//}
-
 	// create a commit
 	obj, err := c.Git.CreateCommit(ctx, dir, r, "testbranch", &testCommit)
 

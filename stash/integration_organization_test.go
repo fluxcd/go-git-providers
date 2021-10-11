@@ -56,12 +56,12 @@ var _ = Describe("Stash Provider", func() {
 
 		Expect(listedOrg.Get().Name).ToNot(BeNil())
 		Expect(listedOrg.Get().Description).ToNot(BeNil())
-		Expect(listedOrg.Organization().GetKey()).ToNot(BeNil())
+		Expect(listedOrg.Organization().Key()).ToNot(BeNil())
 
 		// We expect the name and description to be populated
 		Expect(getOrg.Get().Name).ToNot(BeNil())
 		Expect(getOrg.Get().Description).ToNot(BeNil())
-		Expect(getOrg.Organization().GetKey()).ToNot(BeNil())
+		Expect(getOrg.Organization().Key()).ToNot(BeNil())
 		// Expect Name and Description to match their underlying data
 		internal := getOrg.APIObject().(*Project)
 		derefOrgName := *getOrg.Get().Name
@@ -78,7 +78,7 @@ var _ = Describe("Stash Provider", func() {
 
 	})
 
-	It("should not fail when .Children is called", func() {
+	It("should fail when .Children is called", func() {
 		_, err := client.Organizations().Children(ctx, gitprovider.OrganizationRef{
 			Domain:       stashDomain,
 			Organization: testOrgName,

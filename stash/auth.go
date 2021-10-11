@@ -29,9 +29,7 @@ import (
 // The host name is used to construct the base URL for the Stash API.
 // Variadic parameters gitprovider.ClientOption are used to pass additional options to the gitprovider.Client.
 func NewStashClient(username, token string, optFns ...gitprovider.ClientOption) (*ProviderClient, error) {
-	var host string
-	var url = &url.URL{}
-	var logger logr.Logger
+	url := &url.URL{}
 
 	opts, err := gitprovider.MakeClientOptions(optFns...)
 	if err != nil {
@@ -48,12 +46,11 @@ func NewStashClient(username, token string, optFns ...gitprovider.ClientOption) 
 		return nil, errors.New("host is required")
 	}
 
-	host = *opts.Domain
+	host := *opts.Domain
 
+	logger := logr.Discard()
 	if opts.Logger != nil {
 		logger = *opts.Logger
-	} else {
-		logger = logr.Discard()
 	}
 
 	url, err = url.Parse(host)

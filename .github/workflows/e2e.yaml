@@ -38,7 +38,6 @@ jobs:
           [ -n "${{ secrets.STASH_DOMAIN }}" ] && export STASH_DOMAIN=${{ secrets.STASH_DOMAIN }} || echo "using default STASH_DOMAIN"
           [ -n "${{ secrets.STASH_TEST_TEAM_NAME }}" ] && export STASH_TEST_TEAM_NAME=${{ secrets.STASH_TEST_TEAM_NAME }} || echo "using default STASH_TEST_TEAM_NAME"
           [ -n "${{ secrets.STASH_TEST_REPO_NAME }}" ] && export STASH_TEST_REPO_NAME=${{ secrets.STASH_TEST_REPO_NAME }} || echo "using default STASH_TEST_REPO_NAME"
-          [ -n "${{ secrets.STASH_MAX_PAGES }}" ] && export STASH_MAX_PAGES=${{ secrets.STASH_MAX_PAGES }} || echo "using default STASH_MAX_PAGES"
           make test
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1

@@ -19,8 +19,11 @@ package stash
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
+	"github.com/fluxcd/go-git-providers/validation"
+	"github.com/hashicorp/go-multierror"
 )
 
 // OrgRepositoriesClient implements the gitprovider.OrgRepositoriesClient interface.
@@ -32,31 +35,302 @@ type OrgRepositoriesClient struct {
 }
 
 // Get returns the repository at the given path.
-//
 // ErrNotFound is returned if the resource does not exist.
 func (c *OrgRepositoriesClient) Get(ctx context.Context, ref gitprovider.OrgRepositoryRef) (gitprovider.OrgRepository, error) {
-	return nil, errors.New("not implemented")
+	// Make sure the OrgRepositoryRef is valid
+	if err := validateOrgRepositoryRef(ref, c.host); err != nil {
+		return nil, err
+	}
+
+	slug := ref.Slug()
+	if slug == "" {
+		// try with name
+		slug = ref.GetRepository()
+	}
+
+	apiObj, err := c.client.Repositories.Get(ctx, ref.Key(), slug)
+	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return nil, gitprovider.ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to get repository %s/%s: %w", ref.Key(), slug, err)
+	}
+
+	// Validate the API objects
+	if err := validateRepositoryAPI(apiObj); err != nil {
+		return nil, err
+	}
+
+	ref.SetSlug(apiObj.Slug)
+
+	return newOrgRepository(c.clientContext, apiObj, ref), nil
 }
 
 // List all repositories in the given organization.
-//
 // List returns all available repositories, using multiple paginated requests if needed.
 func (c *OrgRepositoriesClient) List(ctx context.Context, ref gitprovider.OrganizationRef) ([]gitprovider.OrgRepository, error) {
-	return nil, errors.New("not implemented")
+	// Make sure the OrganizationRef is valid
+	if err := validateOrganizationRef(ref, c.host); err != nil {
+		return nil, err
+	}
+
+	apiObjs, err := c.client.Repositories.All(ctx, ref.Key())
+	if err != nil {
+		return nil, fmt.Errorf("failed to list repositories: %w", err)
+	}
+
+	var errs error
+	for _, apiObj := range apiObjs {
+		if err := validateRepositoryAPI(apiObj); err != nil {
+			errs = multierror.Append(errs, err)
+		}
+	}
+
+	if errs != nil {
+		return nil, errs
+	}
+
+	// Traverse the list, and return a list of OrgRepository objects
+	repos := make([]gitprovider.OrgRepository, 0, len(apiObjs))
+	for _, apiObj := range apiObjs {
+		repoRef := gitprovider.OrgRepositoryRef{
+			OrganizationRef: ref,
+			RepositoryName:  apiObj.Name,
+		}
+		repoRef.SetSlug(apiObj.Slug)
+
+		repos = append(repos, newOrgRepository(c.clientContext, apiObj, repoRef))
+	}
+	return repos, nil
 }
 
 // Create creates a repository for the given organization, with the data and options.
-//
 // ErrAlreadyExists will be returned if the resource already exists.
-func (c *OrgRepositoriesClient) Create(ctx context.Context, ref gitprovider.OrgRepositoryRef, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryCreateOption) (gitprovider.OrgRepository, error) {
-	return nil, errors.New("not implemented")
+func (c *OrgRepositoriesClient) Create(ctx context.Context,
+	ref gitprovider.OrgRepositoryRef,
+	req gitprovider.RepositoryInfo,
+	opts ...gitprovider.RepositoryCreateOption) (gitprovider.OrgRepository, error) {
+	// Make sure the RepositoryRef is valid
+	if err := validateOrgRepositoryRef(ref, c.host); err != nil {
+		return nil, err
+	}
+
+	apiObj, err := createRepository(ctx, c.client, ref.Key(), ref, req, opts...)
+	if err != nil {
+		if errors.Is(err, ErrAlreadyExists) {
+			return nil, gitprovider.ErrAlreadyExists
+		}
+		return nil, fmt.Errorf("failed to create repository %s/%s: %w", ref.Key(), ref.Slug(), err)
+	}
+
+	ref.SetSlug(apiObj.Slug)
+
+	return newOrgRepository(c.clientContext, apiObj, ref), nil
 }
 
 // Reconcile makes sure the given desired state (req) becomes the actual state in the backing Git provider.
-//
 // If req doesn't exist under the hood, it is created (actionTaken == true).
 // If req doesn't equal the actual state, the resource will be updated (actionTaken == true).
 // If req is already the actual state, this is a no-op (actionTaken == false).
 func (c *OrgRepositoriesClient) Reconcile(ctx context.Context, ref gitprovider.OrgRepositoryRef, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryReconcileOption) (gitprovider.OrgRepository, bool, error) {
-	return nil, false, errors.New("not implemented")
+	actual, err := c.Get(ctx, ref)
+	if err != nil {
+		// Create if not found
+		if errors.Is(err, gitprovider.ErrNotFound) {
+			resp, err := c.Create(ctx, ref, req, toCreateOpts(opts...)...)
+			return resp, true, err
+		}
+
+		// Unexpected path, Get should succeed or return NotFound
+		return nil, false, fmt.Errorf("unexpected error when reconciling repository: %w", err)
+	}
+
+	actionTaken, err := c.reconcileRepository(ctx, actual, req)
+
+	return actual, actionTaken, err
+}
+
+// update will apply the desired state in this object to the server.
+// ErrNotFound is returned if the resource does not exist.
+func update(ctx context.Context, c *Client, orgKey, repoSlug string, repository *Repository) (*Repository, error) {
+	apiObj, err := c.Repositories.Update(ctx, orgKey, repoSlug, repository)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update repository: %w", err)
+	}
+
+	return apiObj, nil
+}
+
+func delete(ctx context.Context, c *Client, orgKey, repoSlug string) error {
+	if err := c.Repositories.Delete(ctx, orgKey, repoSlug); err != nil {
+		return fmt.Errorf("failed to delete repository: %w", err)
+	}
+
+	return nil
+}
+
+func createRepository(ctx context.Context, c *Client, orgKey string, ref gitprovider.RepositoryRef, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryCreateOption) (*Repository, error) {
+	// First thing, validate and default the request to ensure a valid and fully-populated object
+	// (to minimize any possible diffs between desired and actual state)
+	if err := gitprovider.ValidateAndDefaultInfo(&req); err != nil {
+		return nil, err
+	}
+
+	// Assemble the options struct based on the given options
+	opt, err := gitprovider.MakeRepositoryCreateOptions(opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert to the API object and apply the options
+	data := repositoryToAPI(&req, ref)
+	if err != nil {
+		return nil, err
+	}
+
+	repo, err := c.Repositories.Create(ctx, orgKey, data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create repository: %w", err)
+	}
+
+	if opt.AutoInit != nil && *(opt.AutoInit) {
+		user, err := c.Users.Get(ctx, repo.Session.UserName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get user: %w", err)
+		}
+
+		readmeContents := fmt.Sprintf("# %s\n%s", repo.Name, repo.Description)
+		readmePath, licensePath := "README.md", "LICENSE.md"
+		files := []CommitFile{
+			{
+				Path:    &readmePath,
+				Content: &readmeContents,
+			},
+		}
+		var licenseContent string
+		if opt.LicenseTemplate != nil {
+			licenseContent, err = getLicense(*opt.LicenseTemplate)
+			// If the license template is invalid, we'll just skip the license
+			if err == nil {
+				files = append(files, CommitFile{
+					Path:    &licensePath,
+					Content: &licenseContent,
+				})
+			}
+		}
+
+		initCommit, err := NewCommit(
+			WithAuthor(&CommitAuthor{
+				Name:  user.Name,
+				Email: user.EmailAddress,
+			}),
+			WithMessage("initial commit"),
+			WithURL(getRepoHTTPref(repo.Links.Clone)),
+			WithFiles(files))
+
+		r, dir, err := c.Git.InitRepository(ctx, initCommit, true)
+		if err != nil {
+			if err := c.Repositories.Delete(ctx, repo.Project.Key, repo.Slug); err != nil {
+				return nil, fmt.Errorf("failed to delete repository: %w", err)
+			}
+			return nil, fmt.Errorf("failed to init repository: %w", err)
+		}
+
+		err = c.Git.Push(ctx, r)
+		if err != nil {
+			return nil, fmt.Errorf("failed to push initial commit: %w", err)
+		}
+
+		err = c.Git.Cleanup(dir)
+		if err != nil {
+			return nil, fmt.Errorf("failed to cleanup repository: %w", err)
+		}
+	}
+
+	return repo, nil
+}
+
+func getRepoHTTPref(clones []Clone) string {
+	for _, clone := range clones {
+		if clone.Name == "http" {
+			return clone.Href
+		}
+	}
+	return "no http ref found"
+}
+
+func (c *OrgRepositoriesClient) reconcileRepository(ctx context.Context, actual gitprovider.UserRepository, req gitprovider.RepositoryInfo) (bool, error) {
+	// If the desired matches the actual state, just return the actual state
+	new := actual.Get()
+	if req.Equals(new) {
+		return false, nil
+	}
+	// Populate the desired state to the current-actual object
+	if err := actual.Set(req); err != nil {
+		return false, err
+	}
+
+	projectKey, repoSlug := getStashRefs(actual.Repository())
+
+	// Apply the desired state by running Update
+	repo := actual.APIObject().(*Repository)
+	_, err := update(ctx, c.client, projectKey, repoSlug, repo)
+
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func toCreateOpts(opts ...gitprovider.RepositoryReconcileOption) []gitprovider.RepositoryCreateOption {
+	// Convert RepositoryReconcileOption => RepositoryCreateOption
+	createOpts := make([]gitprovider.RepositoryCreateOption, 0, len(opts))
+	for _, opt := range opts {
+		createOpts = append(createOpts, opt)
+	}
+	return createOpts
+}
+
+// validateOrgRepositoryRef makes sure the OrgRepositoryRef is valid for GitHub's usage.
+func validateOrgRepositoryRef(ref gitprovider.OrgRepositoryRef, expectedDomain string) error {
+	// Make sure the RepositoryRef fields are valid
+	if err := validation.ValidateTargets("OrgRepositoryRef", ref); err != nil {
+		return err
+	}
+	// Make sure the type is valid, and domain is expected
+	return validateIdentityFields(ref, expectedDomain)
+}
+
+func getStashRefs(ref gitprovider.RepositoryRef) (string, string) {
+	var repoSlug string
+	if slugger, ok := ref.(gitprovider.Slugger); ok {
+		repoSlug = slugger.Slug()
+	} else {
+		repoSlug = ref.GetRepository()
+	}
+
+	var projectKey string
+	if keyer, ok := ref.(gitprovider.Keyer); ok {
+		projectKey = keyer.Key()
+	} else {
+		projectKey = ref.GetIdentity()
+	}
+
+	return projectKey, repoSlug
+}
+
+// validateRepositoryAPI validates the apiObj received from the server, to make sure that it is
+// valid for our use.
+func validateRepositoryAPI(apiObj *Repository) error {
+	return validateAPIObject("Stash.Repository", func(validator validation.Validator) {
+		// Make sure name is set
+		if apiObj.Name == "" {
+			validator.Required("Name")
+		}
+		// Make sure slug is set
+		if apiObj.Slug == "" {
+			validator.Required("Slug")
+		}
+	})
 }

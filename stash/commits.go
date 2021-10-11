@@ -125,27 +125,19 @@ func (s *CommitsService) List(ctx context.Context, projectKey, repositorySlug, b
 // ListPage retrieves all commits for a given page.
 // This function handles pagination, HTTP error wrapping, and validates the server result.
 func (s *CommitsService) ListPage(ctx context.Context, projectKey, repositorySlug, branch string, perPage, page int) ([]*CommitObject, error) {
-	maxPages := 1
 	start := 0
 	if page > 0 {
 		start = (perPage * page) + 1
 	}
 
-	p := []*CommitObject{}
 	opts := &PagingOptions{Limit: int64(perPage), Start: int64(start)}
-	err := allPages(opts, maxPages, func() (*Paging, error) {
-		list, err := s.List(ctx, projectKey, repositorySlug, branch, opts)
-		if err != nil {
-			return nil, err
-		}
-		p = append(p, list.GetCommits()...)
-		return &list.Paging, nil
-	})
+	list, err := s.List(ctx, projectKey, repositorySlug, branch, opts)
+
 	if err != nil {
 		return nil, err
 	}
 
-	return p, nil
+	return list.Commits, nil
 }
 
 // Get retrieves a stash commit given it's ID i.e a SHA1.

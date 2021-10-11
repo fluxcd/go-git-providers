@@ -48,7 +48,7 @@ type Repositories interface {
 // RepositoryManager interface defines the CRUD operations for repositories.
 type RepositoryManager interface {
 	List(ctx context.Context, projectKey string, opts *PagingOptions) (*RepositoryList, error)
-	All(ctx context.Context, projectKey string, maxPages int) ([]*Repository, error)
+	All(ctx context.Context, projectKey string) ([]*Repository, error)
 	Get(ctx context.Context, projectKey, repoSlug string) (*Repository, error)
 	Create(ctx context.Context, projectKey string, repository *Repository) (*Repository, error)
 	Update(ctx context.Context, projectKey, repositorySlug string, repository *Repository) (*Repository, error)
@@ -59,7 +59,7 @@ type RepositoryManager interface {
 type RepositoryPermissionManager interface {
 	GetRepositoryGroupPermission(ctx context.Context, projectKey, repositorySlug, groupName string) (*RepositoryGroupPermission, error)
 	ListRepositoryGroupsPermission(ctx context.Context, projectKey, repositorySlug string, opts *PagingOptions) (*RepositoryGroups, error)
-	AllGroupsPermission(ctx context.Context, projectKey, repositorySlug string, maxPages int) ([]*RepositoryGroupPermission, error)
+	AllGroupsPermission(ctx context.Context, projectKey, repositorySlug string) ([]*RepositoryGroupPermission, error)
 	UpdateRepositoryGroupPermission(ctx context.Context, projectKey, repositorySlug string, permission *RepositoryGroupPermission) error
 	ListRepositoryUsersPermission(ctx context.Context, projectKey, repositorySlug string, opts *PagingOptions) (*RepositoryUsers, error)
 }
@@ -150,14 +150,10 @@ func (s *RepositoriesService) List(ctx context.Context, projectKey string, opts 
 
 // All retrieves all repositories for a given project.
 // This function handles pagination, HTTP error wrapping, and validates the server result.
-func (s *RepositoriesService) All(ctx context.Context, projectKey string, maxPages int) ([]*Repository, error) {
-	if maxPages < 1 {
-		maxPages = defaultMaxPages
-	}
-
+func (s *RepositoriesService) All(ctx context.Context, projectKey string) ([]*Repository, error) {
 	r := []*Repository{}
 	opts := &PagingOptions{Limit: perPageLimit}
-	err := allPages(opts, maxPages, func() (*Paging, error) {
+	err := allPages(opts, func() (*Paging, error) {
 		list, err := s.List(ctx, projectKey, opts)
 		if err != nil {
 			return nil, err
@@ -397,14 +393,10 @@ func (s *RepositoriesService) ListRepositoryGroupsPermission(ctx context.Context
 
 // AllGroupsPermission retrieves all repository groups permission.
 // This function handles pagination, HTTP error wrapping, and validates the server result.
-func (s *RepositoriesService) AllGroupsPermission(ctx context.Context, projectKey, repositorySlug string, maxPages int) ([]*RepositoryGroupPermission, error) {
-	if maxPages < 1 {
-		maxPages = defaultMaxPages
-	}
-
+func (s *RepositoriesService) AllGroupsPermission(ctx context.Context, projectKey, repositorySlug string) ([]*RepositoryGroupPermission, error) {
 	p := []*RepositoryGroupPermission{}
 	opts := &PagingOptions{Limit: perPageLimit}
-	err := allPages(opts, maxPages, func() (*Paging, error) {
+	err := allPages(opts, func() (*Paging, error) {
 		list, err := s.ListRepositoryGroupsPermission(ctx, projectKey, repositorySlug, opts)
 		if err != nil {
 			return nil, err

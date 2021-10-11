@@ -22,6 +22,7 @@ import (
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/fluxcd/go-git-providers/validation"
+	"github.com/hashicorp/go-multierror"
 )
 
 // OrganizationsClient implements the gitprovider.OrganizationsClient interface.
@@ -50,7 +51,7 @@ func (c *OrganizationsClient) Get(ctx context.Context, ref gitprovider.Organizat
 		return nil, err
 	}
 
-	ref.Key = apiObj.Key
+	ref.SetKey(apiObj.Key)
 
 	return newOrganization(c.clientContext, apiObj, ref), nil
 }
@@ -59,16 +60,21 @@ func (c *OrganizationsClient) Get(ctx context.Context, ref gitprovider.Organizat
 // List returns all available organizations, using multiple paginated requests if needed.
 func (c *OrganizationsClient) List(ctx context.Context) ([]gitprovider.Organization, error) {
 	// Retrieve all projects
-	apiObjs, err := c.client.Projects.All(ctx, c.maxPages)
+	apiObjs, err := c.client.Projects.All(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list organizations: %w", err)
 	}
 
 	// Validate the API objects
+	var errs error
 	for _, apiObj := range apiObjs {
 		if err := validateProjectAPI(apiObj); err != nil {
-			return nil, err
+			errs = multierror.Append(errs, err)
 		}
+	}
+
+	if errs != nil {
+		return nil, errs
 	}
 
 	projects := make([]gitprovider.Organization, len(apiObjs))
@@ -76,8 +82,8 @@ func (c *OrganizationsClient) List(ctx context.Context) ([]gitprovider.Organizat
 		ref := gitprovider.OrganizationRef{
 			Domain:       c.host,
 			Organization: apiObj.Name,
-			Key:          apiObj.Key,
 		}
+		ref.SetKey(apiObj.Key)
 		projects[i] = newOrganization(c.clientContext, apiObj, ref)
 	}
 

@@ -111,7 +111,7 @@ func TestListCommits(t *testing.T) {
 
 	})
 	ctx := context.Background()
-	list, err := client.Commits.List(ctx, "prj1", "repo1", nil)
+	list, err := client.Commits.List(ctx, "prj1", "repo1", "", nil)
 	if err != nil {
 		t.Fatalf("Commits.List returned error: %v", err)
 	}

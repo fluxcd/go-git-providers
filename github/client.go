@@ -103,6 +103,7 @@ var permissionScopes = map[gitprovider.TokenPermission]string{
 	gitprovider.TokenPermissionRWRepository: "repo",
 }
 
+// HasTokenPermission returns true if the given token has the given permissions.
 func (c *Client) HasTokenPermission(ctx context.Context, permission gitprovider.TokenPermission) (bool, error) {
 	requestedScope, ok := permissionScopes[permission]
 	if !ok {

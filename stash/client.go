@@ -199,6 +199,11 @@ func NewClient(httpClient *http.Client, host string, header *http.Header, logger
 		header = &http.Header{}
 	}
 
+	// set the auth token	header
+	if c.token != "" {
+		header.Set("Authorization", "Bearer "+c.token)
+	}
+
 	c.HeaderFields = header
 
 	c.Users = &UsersService{Client: c}
@@ -228,6 +233,11 @@ func (c *Client) setBaseURL(host string) error {
 	c.BaseURL = url
 
 	return nil
+}
+
+// Raw returns the raw http client.
+func (c *Client) Raw() *Client {
+	return c
 }
 
 // retryHTTPCheck provides a callback for Client.CheckRetry which

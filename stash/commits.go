@@ -31,7 +31,8 @@ const (
 // Commits interface defines the methods that can be used to
 // retrieve commits of a repository.
 type Commits interface {
-	List(ctx context.Context, projectKey, repositorySlug string, opts *PagingOptions) (*CommitList, error)
+	List(ctx context.Context, projectKey, repositorySlug, branch string, opts *PagingOptions) (*CommitList, error)
+	ListPage(ctx context.Context, projectKey, repositorySlug, branch string, perPage, page int) ([]*CommitObject, error)
 	Get(ctx context.Context, projectKey, repositorySlug, commitID string) (*CommitObject, error)
 }
 
@@ -87,8 +88,12 @@ func (c *CommitList) GetCommits() []*CommitObject {
 // A pointer to a CommitList struct is returned to retrieve the next page of results.
 // List uses the endpoint "GET /rest/api/1.0/projects/{projectKey}/repos/{repositorySlug}/commits".
 // https://docs.atlassian.com/bitbucket-server/rest/5.16.0/bitbucket-rest.html
-func (s *CommitsService) List(ctx context.Context, projectKey, repositorySlug string, opts *PagingOptions) (*CommitList, error) {
-	query := addPaging(url.Values{}, opts)
+func (s *CommitsService) List(ctx context.Context, projectKey, repositorySlug, branch string, opts *PagingOptions) (*CommitList, error) {
+	values := url.Values{}
+	if branch != "" {
+		values.Add("until", branch)
+	}
+	query := addPaging(values, opts)
 	req, err := s.Client.NewRequest(ctx, http.MethodGet, newURI(projectsURI, projectKey, RepositoriesURI, repositorySlug, commitsURI), WithQuery(query))
 	if err != nil {
 		return nil, fmt.Errorf("list commits request creation failed: %w", err)
@@ -115,6 +120,24 @@ func (s *CommitsService) List(ctx context.Context, projectKey, repositorySlug st
 		commit.Session.set(resp)
 	}
 	return c, nil
+}
+
+// ListPage retrieves all commits for a given page.
+// This function handles pagination, HTTP error wrapping, and validates the server result.
+func (s *CommitsService) ListPage(ctx context.Context, projectKey, repositorySlug, branch string, perPage, page int) ([]*CommitObject, error) {
+	start := 0
+	if page > 0 {
+		start = (perPage * page) + 1
+	}
+
+	opts := &PagingOptions{Limit: int64(perPage), Start: int64(start)}
+	list, err := s.List(ctx, projectKey, repositorySlug, branch, opts)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return list.Commits, nil
 }
 
 // Get retrieves a stash commit given it's ID i.e a SHA1.

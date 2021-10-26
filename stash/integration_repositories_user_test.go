@@ -42,7 +42,7 @@ var _ = Describe("Stash Provider", func() {
 		// Expect high-level fields to match their underlying data
 		internal := repo.APIObject().(*Repository)
 		Expect(repo.Repository().GetRepository()).To(Equal(internal.Name))
-		Expect(repo.Repository().GetIdentity()).To(Equal(testUserName))
+		Expect(repo.Repository().GetIdentity()).To(Equal(stashUser))
 		if !internal.Public {
 			Expect(*info.Visibility).To(Equal(gitprovider.RepositoryVisibilityPrivate))
 		}
@@ -50,7 +50,7 @@ var _ = Describe("Stash Provider", func() {
 
 	It("should be possible to create a user repo", func() {
 		// First, check what repositories are available
-		repos, err := client.UserRepositories().List(ctx, newUserRef(testUserName))
+		repos, err := client.UserRepositories().List(ctx, newUserRef(stashUser))
 		Expect(err).ToNot(HaveOccurred())
 
 		// Generate a repository name which doesn't exist already
@@ -62,7 +62,7 @@ var _ = Describe("Stash Provider", func() {
 		fmt.Print("Creating repository ", testRepoName, "...")
 		// We know that a repo with this name doesn't exist in the organization, let's verify we get an
 		// ErrNotFound
-		repoRef := newUserRepoRef(testUserName, testRepoName)
+		repoRef := newUserRepoRef(stashUser, testRepoName)
 		_, err = client.UserRepositories().Get(ctx, repoRef)
 		Expect(err).To(MatchError(gitprovider.ErrNotFound))
 
@@ -91,7 +91,7 @@ var _ = Describe("Stash Provider", func() {
 	})
 
 	It("should error at creation time if the user repo already does exist", func() {
-		repoRef := newUserRepoRef(testUserName, testRepoName)
+		repoRef := newUserRepoRef(stashUser, testRepoName)
 		_, err := client.UserRepositories().Get(ctx, repoRef)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -101,7 +101,7 @@ var _ = Describe("Stash Provider", func() {
 
 	It("should update if the user repo already exists when reconciling", func() {
 		// get the repo first to be sure to get the slug
-		repoRef := newUserRepoRef(testUserName, testRepoName)
+		repoRef := newUserRepoRef(stashUser, testRepoName)
 		repo, err := client.UserRepositories().Get(ctx, repoRef)
 		Expect(err).ToNot(HaveOccurred())
 		// No-op reconcile
@@ -153,7 +153,7 @@ var _ = Describe("Stash Provider", func() {
 
 	It("should be possible to create a pr for a user repository", func() {
 		testRepoName = fmt.Sprintf("test-user-repo2-%03d", rand.Intn(1000))
-		repoRef := newUserRepoRef(testUserName, testRepoName)
+		repoRef := newUserRepoRef(stashUser, testRepoName)
 
 		defaultBranch := "master"
 		description := "test description"

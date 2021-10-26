@@ -121,7 +121,7 @@ func (c *gitlabClientImpl) Client() *gitlab.Client {
 }
 
 func (c *gitlabClientImpl) GetGroup(ctx context.Context, groupID interface{}) (*gitlab.Group, error) {
-	apiObj, _, err := c.c.Groups.GetGroup(groupID, gitlab.WithContext(ctx))
+	apiObj, _, err := c.c.Groups.GetGroup(groupID, nil, gitlab.WithContext(ctx))
 	if err != nil {
 		return nil, err
 	}

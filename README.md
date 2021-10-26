@@ -183,17 +183,6 @@ If you need to run `make test` for your fork/branch you may need to supply the f
 - TEST_VERBOSE: Set to '-v' to emit test output for debugging purposes
 - CLEANUP_ALL: Set to delete all test repos after testing.
 
-## Maintainers
-
-In alphabetical order:
-
-- Mike Beaumont, [@michaelbeaumont](https://github.com/michaelbeaumont)
-- Sara El-Zayat, [@sarataha](https://github.com/sarataha)
-- Simon Howe, [@foot](https://github.com/foot)
-- Dinos Kousidis, [@dinosk](https://github.com/dinosk)
-- Stefan Prodan, [@stefanprodan](https://github.com/stefanprodan)
-- Yiannis Triantafyllopoulos, [@yiannistri](https://github.com/yiannistri)
-
 ## Getting Help
 
 If you have any questions about this library:

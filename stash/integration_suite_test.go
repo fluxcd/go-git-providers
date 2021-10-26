@@ -54,7 +54,7 @@ var (
 	defaultBranch       = "main"
 	testOrgName         string
 	testUserName        string
-	testTeamName        string
+	testTeamName        = "fluxcd-test-team"
 	// placeholders, will be randomized and created.
 	testSharedOrgRepoName string
 	testOrgRepoName       string

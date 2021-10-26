@@ -27,7 +27,6 @@ jobs:
         run: |
           [ -n "${{ secrets.GITLAB_TOKEN }}" ] && export GITLAB_TOKEN=${{ secrets.GITLAB_TOKEN }} || echo "using default GITLAB_TOKEN"
           [ -n "${{ secrets.GITPROVIDER_BOT_TOKEN }}" ] && export GITHUB_TOKEN=${{ secrets.GITPROVIDER_BOT_TOKEN }} || echo "using default GITHUB_TOKEN"
-          [ -n "${{ secrets.GIT_PROVIDER_USER }}" ] && export GIT_PROVIDER_USER=${{ secrets.GIT_PROVIDER_USER }} || echo "using default GIT_PROVIDER_USER"
           [ -n "${{ secrets.GIT_PROVIDER_ORGANIZATION }}" ] && export GIT_PROVIDER_ORGANIZATION=${{ secrets.GIT_PROVIDER_ORGANIZATION }} || echo "using default GIT_PROVIDER_ORGANIZATION"
           [ -n "${{ secrets.GITLAB_TEST_TEAM_NAME }}" ] && export GITLAB_TEST_TEAM_NAME=${{ secrets.GITLAB_TEST_TEAM_NAME }} || echo "using default GITLAB_TEST_TEAM_NAME"
           [ -n "${{ secrets.GITLAB_TEST_SUBGROUP }}" ] && export GITLAB_TEST_SUBGROUP=${{ secrets.GITLAB_TEST_SUBGROUP }} || echo "using default GITLAB_TEST_SUBGROUP"

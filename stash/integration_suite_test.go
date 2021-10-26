@@ -44,7 +44,6 @@ import (
 const (
 	stashTokenFile     = "/tmp/stash.token"
 	defaultDescription = "Foo description"
-	stashUser          = "stash-user"
 )
 
 var (
@@ -52,8 +51,8 @@ var (
 	customTransportImpl *customTransport
 	stashDomain         = "stash.example.com"
 	defaultBranch       = "main"
-	testOrgName         string
-	testUserName        string
+	stashUser           string
+	testOrgName         = "go-git-provider-testing"
 	testTeamName        = "fluxcd-test-team"
 	// placeholders, will be randomized and created.
 	testSharedOrgRepoName string
@@ -180,7 +179,7 @@ var _ = Describe("Stash Provider", func() {
 		log := setupLogr()
 		log.V(1).Info("logger construction succeeded")
 
-		stashUser := os.Getenv("STASH_USER")
+		stashUser = os.Getenv("STASH_USER")
 		if stashUser == "" {
 			Fail("couldn't acquire STASH_USER env variable")
 		}
@@ -201,10 +200,6 @@ var _ = Describe("Stash Provider", func() {
 
 		if orgName := os.Getenv("GIT_PROVIDER_ORGANIZATION"); orgName != "" {
 			testOrgName = orgName
-		}
-
-		if gitProviderUser := os.Getenv("GIT_PROVIDER_USER"); gitProviderUser != "" {
-			testUserName = gitProviderUser
 		}
 
 		if teamName := os.Getenv("STASH_TEST_TEAM_NAME"); teamName != "" {
@@ -278,8 +273,8 @@ func cleanupOrgRepos(ctx context.Context, prefix string) {
 }
 
 func cleanupUserRepos(ctx context.Context, prefix string) {
-	fmt.Printf("Deleting repos starting with %s for user: %s\n", prefix, testUserName)
-	repos, err := client.UserRepositories().List(ctx, newUserRef(testUserName))
+	fmt.Printf("Deleting repos starting with %s for user: %s\n", prefix, stashUser)
+	repos, err := client.UserRepositories().List(ctx, newUserRef(stashUser))
 	Expect(err).ToNot(HaveOccurred())
 	for _, repo := range repos {
 		// Delete the test org repo used

@@ -21,7 +21,7 @@ import (
 	"fmt"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/google/go-github/v32/github"
+	"github.com/google/go-github/v35/github"
 )
 
 // githubClientImpl is a wrapper around *github.Client, which implements higher-level methods,
@@ -356,7 +356,7 @@ func (c *githubClientImpl) GetTeamPermissions(ctx context.Context, orgName, repo
 	if apiObj.Permissions == nil {
 		return nil, fmt.Errorf("didn't expect permissions to be nil for team: %+v: %w", apiObj, gitprovider.ErrInvalidServerData)
 	}
-	return *apiObj.Permissions, nil
+	return apiObj.Permissions, nil
 }
 
 func (c *githubClientImpl) ListRepoTeams(ctx context.Context, orgName, repo string) ([]*github.Team, error) {

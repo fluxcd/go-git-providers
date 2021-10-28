@@ -40,8 +40,7 @@ var _ = Describe("Stash Provider", func() {
 		Expect(repo.Repository()).To(Equal(expectedRepo))
 		Expect(*info.Description).To(Equal(defaultDescription))
 		Expect(*info.Visibility).To(Equal(gitprovider.RepositoryVisibilityPrivate))
-		// Stash does not provide the default as part of a repository api object
-		//Expect(*info.DefaultBranch).To(Equal(defaultBranch))
+		Expect(*info.DefaultBranch).To(Equal(defaultBranch))
 
 		// Expect high-level fields to match their underlying data
 		internal := repo.APIObject().(*Repository)
@@ -49,8 +48,7 @@ var _ = Describe("Stash Provider", func() {
 		Expect(repo.Repository().(gitprovider.Slugger).Slug()).To(Equal(internal.Slug))
 		Expect(repo.Repository().GetIdentity()).To(Equal(testOrgName))
 		Expect(*info.Visibility).To(Equal(gitprovider.RepositoryVisibilityPrivate))
-		// Stash does not provide the default as part of a repository api object
-		//Expect(*info.DefaultBranch).To(Equal(defaultBranch))
+		Expect(*info.DefaultBranch).To(Equal(defaultBranch))
 	}
 
 	It("should be possible to create an organization repo", func() {
@@ -81,7 +79,8 @@ var _ = Describe("Stash Provider", func() {
 		repo, err := client.OrgRepositories().Create(ctx, repoRef, gitprovider.RepositoryInfo{
 			Description: gitprovider.StringVar(defaultDescription),
 			// Default visibility is private, no need to set this at least now
-			Visibility: gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
+			Visibility:    gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
+			DefaultBranch: gitprovider.StringVar(defaultBranch),
 		}, &gitprovider.RepositoryCreateOptions{
 			AutoInit:        gitprovider.BoolVar(true),
 			LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateApache2),
@@ -129,15 +128,15 @@ var _ = Describe("Stash Provider", func() {
 
 		// No-op reconcile
 		resp, actionTaken, err := client.OrgRepositories().Reconcile(ctx, repo.Repository().(gitprovider.OrgRepositoryRef), gitprovider.RepositoryInfo{
-			Description: gitprovider.StringVar(defaultDescription),
-			//DefaultBranch: gitprovider.StringVar(defaultBranch),
-			Visibility: gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
+			Description:   gitprovider.StringVar(defaultDescription),
+			DefaultBranch: gitprovider.StringVar(defaultBranch),
+			Visibility:    gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
 		})
 
 		reflect.DeepEqual(repositoryFromAPI(resp.APIObject().(*Repository)), gitprovider.RepositoryInfo{
-			Description: gitprovider.StringVar(defaultDescription),
-			//DefaultBranch: gitprovider.StringVar(defaultBranch),
-			Visibility: gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
+			Description:   gitprovider.StringVar(defaultDescription),
+			DefaultBranch: gitprovider.StringVar(defaultBranch),
+			Visibility:    gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
 		})
 
 		Expect(err).ToNot(HaveOccurred())
@@ -213,7 +212,8 @@ var _ = Describe("Stash Provider", func() {
 		repo, err := client.OrgRepositories().Create(ctx, sharedRepoRef, gitprovider.RepositoryInfo{
 			Description: gitprovider.StringVar(defaultDescription),
 			// Default visibility is private, no need to set this at least now
-			Visibility: gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
+			Visibility:    gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
+			DefaultBranch: gitprovider.StringVar(defaultBranch),
 		}, &gitprovider.RepositoryCreateOptions{
 			AutoInit:        gitprovider.BoolVar(true),
 			LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateApache2),
@@ -368,17 +368,16 @@ var _ = Describe("Stash Provider", func() {
 
 		testRepoName = fmt.Sprintf("test-org-repo2-%03d", rand.Intn(1000))
 		repoRef := newOrgRepoRef(testOrg.Organization(), testRepoName)
-
-		defaultBranch := "master"
 		description := "test description"
 		// Create a new repo
 		orgRepo, err := client.OrgRepositories().Create(ctx, repoRef,
 			gitprovider.RepositoryInfo{
-				Description: &description,
-				Visibility:  gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
+				Description:   &description,
+				Visibility:    gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
+				DefaultBranch: gitprovider.StringVar(defaultBranch),
 			},
 			&gitprovider.RepositoryCreateOptions{
-				AutoInit: gitprovider.BoolVar(true),
+				AutoInit: gitprovider.BoolVar(false),
 			})
 		Expect(err).ToNot(HaveOccurred())
 

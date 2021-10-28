@@ -34,7 +34,9 @@ const (
 type Branches interface {
 	List(ctx context.Context, projectKey, repositorySlug string, opts *PagingOptions) (*BranchList, error)
 	Get(ctx context.Context, projectKey, repositorySlug, branchID string) (*Branch, error)
+	Create(ctx context.Context, projectKey, repositorySlug, branchID, startPoint string) (*Branch, error)
 	Default(ctx context.Context, projectKey, repositorySlug string) (*Branch, error)
+	SetDefault(ctx context.Context, projectKey, repositorySlug, branchID string) error
 }
 
 // BranchesService is a client for communicating with stash branches endpoint
@@ -161,5 +163,76 @@ func (s *BranchesService) Default(ctx context.Context, projectKey, repositorySlu
 
 	b.Session.set(resp)
 
+	return b, nil
+}
+
+// SetDefault updates the default branch of a repository.
+// SetDefault uses the endpoint "PUT /rest/api/1.0/projects/{projectKey}/repos/{repositorySlug}/branches/default".
+// https://docs.atlassian.com/bitbucket-server/rest/5.16.0/bitbucket-rest.html
+func (s *BranchesService) SetDefault(ctx context.Context, projectKey, repositorySlug, branchID string) error {
+	id := struct {
+		ID string `json:"id"`
+	}{
+		ID: branchID,
+	}
+	body, err := marshallBody(id)
+	header := http.Header{"Content-Type": []string{"application/json"}}
+
+	if err != nil {
+		return fmt.Errorf("failed to marshall branch id: %v", err)
+	}
+	req, err := s.Client.NewRequest(ctx, http.MethodPut, newURI(projectsURI, projectKey, RepositoriesURI, repositorySlug, branchesURI, defaultBranchURI), WithBody(body), WithHeader(header))
+	if err != nil {
+		return fmt.Errorf("set default branch request creation failed: %w", err)
+	}
+	_, resp, err := s.Client.Do(req)
+	if err != nil {
+		return fmt.Errorf("set default branch failed: %w", err)
+	}
+
+	if resp != nil && resp.StatusCode == http.StatusNotFound {
+		return ErrNotFound
+	}
+
+	return nil
+}
+
+// Create creates a branch for a repository.
+// It uses the branchID as the name of the branch and startPoint as the commit to start from.
+// Create uses the endpoint "POST /rest/api/1.0/projects/{projectKey}/repos/{repositorySlug}/branches".
+// https://docs.atlassian.com/bitbucket-server/rest/5.16.0/bitbucket-rest.html
+func (s *BranchesService) Create(ctx context.Context, projectKey, repositorySlug, branchID, startPoint string) (*Branch, error) {
+	branch := struct {
+		Name       string `json:"name"`
+		StartPoint string `json:"startPoint"`
+	}{
+		Name:       branchID,
+		StartPoint: startPoint,
+	}
+	body, err := marshallBody(branch)
+	header := http.Header{"Content-Type": []string{"application/json"}}
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshall branch: %v", err)
+	}
+	req, err := s.Client.NewRequest(ctx, http.MethodPost, newURI(projectsURI, projectKey, RepositoriesURI, repositorySlug, branchesURI), WithBody(body), WithHeader(header))
+	if err != nil {
+		return nil, fmt.Errorf("create branch request creation failed: %w", err)
+	}
+	res, resp, err := s.Client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("create branch failed: %w", err)
+	}
+
+	if resp != nil && resp.StatusCode == http.StatusNotFound {
+		return nil, ErrNotFound
+	}
+
+	b := &Branch{}
+	if err := json.Unmarshal(res, b); err != nil {
+		return nil, fmt.Errorf("create branch for repository failed, unable to unmarshall branch json: %w", err)
+	}
+
+	b.Session.set(resp)
 	return b, nil
 }

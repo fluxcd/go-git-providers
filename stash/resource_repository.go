@@ -100,7 +100,7 @@ func (r *userRepository) DeployKeys() gitprovider.DeployKeyClient {
 func (r *userRepository) Update(ctx context.Context) error {
 	// update by calling client
 	ref := r.ref.(gitprovider.UserRepositoryRef)
-	apiObj, err := update(ctx, r.c.client, addTilde(ref.UserLogin), ref.GetSlug(), &r.repository)
+	apiObj, err := update(ctx, r.c.client, addTilde(ref.UserLogin), ref.GetSlug(), &r.repository, "")
 	if err != nil {
 		// Log the error and return it
 		r.c.log.V(1).Error(err, "Error updating repository",
@@ -108,9 +108,10 @@ func (r *userRepository) Update(ctx context.Context) error {
 			"repo", r.Repository().GetRepository())
 		return err
 	}
-	r.repository = *apiObj
-	return nil
 
+	r.repository = *apiObj
+
+	return nil
 }
 
 // Reconcile makes sure the desired state in this object (called "req" here) becomes
@@ -196,7 +197,7 @@ func (r *orgRepository) Reconcile(ctx context.Context) (bool, error) {
 func (r *orgRepository) Update(ctx context.Context) error {
 	ref := r.ref.(gitprovider.OrgRepositoryRef)
 	// update by calling client
-	apiObj, err := update(ctx, r.c.client, ref.Key(), ref.Slug(), &r.repository)
+	apiObj, err := update(ctx, r.c.client, ref.Key(), ref.Slug(), &r.repository, "")
 	if err != nil {
 		// Log the error and return it
 		r.c.log.V(1).Error(err, "Error updating repository",
@@ -204,7 +205,9 @@ func (r *orgRepository) Update(ctx context.Context) error {
 			"repo", r.Repository().GetRepository())
 		return err
 	}
+
 	r.repository = *apiObj
+
 	return nil
 
 }
@@ -218,7 +221,8 @@ func (r *orgRepository) Delete(ctx context.Context) error {
 
 func repositoryFromAPI(apiObj *Repository) gitprovider.RepositoryInfo {
 	repo := gitprovider.RepositoryInfo{
-		Description: &apiObj.Description,
+		Description:   &apiObj.Description,
+		DefaultBranch: &apiObj.DefaultBranch,
 	}
 	repo.Visibility = gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate)
 	if apiObj.Public {
@@ -242,5 +246,9 @@ func repositoryInfoToAPIObj(repo *gitprovider.RepositoryInfo, apiObj *Repository
 	}
 	if repo.Visibility != nil {
 		apiObj.Public = *gitprovider.StringVar(string(*repo.Visibility)) == "true"
+	}
+
+	if repo.DefaultBranch != nil {
+		apiObj.DefaultBranch = *gitprovider.StringVar(*repo.DefaultBranch)
 	}
 }

@@ -68,6 +68,14 @@ func (c *UserRepositoriesClient) Get(ctx context.Context, ref gitprovider.UserRe
 
 	ref.SetSlug(apiObj.Slug)
 
+	// Get the default branch
+	branch, err := c.client.Branches.Default(ctx, addTilde(ref.UserLogin), slug)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get default branch for repository %s/%s: %w", addTilde(ref.UserLogin), slug, err)
+	}
+
+	apiObj.DefaultBranch = branch.DisplayID
+
 	return newUserRepository(c.clientContext, apiObj, ref), nil
 }
 
@@ -157,25 +165,35 @@ func (c *UserRepositoriesClient) Reconcile(ctx context.Context, ref gitprovider.
 }
 
 func (c *UserRepositoriesClient) reconcileRepository(ctx context.Context, actual gitprovider.UserRepository, req gitprovider.RepositoryInfo) (bool, error) {
+	actionTaken := false
+
 	// If the desired matches the actual state, just return the actual state
 	new := actual.Get()
 	if req.Equals(new) {
-		return false, nil
+		return actionTaken, nil
 	}
 	// Populate the desired state to the current-actual object
-	if err := actual.Set(req); err != nil {
-		return false, err
+	err := actual.Set(req)
+	if err != nil {
+		return actionTaken, err
 	}
-	// Apply the desired state by running Update
+
 	repo := actual.APIObject().(*Repository)
 	ref := actual.Repository().(gitprovider.UserRepositoryRef)
-	_, err := update(ctx, c.client, addTilde(ref.UserLogin), ref.GetSlug(), repo)
-
-	if err != nil {
-		return false, err
+	// Apply the desired state by running Update
+	if *req.DefaultBranch != "" && repo.DefaultBranch != *req.DefaultBranch {
+		_, err = update(ctx, c.client, addTilde(ref.UserLogin), ref.GetSlug(), repo, *req.DefaultBranch)
+	} else {
+		_, err = update(ctx, c.client, addTilde(ref.UserLogin), ref.GetSlug(), repo, "")
 	}
 
-	return true, nil
+	if err != nil {
+		return actionTaken, err
+	}
+
+	actionTaken = true
+
+	return actionTaken, nil
 }
 
 func validateUserAPI(apiObj *User) error {

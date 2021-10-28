@@ -39,6 +39,7 @@ var _ = Describe("Stash Provider", func() {
 		Expect(repo.Repository()).To(Equal(expectedRepoRef))
 		Expect(*info.Description).To(Equal(defaultDescription))
 		Expect(*info.Visibility).To(Equal(gitprovider.RepositoryVisibilityPrivate))
+		Expect(*info.DefaultBranch).To(Equal(defaultBranch))
 		// Expect high-level fields to match their underlying data
 		internal := repo.APIObject().(*Repository)
 		Expect(repo.Repository().GetRepository()).To(Equal(internal.Name))
@@ -46,6 +47,7 @@ var _ = Describe("Stash Provider", func() {
 		if !internal.Public {
 			Expect(*info.Visibility).To(Equal(gitprovider.RepositoryVisibilityPrivate))
 		}
+		Expect(*info.DefaultBranch).To(Equal(defaultBranch))
 	}
 
 	It("should be possible to create a user repo", func() {
@@ -70,7 +72,8 @@ var _ = Describe("Stash Provider", func() {
 		repo, err := client.UserRepositories().Create(ctx, repoRef, gitprovider.RepositoryInfo{
 			Description: gitprovider.StringVar(defaultDescription),
 			// Default visibility is private, no need to set this at least now
-			Visibility: gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
+			Visibility:    gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
+			DefaultBranch: gitprovider.StringVar(defaultBranch),
 		}, &gitprovider.RepositoryCreateOptions{
 			AutoInit:        gitprovider.BoolVar(true),
 			LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateApache2),
@@ -106,9 +109,9 @@ var _ = Describe("Stash Provider", func() {
 		Expect(err).ToNot(HaveOccurred())
 		// No-op reconcile
 		resp, actionTaken, err := client.UserRepositories().Reconcile(ctx, repo.Repository().(gitprovider.UserRepositoryRef), gitprovider.RepositoryInfo{
-			Description: gitprovider.StringVar(defaultDescription),
-			//DefaultBranch: gitprovider.StringVar(defaultBranchName),
-			Visibility: gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
+			Description:   gitprovider.StringVar(defaultDescription),
+			DefaultBranch: gitprovider.StringVar(defaultBranch),
+			Visibility:    gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
 		})
 		Expect(err).ToNot(HaveOccurred())
 		Expect(actionTaken).To(BeFalse())
@@ -138,7 +141,8 @@ var _ = Describe("Stash Provider", func() {
 			var err error
 			// Reconcile and create
 			newRepo, actionTaken, err = client.UserRepositories().Reconcile(ctx, repoRef, gitprovider.RepositoryInfo{
-				Description: gitprovider.StringVar(defaultDescription),
+				Description:   gitprovider.StringVar(defaultDescription),
+				DefaultBranch: gitprovider.StringVar(defaultBranch),
 			}, &gitprovider.RepositoryCreateOptions{
 				AutoInit:        gitprovider.BoolVar(true),
 				LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateMIT),
@@ -154,14 +158,13 @@ var _ = Describe("Stash Provider", func() {
 	It("should be possible to create a pr for a user repository", func() {
 		testRepoName = fmt.Sprintf("test-user-repo2-%03d", rand.Intn(1000))
 		repoRef := newUserRepoRef(stashUser, testRepoName)
-
-		defaultBranch := "master"
 		description := "test description"
 		// Create a new repo
 		userRepo, err := client.UserRepositories().Create(ctx, repoRef,
 			gitprovider.RepositoryInfo{
-				Description: &description,
-				Visibility:  gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
+				Description:   &description,
+				Visibility:    gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
+				DefaultBranch: gitprovider.StringVar(defaultBranch),
 			},
 			&gitprovider.RepositoryCreateOptions{
 				AutoInit: gitprovider.BoolVar(true),

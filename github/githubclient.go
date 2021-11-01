@@ -19,6 +19,7 @@ package github
 import (
 	"context"
 	"fmt"
+	"net/url"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/google/go-github/v35/github"
@@ -236,11 +237,15 @@ func validateRepositoryObjects(apiObjs []*github.Repository) ([]*github.Reposito
 
 func (c *githubClientImpl) ListUserRepos(ctx context.Context, username string) ([]*github.Repository, error) {
 	var apiObjs []*github.Repository
-	opts := &github.RepositoryListOptions{}
+	opts := &github.SearchOptions{}
+	params := url.Values{}
+	params.Add("user", username)
+	queryStr := params.Encode()
+
 	err := allPages(&opts.ListOptions, func() (*github.Response, error) {
-		// GET /users/{username}/repos
-		pageObjs, resp, listErr := c.c.Repositories.List(ctx, username, opts)
-		apiObjs = append(apiObjs, pageObjs...)
+		// GET /search?q=user:{username}
+		pageObjs, resp, listErr := c.c.Search.Repositories(ctx, queryStr, opts)
+		apiObjs = append(apiObjs, pageObjs.Repositories...)
 		return resp, listErr
 	})
 	if err != nil {

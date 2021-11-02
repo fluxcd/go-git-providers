@@ -26,6 +26,8 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
+const legacyBranch = "master"
+
 // OrgRepositoriesClient implements the gitprovider.OrgRepositoriesClient interface.
 var _ gitprovider.OrgRepositoriesClient = &OrgRepositoriesClient{}
 
@@ -62,6 +64,14 @@ func (c *OrgRepositoriesClient) Get(ctx context.Context, ref gitprovider.OrgRepo
 	}
 
 	ref.SetSlug(apiObj.Slug)
+
+	// Get the default branch
+	branch, err := c.client.Branches.Default(ctx, ref.Key(), slug)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get default branch for repository %s/%s: %w", ref.Key(), slug, err)
+	}
+
+	apiObj.DefaultBranch = branch.DisplayID
 
 	return newOrgRepository(c.clientContext, apiObj, ref), nil
 }
@@ -152,10 +162,22 @@ func (c *OrgRepositoriesClient) Reconcile(ctx context.Context, ref gitprovider.O
 
 // update will apply the desired state in this object to the server.
 // ErrNotFound is returned if the resource does not exist.
-func update(ctx context.Context, c *Client, orgKey, repoSlug string, repository *Repository) (*Repository, error) {
+func update(ctx context.Context, c *Client, orgKey, repoSlug string, repository *Repository, branchID string) (*Repository, error) {
 	apiObj, err := c.Repositories.Update(ctx, orgKey, repoSlug, repository)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update repository: %w", err)
+	}
+
+	apiObj.DefaultBranch = repository.DefaultBranch
+
+	// Update default branch
+	if branchID != "" {
+		// update default branch
+		if err := c.Branches.SetDefault(ctx, orgKey, repoSlug, fmt.Sprintf("refs/heads/%s", branchID)); err != nil {
+			return nil, fmt.Errorf("failed to update default branch: %w", err)
+		}
+
+		apiObj.DefaultBranch = branchID
 	}
 
 	return apiObj, nil
@@ -193,12 +215,14 @@ func createRepository(ctx context.Context, c *Client, orgKey string, ref gitprov
 		return nil, fmt.Errorf("failed to create repository: %w", err)
 	}
 
-	if opt.AutoInit != nil && *(opt.AutoInit) {
-		user, err := c.Users.Get(ctx, repo.Session.UserName)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get user: %w", err)
-		}
+	user, err := c.Users.Get(ctx, repo.Session.UserName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
 
+	var initCommit *CreateCommit
+
+	if opt.AutoInit != nil && *(opt.AutoInit) {
 		readmeContents := fmt.Sprintf("# %s\n%s", repo.Name, repo.Description)
 		readmePath, licensePath := "README.md", "LICENSE.md"
 		files := []CommitFile{
@@ -219,7 +243,7 @@ func createRepository(ctx context.Context, c *Client, orgKey string, ref gitprov
 			}
 		}
 
-		initCommit, err := NewCommit(
+		initCommit, err = NewCommit(
 			WithAuthor(&CommitAuthor{
 				Name:  user.Name,
 				Email: user.EmailAddress,
@@ -228,26 +252,83 @@ func createRepository(ctx context.Context, c *Client, orgKey string, ref gitprov
 			WithURL(getRepoHTTPref(repo.Links.Clone)),
 			WithFiles(files))
 
-		r, dir, err := c.Git.InitRepository(ctx, initCommit, true)
 		if err != nil {
-			if err := c.Repositories.Delete(ctx, repo.Project.Key, repo.Slug); err != nil {
-				return nil, fmt.Errorf("failed to delete repository: %w", err)
+			return nil, fmt.Errorf("failed to create initial commit: %w", err)
+		}
+
+		err = initRepo(ctx, c, initCommit, repo)
+
+		if data.DefaultBranch != "" && data.DefaultBranch != legacyBranch {
+			//create default branch
+			br, err := setDefaultBranch(ctx, c, orgKey, data.DefaultBranch, repo)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create default branch: %w", err)
 			}
-			return nil, fmt.Errorf("failed to init repository: %w", err)
+			// save the default branch after setting it
+			repo.DefaultBranch = br.DisplayID
+		}
+	} else if data.DefaultBranch != "" && data.DefaultBranch != legacyBranch {
+		// Init repo anyway because we need to set the default branch and for now we have an empty repo.
+		// Stash set it by default to master so we use that to branch from.
+		initCommit, err = NewCommit(
+			WithAuthor(&CommitAuthor{
+				Name:  user.Name,
+				Email: user.EmailAddress,
+			}),
+			WithMessage("initial commit"),
+			WithURL(getRepoHTTPref(repo.Links.Clone)))
+
+		if err != nil {
+			return nil, fmt.Errorf("failed to create initial commit: %w", err)
 		}
 
-		err = c.Git.Push(ctx, r)
+		err = initRepo(ctx, c, initCommit, repo)
+		br, err := setDefaultBranch(ctx, c, orgKey, data.DefaultBranch, repo)
 		if err != nil {
-			return nil, fmt.Errorf("failed to push initial commit: %w", err)
+			return nil, fmt.Errorf("failed to create default branch: %w", err)
 		}
 
-		err = c.Git.Cleanup(dir)
-		if err != nil {
-			return nil, fmt.Errorf("failed to cleanup repository: %w", err)
-		}
+		// save the default branch after setting it
+		repo.DefaultBranch = br.DisplayID
 	}
 
 	return repo, nil
+}
+
+func setDefaultBranch(ctx context.Context, c *Client, orgKey, branch string, repo *Repository) (*Branch, error) {
+	//create default branch
+	br, err := c.Branches.Create(ctx, orgKey, repo.Slug, fmt.Sprintf("refs/heads/%s", branch), fmt.Sprintf("refs/heads/%s", legacyBranch))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create default branch: %w", err)
+	}
+
+	if err := c.Branches.SetDefault(ctx, orgKey, repo.Slug, fmt.Sprintf("refs/heads/%s", branch)); err != nil {
+		return nil, fmt.Errorf("failed to set default branch: %w", err)
+	}
+
+	return br, nil
+}
+
+func initRepo(ctx context.Context, c *Client, initCommit *CreateCommit, repo *Repository) error {
+	r, dir, err := c.Git.InitRepository(ctx, initCommit, true)
+	if err != nil {
+		if err := c.Repositories.Delete(ctx, repo.Project.Key, repo.Slug); err != nil {
+			return fmt.Errorf("failed to delete repository: %w", err)
+		}
+		return fmt.Errorf("failed to init repository: %w", err)
+	}
+
+	err = c.Git.Push(ctx, r)
+	if err != nil {
+		return fmt.Errorf("failed to push initial commit: %w", err)
+	}
+
+	err = c.Git.Cleanup(dir)
+	if err != nil {
+		return fmt.Errorf("failed to cleanup repository: %w", err)
+	}
+
+	return nil
 }
 
 func getRepoHTTPref(clones []Clone) string {
@@ -260,27 +341,34 @@ func getRepoHTTPref(clones []Clone) string {
 }
 
 func (c *OrgRepositoriesClient) reconcileRepository(ctx context.Context, actual gitprovider.UserRepository, req gitprovider.RepositoryInfo) (bool, error) {
+	actionTaken := false
+
 	// If the desired matches the actual state, just return the actual state
 	new := actual.Get()
 	if req.Equals(new) {
-		return false, nil
+		return actionTaken, nil
 	}
 	// Populate the desired state to the current-actual object
-	if err := actual.Set(req); err != nil {
-		return false, err
+	err := actual.Set(req)
+	if err != nil {
+		return actionTaken, err
 	}
 
 	projectKey, repoSlug := getStashRefs(actual.Repository())
-
 	// Apply the desired state by running Update
 	repo := actual.APIObject().(*Repository)
-	_, err := update(ctx, c.client, projectKey, repoSlug, repo)
-
-	if err != nil {
-		return false, err
+	if *req.DefaultBranch != "" && repo.DefaultBranch != *req.DefaultBranch {
+		_, err = update(ctx, c.client, projectKey, repoSlug, repo, *req.DefaultBranch)
+	} else {
+		_, err = update(ctx, c.client, projectKey, repoSlug, repo, "")
 	}
 
-	return true, nil
+	if err != nil {
+		return actionTaken, err
+	}
+
+	actionTaken = true
+	return actionTaken, nil
 }
 
 func toCreateOpts(opts ...gitprovider.RepositoryReconcileOption) []gitprovider.RepositoryCreateOption {

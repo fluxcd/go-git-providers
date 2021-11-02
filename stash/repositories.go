@@ -96,6 +96,8 @@ type Repository struct {
 	State string `json:"state,omitempty"`
 	// StatusMessage is the status message of the repository.
 	StatusMessage string `json:"statusMessage,omitempty"`
+	// DefaultBranch is the default branch of the repository.
+	DefaultBranch string `json:"defaultBranch,omitempty"`
 }
 
 // RepositoryList is a list of repositories

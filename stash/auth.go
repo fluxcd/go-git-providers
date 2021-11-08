@@ -58,7 +58,7 @@ func NewStashClient(username, token string, optFns ...gitprovider.ClientOption) 
 		return nil, err
 	}
 
-	st, err := NewClient(client, host, nil, &logger, WithAuth(username, token))
+	st, err := NewClient(client, host, nil, logger, WithAuth(username, token))
 	if err != nil {
 		return nil, err
 	}

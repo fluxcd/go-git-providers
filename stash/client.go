@@ -95,7 +95,7 @@ type Client struct {
 	//HeaderFields is the header fields for all requests.
 	HeaderFields *http.Header
 	// Logger is the logger used to log the request and response.
-	Logger *logr.Logger
+	Logger logr.Logger
 	// username is the username for WithAuth.
 	username string
 	// Token used to make authenticated API calls.
@@ -149,11 +149,11 @@ func WithAuth(username string, token string) ClientOptionsFunc {
 //  		&http.Header {
 //  			"Content-Type": []string{"application/json"},
 //  		},
-//  		&logr.Logger{},
+//  		logr.Logger{},
 //  		func(c *Client) {
 //  			c.DisableRetries = true
 //  	})
-func NewClient(httpClient *http.Client, host string, header *http.Header, logger *logr.Logger, opts ...ClientOptionsFunc) (*Client, error) {
+func NewClient(httpClient *http.Client, host string, header *http.Header, logger logr.Logger, opts ...ClientOptionsFunc) (*Client, error) {
 	if host == "" {
 		return nil, errors.New("host is required")
 	}

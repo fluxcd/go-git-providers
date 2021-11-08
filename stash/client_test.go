@@ -43,7 +43,7 @@ func Test_NewClient(t *testing.T) {
 		timeout   time.Duration
 		client    *http.Client
 		transport http.RoundTripper
-		log       *logr.Logger
+		log       logr.Logger
 		output    string
 	}{
 		{
@@ -53,7 +53,7 @@ func Test_NewClient(t *testing.T) {
 			timeout:   defaultTimeout,
 			client:    &http.Client{},
 			transport: defaultTransport,
-			log:       &logr.Logger{},
+			log:       logr.Discard(),
 			output:    "host is required",
 		},
 		{
@@ -63,12 +63,12 @@ func Test_NewClient(t *testing.T) {
 			timeout:   defaultTimeout,
 			client:    &http.Client{},
 			transport: defaultTransport,
-			log:       &logr.Logger{},
+			log:       logr.Discard(),
 			output:    `failed to parse host https://local#.@*dev to url, parse "https://local#.@*dev": net/url: invalid userinfo`,
 		},
 		{
 			name:   "default host",
-			log:    &logr.Logger{},
+			log:    logr.Discard(),
 			host:   fmt.Sprint("http://" + defaultHost),
 			output: fmt.Sprint("http://" + defaultHost),
 		}, {
@@ -331,11 +331,11 @@ func Test_DoWithRetry(t *testing.T) {
 	}
 }
 
-func initLogger(t *testing.T) *logr.Logger {
+func initLogger(t *testing.T) logr.Logger {
 	var log logr.Logger
 	zapLog := zaptest.NewLogger(t)
 	log = zapr.NewLogger(zapLog)
-	return &log
+	return log
 }
 
 // RoundTripFunc .

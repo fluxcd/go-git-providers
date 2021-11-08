@@ -32,23 +32,23 @@ func Test_DomainVariations(t *testing.T) {
 	}{
 		{
 			name: "custom domain without protocol",
-			opts: gitprovider.WithDomain("stash.stashtestserver.link"),
-			want: "https://stash.stashtestserver.link",
+			opts: gitprovider.WithDomain("stash.testserver.link"),
+			want: "stash.testserver.link",
 		},
 		{
 			name: "custom domain with port",
-			opts: gitprovider.WithDomain("stash.stashtestserver.link:7990"),
-			want: "https://stash.stashtestserver.link:7990",
+			opts: gitprovider.WithDomain("stash.testserver.link:8990"),
+			want: "stash.testserver.link:8990",
 		},
 		{
 			name: "custom domain with https protocol",
-			opts: gitprovider.WithDomain("https://stash.stashtestserver.link:7990"),
-			want: "https://stash.stashtestserver.link:7990",
+			opts: gitprovider.WithDomain("https://stash.testserver.link:8990"),
+			want: "stash.testserver.link:8990",
 		},
 		{
 			name: "custom domain with http protocol",
-			opts: gitprovider.WithDomain("http://stash.stashtestserver.link:7990"),
-			want: "http://stash.stashtestserver.link:7990",
+			opts: gitprovider.WithDomain("http://stash.testserver.link:8990"),
+			want: "stash.testserver.link:8990",
 		},
 	}
 	for _, tt := range tests {

@@ -73,11 +73,11 @@ type ProviderClient struct {
 	userRepos *UserRepositoriesClient
 }
 
-// SupportedDomain returns the host endpoint for this client, e.g. "https://mystash.com:7990"
+// SupportedDomain returns the host endpoint for this client, e.g. "mystash.com:7990"
 // This allows a higher-level user to know what Client to use for what endpoints.
 // This field is set at client creation time, and can't be changed.
 func (p *ProviderClient) SupportedDomain() string {
-	return p.client.BaseURL.String()
+	return p.client.BaseURL.Host
 }
 
 // ProviderID returns the provider ID "gostash..

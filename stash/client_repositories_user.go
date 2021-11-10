@@ -47,7 +47,7 @@ func (c *UserRepositoriesClient) Get(ctx context.Context, ref gitprovider.UserRe
 		return nil, err
 	}
 
-	slug := ref.GetSlug()
+	slug := ref.Slug()
 	if slug == "" {
 		// try with name
 		slug = ref.GetRepository()
@@ -182,9 +182,9 @@ func (c *UserRepositoriesClient) reconcileRepository(ctx context.Context, actual
 	ref := actual.Repository().(gitprovider.UserRepositoryRef)
 	// Apply the desired state by running Update
 	if *req.DefaultBranch != "" && repo.DefaultBranch != *req.DefaultBranch {
-		_, err = update(ctx, c.client, addTilde(ref.UserLogin), ref.GetSlug(), repo, *req.DefaultBranch)
+		_, err = update(ctx, c.client, addTilde(ref.UserLogin), ref.Slug(), repo, *req.DefaultBranch)
 	} else {
-		_, err = update(ctx, c.client, addTilde(ref.UserLogin), ref.GetSlug(), repo, "")
+		_, err = update(ctx, c.client, addTilde(ref.UserLogin), ref.Slug(), repo, "")
 	}
 
 	if err != nil {

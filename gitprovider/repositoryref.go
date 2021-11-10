@@ -279,8 +279,8 @@ func (r UserRepositoryRef) GetRepository() string {
 	return r.RepositoryName
 }
 
-// GetSlug returns the unique slug for this object.
-func (r UserRepositoryRef) GetSlug() string {
+// Slug returns the unique slug for this object.
+func (r UserRepositoryRef) Slug() string {
 	return r.slug
 }
 
@@ -309,16 +309,28 @@ func (r UserRepositoryRef) GetCloneURL(transport TransportType) string {
 func GetCloneURL(rs RepositoryRef, transport TransportType) string {
 	switch transport {
 	case TransportTypeHTTPS:
-		return fmt.Sprintf("%s.git", rs.String())
+		return ParseTypeHTTPS(rs.String())
 	case TransportTypeGit:
-		return fmt.Sprintf("git@%s:%s/%s.git", rs.GetDomain(), rs.GetIdentity(), rs.GetRepository())
+		return ParseTypeGit(rs.GetDomain(), rs.GetIdentity(), rs.GetRepository())
 	case TransportTypeSSH:
-		trimmedDomain := rs.GetDomain()
-		trimmedDomain = strings.Replace(trimmedDomain, "https://", "", -1)
-		trimmedDomain = strings.Replace(trimmedDomain, "http://", "", -1)
-		return fmt.Sprintf("ssh://git@%s/%s/%s", trimmedDomain, rs.GetIdentity(), rs.GetRepository())
+		return ParseTypeSSH(rs.GetDomain(), rs.GetIdentity(), rs.GetRepository())
 	}
 	return ""
+}
+
+func ParseTypeHTTPS(url string) string {
+	return fmt.Sprintf("%s.git", url)
+}
+
+func ParseTypeGit(domain, identity, repository string) string {
+	return fmt.Sprintf("git@%s:%s/%s.git", domain, identity, repository)
+}
+
+func ParseTypeSSH(domain, identity, repository string) string {
+	trimmedDomain := domain
+	trimmedDomain = strings.Replace(trimmedDomain, "https://", "", -1)
+	trimmedDomain = strings.Replace(trimmedDomain, "http://", "", -1)
+	return fmt.Sprintf("ssh://git@%s/%s/%s", trimmedDomain, identity, repository)
 }
 
 // ParseOrganizationURL parses an URL to an organization into a OrganizationRef object.

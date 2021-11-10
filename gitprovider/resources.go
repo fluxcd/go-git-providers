@@ -87,6 +87,11 @@ type OrgRepository interface {
 	TeamAccess() TeamAccessClient
 }
 
+// CloneableURL returns the HTTPS URL to clone the repository.
+type CloneableURL interface {
+	GetCloneURL(prefix string, transport TransportType) string
+}
+
 // DeployKey represents a short-lived credential (e.g. an SSH public key) used to access a repository.
 type DeployKey interface {
 	// DeployKey implements the Object interface,

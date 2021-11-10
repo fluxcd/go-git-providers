@@ -83,6 +83,17 @@ var _ = Describe("Stash Provider", func() {
 		getRepoRef, err := client.UserRepositories().Get(ctx, repoRef)
 		Expect(err).ToNot(HaveOccurred())
 
+		// Verify that we can get clone url for the repo
+		if cloner, ok := getRepoRef.(gitprovider.CloneableURL); ok {
+			url := cloner.GetCloneURL("scm", gitprovider.TransportTypeHTTPS)
+			Expect(url).ToNot(BeEmpty())
+			fmt.Println("Clone URL: ", url)
+
+			sshURL := cloner.GetCloneURL("scm", gitprovider.TransportTypeSSH)
+			Expect(url).ToNot(BeEmpty())
+			fmt.Println("Clone ssh URL: ", sshURL)
+		}
+
 		validateUserRepo(repo, getRepoRef.Repository())
 
 		getRepo, err := client.UserRepositories().Get(ctx, repoRef)

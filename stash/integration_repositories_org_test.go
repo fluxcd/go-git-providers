@@ -67,6 +67,7 @@ var _ = Describe("Stash Provider", func() {
 			testOrgRepoName = fmt.Sprintf("test-org-repo-%03d", rand.Intn(1000))
 		}
 
+		fmt.Print("Creating repository ", testOrgRepoName, "...")
 		// We know that a repo with this name doesn't exist in the organization, let's verify we get an
 		// ErrNotFound
 		repoRef := newOrgRepoRef(testOrg.Organization(), testOrgRepoName)
@@ -92,10 +93,19 @@ var _ = Describe("Stash Provider", func() {
 
 		validateOrgRepo(repo, getRepoRef.Repository())
 
-		getRepo, err := client.OrgRepositories().Get(ctx, repoRef)
-		Expect(err).ToNot(HaveOccurred())
+		// Verify that we can get clone url for the repo
+		if cloner, ok := getRepoRef.(gitprovider.CloneableURL); ok {
+			url := cloner.GetCloneURL("scm", gitprovider.TransportTypeHTTPS)
+			Expect(url).ToNot(BeEmpty())
+			fmt.Println("Clone URL: ", url)
+
+			sshURL := cloner.GetCloneURL("scm", gitprovider.TransportTypeSSH)
+			Expect(url).ToNot(BeEmpty())
+			fmt.Println("Clone ssh URL: ", sshURL)
+		}
+
 		// Expect the two responses (one from POST and one from GET to have equal "spec")
-		getSpec := repositoryFromAPI(getRepo.APIObject().(*Repository))
+		getSpec := repositoryFromAPI(getRepoRef.APIObject().(*Repository))
 		postSpec := repositoryFromAPI(repo.APIObject().(*Repository))
 		Expect(getSpec.Equals(postSpec)).To(BeTrue())
 	})

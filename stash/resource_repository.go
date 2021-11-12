@@ -18,9 +18,12 @@ package stash
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
+
+const defaultClonePrefix = "scm"
 
 func newUserRepository(ctx *clientContext, apiObj *Repository, ref gitprovider.RepositoryRef) *userRepository {
 	return &userRepository{
@@ -100,7 +103,7 @@ func (r *userRepository) DeployKeys() gitprovider.DeployKeyClient {
 func (r *userRepository) Update(ctx context.Context) error {
 	// update by calling client
 	ref := r.ref.(gitprovider.UserRepositoryRef)
-	apiObj, err := update(ctx, r.c.client, addTilde(ref.UserLogin), ref.GetSlug(), &r.repository, "")
+	apiObj, err := update(ctx, r.c.client, addTilde(ref.UserLogin), ref.Slug(), &r.repository, "")
 	if err != nil {
 		// Log the error and return it
 		r.c.log.V(1).Error(err, "Error updating repository",
@@ -141,7 +144,26 @@ func (r *userRepository) Reconcile(ctx context.Context) (bool, error) {
 // ErrNotFound is returned if the resource doesn't exist anymore.
 func (r *userRepository) Delete(ctx context.Context) error {
 	ref := r.ref.(gitprovider.UserRepositoryRef)
-	return delete(ctx, r.c.client, addTilde(ref.UserLogin), ref.GetSlug())
+	return delete(ctx, r.c.client, addTilde(ref.UserLogin), ref.Slug())
+}
+
+// GetCloneURL returns a formatted string that can be used for cloning
+// from a remote Git provider.
+func (r *userRepository) GetCloneURL(prefix string, transport gitprovider.TransportType) string {
+	if prefix == "" {
+		prefix = defaultClonePrefix
+	}
+	ref := r.ref.(gitprovider.UserRepositoryRef)
+	switch transport {
+	case gitprovider.TransportTypeHTTPS:
+		return gitprovider.ParseTypeHTTPS(fmt.Sprintf("%s/%s/%s/%s", gitprovider.GetDomainURL(ref.GetDomain()), prefix, addTilde(ref.UserLogin), ref.Slug()))
+	case gitprovider.TransportTypeGit:
+		return gitprovider.ParseTypeGit(ref.GetDomain(), addTilde(ref.UserLogin), ref.Slug())
+	case gitprovider.TransportTypeSSH:
+		return gitprovider.ParseTypeSSH(ref.GetDomain(), addTilde(ref.UserLogin), ref.Slug())
+	default:
+		return ""
+	}
 }
 
 func newOrgRepository(ctx *clientContext, apiObj *Repository, ref gitprovider.RepositoryRef) *orgRepository {
@@ -250,5 +272,24 @@ func repositoryInfoToAPIObj(repo *gitprovider.RepositoryInfo, apiObj *Repository
 
 	if repo.DefaultBranch != nil {
 		apiObj.DefaultBranch = *gitprovider.StringVar(*repo.DefaultBranch)
+	}
+}
+
+// GetCloneURL returns a formatted string that can be used for cloning
+// from a remote Git provider.
+func (r *orgRepository) GetCloneURL(prefix string, transport gitprovider.TransportType) string {
+	if prefix == "" {
+		prefix = defaultClonePrefix
+	}
+	ref := r.ref.(gitprovider.OrgRepositoryRef)
+	switch transport {
+	case gitprovider.TransportTypeHTTPS:
+		return gitprovider.ParseTypeHTTPS(fmt.Sprintf("%s/%s/%s/%s", gitprovider.GetDomainURL(ref.GetDomain()), prefix, ref.Key(), ref.Slug()))
+	case gitprovider.TransportTypeGit:
+		return gitprovider.ParseTypeGit(ref.GetDomain(), ref.Key(), ref.Slug())
+	case gitprovider.TransportTypeSSH:
+		return gitprovider.ParseTypeSSH(ref.GetDomain(), ref.Key(), ref.Slug())
+	default:
+		return ""
 	}
 }

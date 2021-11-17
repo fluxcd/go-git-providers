@@ -341,6 +341,14 @@ var _ = Describe("GitHub Provider", func() {
 		getSpec := newGithubRepositorySpec(getUserRepo.APIObject().(*github.Repository))
 		postSpec := newGithubRepositorySpec(userRepo.APIObject().(*github.Repository))
 		Expect(getSpec.Equals(postSpec)).To(BeTrue())
+
+		Eventually(func() gitprovider.UserRepository {
+			// Expect that listing repositories from an authenticated user includes the new private repo
+			newRepos, err := c.UserRepositories().List(ctx, newUserRef(testUser))
+			Expect(err).ToNot(HaveOccurred())
+			newRepo := findUserRepo(newRepos, testUserRepoName)
+			return newRepo
+		}, 3*time.Second, 1*time.Second).ShouldNot(BeNil())
 	})
 
 	It("should error at creation time if the repo already does exist", func() {

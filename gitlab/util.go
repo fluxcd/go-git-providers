@@ -199,7 +199,7 @@ func validateIdentityFields(ref gitprovider.IdentityRef, expectedDomain string) 
 	case gitprovider.IdentityTypeOrganization, gitprovider.IdentityTypeUser:
 		return nil
 	case gitprovider.IdentityTypeSuborganization:
-		return fmt.Errorf("github doesn't support sub-organizations: %w", gitprovider.ErrNoProviderSupport)
+		return fmt.Errorf("gitlab doesn't support sub-organizations: %w", gitprovider.ErrNoProviderSupport)
 	}
 	return fmt.Errorf("invalid identity type: %v: %w", ref.GetType(), gitprovider.ErrInvalidArgument)
 }

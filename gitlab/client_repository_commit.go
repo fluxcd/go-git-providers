@@ -34,8 +34,8 @@ type CommitClient struct {
 }
 
 // ListPage lists repository commits of the given page and page size.
-func (c *CommitClient) ListPage(ctx context.Context, branch string, perPage, page int) ([]gitprovider.Commit, error) {
-	dks, err := c.listPage(ctx, branch, perPage, page)
+func (c *CommitClient) ListPage(_ context.Context, branch string, perPage, page int) ([]gitprovider.Commit, error) {
+	dks, err := c.listPage(branch, perPage, page)
 	if err != nil {
 		return nil, err
 	}
@@ -47,9 +47,9 @@ func (c *CommitClient) ListPage(ctx context.Context, branch string, perPage, pag
 	return commits, nil
 }
 
-func (c *CommitClient) listPage(ctx context.Context, branch string, perPage, page int) ([]*commitType, error) {
+func (c *CommitClient) listPage(branch string, perPage, page int) ([]*commitType, error) {
 	// GET /repos/{owner}/{repo}/commits
-	apiObjs, err := c.c.ListCommitsPage(ctx, getRepoPath(c.ref), branch, perPage, page)
+	apiObjs, err := c.c.ListCommitsPage(getRepoPath(c.ref), branch, perPage, page)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func (c *CommitClient) listPage(ctx context.Context, branch string, perPage, pag
 }
 
 // Create creates a commit with the given specifications.
-func (c *CommitClient) Create(ctx context.Context, branch string, message string, files []gitprovider.CommitFile) (gitprovider.Commit, error) {
+func (c *CommitClient) Create(_ context.Context, branch string, message string, files []gitprovider.CommitFile) (gitprovider.Commit, error) {
 
 	if len(files) == 0 {
 		return nil, fmt.Errorf("no files added")

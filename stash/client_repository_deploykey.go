@@ -22,6 +22,7 @@ import (
 	"fmt"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
+	"github.com/fluxcd/go-git-providers/validation"
 	"github.com/hashicorp/go-multierror"
 )
 
@@ -169,7 +170,7 @@ func (c *DeployKeyClient) Reconcile(ctx context.Context, req gitprovider.DeployK
 		return actual, false, err
 	}
 	// Apply the desired state by running Update
-	_, err = c.update(ctx, actual.Repository(), actual.Get())
+	_, err = c.update(ctx, actual.Get())
 	if err != nil {
 		return actual, false, fmt.Errorf("failed to update deploy key %q: %w", req.Name, err)
 	}
@@ -178,9 +179,9 @@ func (c *DeployKeyClient) Reconcile(ctx context.Context, req gitprovider.DeployK
 
 // update will apply the desired state in this object to the server.
 // ErrNotFound is returned if the resource does not exist.
-func (c *DeployKeyClient) update(ctx context.Context, ref gitprovider.RepositoryRef, req gitprovider.DeployKeyInfo) (*DeployKey, error) {
+func (c *DeployKeyClient) update(ctx context.Context, req gitprovider.DeployKeyInfo) (*DeployKey, error) {
 	// Delete the old key and recreate
-	if err := c.delete(ctx, ref, req); err != nil {
+	if err := c.delete(ctx, req); err != nil {
 		return nil, err
 	}
 
@@ -200,7 +201,7 @@ func (c *DeployKeyClient) update(ctx context.Context, ref gitprovider.Repository
 	return apiObj, nil
 }
 
-func (c *DeployKeyClient) delete(ctx context.Context, ref gitprovider.RepositoryRef, req gitprovider.DeployKeyInfo) error {
+func (c *DeployKeyClient) delete(ctx context.Context, req gitprovider.DeployKeyInfo) error {
 	projectKey, repoSlug := getStashRefs(c.ref)
 
 	// check if it is a user repository
@@ -245,9 +246,18 @@ func deployKeyToAPI(orgKey, repoSlug string, info *gitprovider.DeployKeyInfo) *D
 	return k
 }
 
-// TO DO: Implement this
 func validateDeployKeyAPI(apiObj *DeployKey) error {
-	return nil
+	return validateAPIObject("Stash.DeployKey", func(validator validation.Validator) {
+		// Make sure name is set
+		if apiObj.Permission == "" {
+			validator.Required("Permission")
+		}
+
+		// Make sure key is set
+		if apiObj.Key.Label == "" {
+			validator.Required("Key.Label")
+		}
+	})
 }
 
 func deployKeyFromAPI(apiObj *DeployKey) gitprovider.DeployKeyInfo {

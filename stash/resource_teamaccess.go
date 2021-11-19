@@ -78,7 +78,7 @@ func (ta *teamAccess) Repository() gitprovider.RepositoryRef {
 	return ta.c.ref
 }
 
-func (ta *teamAccess) Delete(ctx context.Context) error {
+func (ta *teamAccess) Delete(_ context.Context) error {
 	return gitprovider.ErrNoProviderSupport
 }
 

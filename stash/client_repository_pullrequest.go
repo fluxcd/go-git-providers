@@ -78,7 +78,7 @@ func (c *PullRequestClient) List(ctx context.Context) ([]gitprovider.PullRequest
 
 // Merge merges the pull request.
 // Stash does not support message and merge strategy options for pull requests automatic merges.
-func (c *PullRequestClient) Merge(ctx context.Context, number int, mergeMethod gitprovider.MergeMethod, message string) error {
+func (c *PullRequestClient) Merge(ctx context.Context, number int, _ gitprovider.MergeMethod, _ string) error {
 	projectKey, repoSlug := getStashRefs(c.ref)
 
 	// check if it is a user repository

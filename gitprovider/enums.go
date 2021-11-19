@@ -170,12 +170,13 @@ const (
 	TokenPermissionRWRepository TokenPermission = iota + 1
 )
 
+// MergeMethod is an enum specifying the merge method for a pull request.
 type MergeMethod string
 
 const (
 	// MergeMethodMerge causes a pull request merge to create a simple merge commit
 	MergeMethodMerge = MergeMethod("merge")
 
-	// MergeMethodMerge causes a pull request merge to first squash commits
+	// MergeMethodSquash causes a pull request merge to first squash commits
 	MergeMethodSquash = MergeMethod("squash")
 )

@@ -74,7 +74,7 @@ func (dk *deployKey) Repository() gitprovider.RepositoryRef {
 // The internal API object will be overridden with the received server data.
 func (dk *deployKey) Update(ctx context.Context) error {
 	// update by calling client
-	apiObj, err := dk.c.update(ctx, dk.Repository(), dk.Get())
+	apiObj, err := dk.c.update(ctx, dk.Get())
 	if err != nil {
 		// Log the error and return it
 		dk.c.log.V(1).Error(err, "failed to update deploy key", "org", dk.Repository().GetIdentity(), "repo", dk.Repository().GetRepository())
@@ -87,7 +87,7 @@ func (dk *deployKey) Update(ctx context.Context) error {
 // Delete deletes a deploy key from the repository.
 // ErrNotFound is returned if the resource does not exist.
 func (dk *deployKey) Delete(ctx context.Context) error {
-	return dk.c.delete(ctx, dk.Repository(), dk.Get())
+	return dk.c.delete(ctx, dk.Get())
 }
 
 // Reconcile makes sure the desired state in this object (called "req" here) becomes

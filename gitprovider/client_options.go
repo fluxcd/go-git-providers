@@ -128,11 +128,11 @@ func BuildClientFromTransportChain(chain []ChainableRoundTripperFunc) (*http.Cli
 // The clientOptions struct is private to force usage of the With... functions.
 type ClientOption interface {
 	// ApplyToClientOptions applies set fields of this object into target.
-	ApplyToClientOptions(target *clientOptions) error
+	ApplyToClientOptions(target *ClientOptions) error
 }
 
-// clientOptions is the struct that tracks data about what options have been set.
-type clientOptions struct {
+// ClientOptions is the struct that tracks data about what options have been set.
+type ClientOptions struct {
 	// clientOptions shares all the common options
 	CommonClientOptions
 
@@ -145,7 +145,7 @@ type clientOptions struct {
 
 // ApplyToClientOptions implements ClientOption, and applies the set fields of opts
 // into target. If both opts and target has the same specific field set, ErrInvalidClientOptions is returned.
-func (opts *clientOptions) ApplyToClientOptions(target *clientOptions) error {
+func (opts *ClientOptions) ApplyToClientOptions(target *ClientOptions) error {
 	// Apply common values, if any
 	if err := opts.CommonClientOptions.ApplyToCommonClientOptions(&target.CommonClientOptions); err != nil {
 		return err
@@ -171,7 +171,7 @@ func (opts *clientOptions) ApplyToClientOptions(target *clientOptions) error {
 
 // GetTransportChain builds the full chain of transports (from left to right,
 // as per gitprovider.BuildClientFromTransportChain) of the form described in NewClient.
-func (opts *clientOptions) GetTransportChain() (chain []ChainableRoundTripperFunc) {
+func (opts *ClientOptions) GetTransportChain() (chain []ChainableRoundTripperFunc) {
 	if opts.PostChainTransportHook != nil {
 		chain = append(chain, opts.PostChainTransportHook)
 	}
@@ -190,8 +190,8 @@ func (opts *clientOptions) GetTransportChain() (chain []ChainableRoundTripperFun
 }
 
 // buildCommonOption is a helper for returning a ClientOption out of a common option field.
-func buildCommonOption(opt CommonClientOptions) *clientOptions {
-	return &clientOptions{CommonClientOptions: opt}
+func buildCommonOption(opt CommonClientOptions) *ClientOptions {
+	return &ClientOptions{CommonClientOptions: opt}
 }
 
 // errorOption implements ClientOption, and just wraps an error which is immediately returned.
@@ -202,7 +202,7 @@ type errorOption struct {
 }
 
 // ApplyToClientOptions implements ClientOption, but just returns the internal error.
-func (e *errorOption) ApplyToClientOptions(*clientOptions) error { return e.err }
+func (e *errorOption) ApplyToClientOptions(*ClientOptions) error { return e.err }
 
 // optionError is a constructor for errorOption.
 func optionError(err error) ClientOption {
@@ -260,7 +260,7 @@ func WithOAuth2Token(oauth2Token string) ClientOption {
 		return optionError(fmt.Errorf("oauth2Token cannot be empty: %w", ErrInvalidClientOptions))
 	}
 
-	return &clientOptions{authTransport: oauth2Transport(oauth2Token)}
+	return &ClientOptions{authTransport: oauth2Transport(oauth2Token)}
 }
 
 func oauth2Transport(oauth2Token string) ChainableRoundTripperFunc {
@@ -279,12 +279,12 @@ func oauth2Transport(oauth2Token string) ChainableRoundTripperFunc {
 // See: https://gitlab.com/gitlab.org/gitlab.foss/-/issues/26926, and
 // https://docs.gitlab.com/ee/development/polling.html for more info.
 func WithConditionalRequests(conditionalRequests bool) ClientOption {
-	return &clientOptions{enableConditionalRequests: &conditionalRequests}
+	return &ClientOptions{enableConditionalRequests: &conditionalRequests}
 }
 
 // MakeClientOptions assembles a clientOptions struct from ClientOption mutator functions.
-func MakeClientOptions(opts ...ClientOption) (*clientOptions, error) {
-	o := &clientOptions{}
+func MakeClientOptions(opts ...ClientOption) (*ClientOptions, error) {
+	o := &ClientOptions{}
 	for _, opt := range opts {
 		if err := opt.ApplyToClientOptions(o); err != nil {
 			return nil, err

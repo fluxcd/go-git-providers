@@ -65,7 +65,7 @@ type CleanCloner interface {
 // CleanIniter interface defines the methods that can be used to initialize a repository
 // and clean it up afterwards.
 type CleanIniter interface {
-	InitRepository(ctx context.Context, c *CreateCommit, createRemote bool) (r *git.Repository, dir string, err error)
+	InitRepository(c *CreateCommit, createRemote bool) (r *git.Repository, dir string, err error)
 	Cleaner
 }
 
@@ -76,7 +76,7 @@ type Cleaner interface {
 
 // Committer interface defines the methods that can be used to commit to a repository
 type Committer interface {
-	CreateCommit(ctx context.Context, rPath string, r *git.Repository, branchName string, c *CreateCommit) (*Commit, error)
+	CreateCommit(rPath string, r *git.Repository, branchName string, c *CreateCommit) (*Commit, error)
 }
 
 // Brancher interface defines the methods that can be used to create a new branch
@@ -246,7 +246,7 @@ func NewCommit(opts ...GitCommitOptionsFunc) (*CreateCommit, error) {
 // The commit is signed with the given SignKey when provided.
 // When committer is nil, author is used as the committer.
 // An optional branch name can be provided to checkout the branch before committing.
-func (s *GitService) CreateCommit(ctx context.Context, rPath string, r *git.Repository, branchName string, c *CreateCommit) (*Commit, error) {
+func (s *GitService) CreateCommit(rPath string, r *git.Repository, branchName string, c *CreateCommit) (*Commit, error) {
 	if c == nil {
 		return nil, errors.New("commit must be provided")
 	}
@@ -435,7 +435,7 @@ func (s *GitService) CreateBranch(branchName string, r *git.Repository, commitID
 
 // InitRepository is a function to create a new repository.
 // The caller must clean up the directory after the function returns.
-func (s *GitService) InitRepository(ctx context.Context, c *CreateCommit, createRemote bool) (r *git.Repository, dir string, err error) {
+func (s *GitService) InitRepository(c *CreateCommit, createRemote bool) (r *git.Repository, dir string, err error) {
 	dir, err = os.MkdirTemp("", "repo-*")
 	if err != nil {
 		return nil, "", err

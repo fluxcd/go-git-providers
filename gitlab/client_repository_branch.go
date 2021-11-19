@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"context"
+
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/xanzy/go-gitlab"
 )
@@ -32,7 +33,7 @@ type BranchClient struct {
 }
 
 // Create creates a branch with the given specifications.
-func (c *BranchClient) Create(ctx context.Context, branch, sha string) error {
+func (c *BranchClient) Create(_ context.Context, branch, sha string) error {
 
 	ref := &gitlab.CreateBranchOptions{
 		Ref:    &sha,

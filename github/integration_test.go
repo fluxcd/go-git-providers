@@ -392,7 +392,7 @@ var _ = Describe("GitHub Provider", func() {
 			if err == nil && !actionTaken {
 				err = errors.New("expecting action taken to be true")
 			}
-			return retryOp.Retry(err, fmt.Sprintf("reconcile user repository: %s", repoRef.RepositoryName))
+			return retryOp.IsRetryable(err, fmt.Sprintf("reconcile user repository: %s", repoRef.RepositoryName))
 		}, time.Second*90, retryOp.Interval()).Should(BeTrue())
 
 		Expect(actionTaken).To(BeTrue())
@@ -410,7 +410,7 @@ var _ = Describe("GitHub Provider", func() {
 			if err == nil && !actionTaken {
 				err = errors.New("expecting action taken to be true")
 			}
-			return retryOp.Retry(err, fmt.Sprintf("reconcile repository: %s", newRepo.Repository().GetRepository()))
+			return retryOp.IsRetryable(err, fmt.Sprintf("reconcile repository: %s", newRepo.Repository().GetRepository()))
 		}, retryOp.Timeout(), retryOp.Interval()).Should(BeTrue())
 
 		Expect(actionTaken).To(BeTrue())
@@ -435,7 +435,7 @@ var _ = Describe("GitHub Provider", func() {
 		Eventually(func() bool {
 			var err error
 			userRepo, err = c.UserRepositories().Get(ctx, userRepoRef)
-			return retryOp.Retry(err, fmt.Sprintf("get user repository: %s", userRepoRef.RepositoryName))
+			return retryOp.IsRetryable(err, fmt.Sprintf("get user repository: %s", userRepoRef.RepositoryName))
 		}, retryOp.Timeout(), retryOp.Interval()).Should(BeTrue())
 
 		defaultBranch := userRepo.Get().DefaultBranch
@@ -448,7 +448,7 @@ var _ = Describe("GitHub Provider", func() {
 			if err == nil && len(commits) == 0 {
 				err = errors.New("empty commits list")
 			}
-			return retryOp.Retry(err, fmt.Sprintf("get commits, repository: %s", userRepo.Repository().GetRepository()))
+			return retryOp.IsRetryable(err, fmt.Sprintf("get commits, repository: %s", userRepo.Repository().GetRepository()))
 		}, retryOp.Timeout(), retryOp.Interval()).Should(BeTrue())
 
 		latestCommit := commits[0]

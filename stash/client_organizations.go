@@ -93,7 +93,7 @@ func (c *OrganizationsClient) List(ctx context.Context) ([]gitprovider.Organizat
 // Children returns the immediate child-organizations for the specific OrganizationRef o.
 // The OrganizationRef may point to any existing sub-organization.
 // Children returns all available organizations, using multiple paginated requests if needed.
-func (c *OrganizationsClient) Children(ctx context.Context, ref gitprovider.OrganizationRef) ([]gitprovider.Organization, error) {
+func (c *OrganizationsClient) Children(_ context.Context, _ gitprovider.OrganizationRef) ([]gitprovider.Organization, error) {
 	return nil, gitprovider.ErrNoProviderSupport
 }
 

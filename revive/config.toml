@@ -12,8 +12,6 @@ warningCode = 0
 [rule.error-strings]
 [rule.error-naming]
 [rule.exported]
-[rule.function-length]
-  arguments = [40,60]
 [rule.function-result-limit]
   arguments = [3]
 [rule.if-return]

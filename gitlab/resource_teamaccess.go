@@ -63,7 +63,7 @@ func (ta *teamAccess) Delete(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	return ta.c.c.UnshareProject(ctx, getRepoPath(ta.c.ref), group.ID)
+	return ta.c.c.UnshareProject(getRepoPath(ta.c.ref), group.ID)
 }
 
 func (ta *teamAccess) Update(ctx context.Context) error {
@@ -74,7 +74,7 @@ func (ta *teamAccess) Update(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
-			err = ta.c.c.UnshareProject(ctx, getRepoPath(ta.c.ref), group.ID)
+			err = ta.c.c.UnshareProject(getRepoPath(ta.c.ref), group.ID)
 			if err != nil {
 				return err
 			}

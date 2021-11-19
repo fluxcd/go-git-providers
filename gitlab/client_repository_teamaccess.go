@@ -118,7 +118,7 @@ func (c *TeamAccessClient) Create(ctx context.Context, req gitprovider.TeamAcces
 	if err != nil {
 		return nil, err
 	}
-	if err := c.c.ShareProject(ctx, getRepoPath(c.ref), group.ID, gitlabPermission); err != nil {
+	if err := c.c.ShareProject(getRepoPath(c.ref), group.ID, gitlabPermission); err != nil {
 		return nil, err
 	}
 

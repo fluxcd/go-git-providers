@@ -38,7 +38,7 @@ type PullRequestClient struct {
 }
 
 // List lists all pull requests in the repository
-func (c *PullRequestClient) List(ctx context.Context) ([]gitprovider.PullRequest, error) {
+func (c *PullRequestClient) List(_ context.Context) ([]gitprovider.PullRequest, error) {
 	mrs, _, err := c.c.Client().MergeRequests.ListProjectMergeRequests(getRepoPath(c.ref), nil)
 	if err != nil {
 		return nil, err
@@ -54,7 +54,7 @@ func (c *PullRequestClient) List(ctx context.Context) ([]gitprovider.PullRequest
 }
 
 // Create creates a pull request with the given specifications.
-func (c *PullRequestClient) Create(ctx context.Context, title, branch, baseBranch, description string) (gitprovider.PullRequest, error) {
+func (c *PullRequestClient) Create(_ context.Context, title, branch, baseBranch, description string) (gitprovider.PullRequest, error) {
 
 	prOpts := &gitlab.CreateMergeRequestOptions{
 		Title:        &title,
@@ -72,7 +72,7 @@ func (c *PullRequestClient) Create(ctx context.Context, title, branch, baseBranc
 }
 
 // Get retrieves an existing pull request by number
-func (c *PullRequestClient) Get(ctx context.Context, number int) (gitprovider.PullRequest, error) {
+func (c *PullRequestClient) Get(_ context.Context, number int) (gitprovider.PullRequest, error) {
 
 	mr, _, err := c.c.Client().MergeRequests.GetMergeRequest(getRepoPath(c.ref), number, &gitlab.GetMergeRequestsOptions{})
 	if err != nil {
@@ -83,7 +83,7 @@ func (c *PullRequestClient) Get(ctx context.Context, number int) (gitprovider.Pu
 }
 
 // Merge merges a pull request with the given specifications.
-func (c *PullRequestClient) Merge(ctx context.Context, number int, mergeMethod gitprovider.MergeMethod, message string) error {
+func (c *PullRequestClient) Merge(_ context.Context, number int, mergeMethod gitprovider.MergeMethod, message string) error {
 	if err := c.waitForMergeRequestToBeMergeable(number); err != nil {
 		return err
 	}

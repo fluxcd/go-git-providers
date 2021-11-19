@@ -193,7 +193,7 @@ func Test_clientOptions_getTransportChain(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dummy := "dummy"
-			opts := &clientOptions{
+			opts := &ClientOptions{
 				CommonClientOptions: CommonClientOptions{
 					Domain:                 &dummy,
 					PreChainTransportHook:  tt.preChain,
@@ -215,12 +215,12 @@ func Test_makeCientOptions(t *testing.T) {
 	tests := []struct {
 		name         string
 		opts         []ClientOption
-		want         *clientOptions
+		want         *ClientOptions
 		expectedErrs []error
 	}{
 		{
 			name: "no options",
-			want: &clientOptions{},
+			want: &ClientOptions{},
 		},
 		{
 			name: "WithDomain",
@@ -260,7 +260,7 @@ func Test_makeCientOptions(t *testing.T) {
 		{
 			name: "WithOAuth2Token",
 			opts: []ClientOption{WithOAuth2Token("foo")},
-			want: &clientOptions{authTransport: oauth2Transport("foo")},
+			want: &ClientOptions{authTransport: oauth2Transport("foo")},
 		},
 		{
 			name:         "WithOAuth2Token, empty",
@@ -270,7 +270,7 @@ func Test_makeCientOptions(t *testing.T) {
 		{
 			name: "WithConditionalRequests",
 			opts: []ClientOption{WithConditionalRequests(true)},
-			want: &clientOptions{enableConditionalRequests: BoolVar(true)},
+			want: &ClientOptions{enableConditionalRequests: BoolVar(true)},
 		},
 		{
 			name:         "WithConditionalRequests, exclusive",

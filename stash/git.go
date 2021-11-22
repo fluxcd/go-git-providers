@@ -317,8 +317,9 @@ func (s *GitService) CloneRepository(ctx context.Context, URL string) (r *git.Re
 	}
 
 	r, err = git.PlainCloneContext(ctx, dir, false, &git.CloneOptions{
-		URL:  URL,
-		Auth: &githttp.BasicAuth{Username: s.Client.username, Password: s.Client.token},
+		URL:      URL,
+		Auth:     &githttp.BasicAuth{Username: s.Client.username, Password: s.Client.token},
+		CABundle: s.Client.caBundle,
 	})
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to clone repository: %v", err)
@@ -327,6 +328,7 @@ func (s *GitService) CloneRepository(ctx context.Context, URL string) (r *git.Re
 	err = r.Fetch(&git.FetchOptions{
 		RefSpecs: []config.RefSpec{"refs/*:refs/*", "HEAD:refs/heads/HEAD"},
 		Auth:     &githttp.BasicAuth{Username: s.Client.username, Password: s.Client.token},
+		CABundle: s.Client.caBundle,
 	})
 
 	if err != nil {
@@ -538,6 +540,7 @@ func (s *GitService) Push(ctx context.Context, r *git.Repository) error {
 	options := &git.PushOptions{
 		RemoteName: "origin",
 		Auth:       &githttp.BasicAuth{Username: s.Client.username, Password: s.Client.token},
+		CABundle:   s.Client.caBundle,
 	}
 
 	err := r.PushContext(ctx, options)

@@ -18,6 +18,7 @@ package gitprovider
 
 import (
 	"net/http"
+	"os"
 	"reflect"
 	"testing"
 
@@ -212,6 +213,10 @@ func Test_clientOptions_getTransportChain(t *testing.T) {
 }
 
 func Test_makeCientOptions(t *testing.T) {
+	ca, err := os.ReadFile("./testdata/ca.pem")
+	if err != nil {
+		t.Fatal(err)
+	}
 	tests := []struct {
 		name         string
 		opts         []ClientOption
@@ -255,6 +260,16 @@ func Test_makeCientOptions(t *testing.T) {
 		{
 			name:         "WithPostChainTransportHook, nil",
 			opts:         []ClientOption{WithPostChainTransportHook(nil)},
+			expectedErrs: []error{ErrInvalidClientOptions},
+		},
+		{
+			name: "WithCustomCAPostChainTransportHook",
+			opts: []ClientOption{WithCustomCAPostChainTransportHook(ca)},
+			want: buildCommonOption(CommonClientOptions{CABundle: ca, PostChainTransportHook: caCustomTransport(ca)}),
+		},
+		{
+			name:         "WithCustomCAPostChainTransportHook, nil",
+			opts:         []ClientOption{WithCustomCAPostChainTransportHook(nil)},
 			expectedErrs: []error{ErrInvalidClientOptions},
 		},
 		{

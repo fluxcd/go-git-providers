@@ -100,6 +100,8 @@ type Client struct {
 	username string
 	// Token used to make authenticated API calls.
 	token string
+	// caBundle is the CA bundle used to authenticate the server.
+	caBundle []byte
 
 	// Services are used to communicate with the different stash endpoints.
 	Users        Users
@@ -117,6 +119,18 @@ type Client struct {
 // All rate limiters must implement this interface.
 type RateLimiter interface {
 	Wait(context.Context) error
+}
+
+// WithCABundle is used to setup the client authentication.
+func WithCABundle(caBundle []byte) ClientOptionsFunc {
+	return func(c *Client) error {
+		if len(caBundle) == 0 {
+			return errors.New("caBundle cannot be empty")
+		}
+
+		c.caBundle = caBundle
+		return nil
+	}
 }
 
 // WithAuth is used to setup the client authentication.

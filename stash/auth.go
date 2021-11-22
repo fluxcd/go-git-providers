@@ -58,7 +58,13 @@ func NewStashClient(username, token string, optFns ...gitprovider.ClientOption) 
 		return nil, err
 	}
 
-	st, err := NewClient(client, host, nil, logger, WithAuth(username, token))
+	var stashClient *Client
+	if len(opts.CABundle) != 0 {
+		stashClient, err = NewClient(client, host, nil, logger, WithAuth(username, token), WithCABundle(opts.CABundle))
+	} else {
+		stashClient, err = NewClient(client, host, nil, logger, WithAuth(username, token))
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -69,5 +75,5 @@ func NewStashClient(username, token string, optFns ...gitprovider.ClientOption) 
 		destructiveActions = *opts.EnableDestructiveAPICalls
 	}
 
-	return newClient(st, host, token, destructiveActions, logger), nil
+	return newClient(stashClient, host, token, destructiveActions, logger), nil
 }

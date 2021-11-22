@@ -182,7 +182,7 @@ var _ = Describe("Stash Provider", func() {
 				AutoInit:        gitprovider.BoolVar(true),
 				LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateMIT),
 			})
-			return retryOp.Retry(err, fmt.Sprintf("reconcile org repository: %s", repoRef.RepositoryName))
+			return retryOp.IsRetryable(err, fmt.Sprintf("reconcile org repository: %s", repoRef.RepositoryName))
 		}, retryOp.Timeout(), retryOp.Interval()).Should(BeTrue())
 
 		Expect(actionTaken).To(BeTrue())
@@ -399,7 +399,7 @@ var _ = Describe("Stash Provider", func() {
 			if err == nil && len(commits) == 0 {
 				err = errors.New("empty commits list")
 			}
-			return retryOp.Retry(err, fmt.Sprintf("get commits, repository: %s", orgRepo.Repository().GetRepository()))
+			return retryOp.IsRetryable(err, fmt.Sprintf("get commits, repository: %s", orgRepo.Repository().GetRepository()))
 		}, retryOp.Timeout(), retryOp.Interval()).Should(BeTrue())
 
 		latestCommit := commits[0]

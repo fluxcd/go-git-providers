@@ -144,7 +144,7 @@ func (r *userRepository) Reconcile(ctx context.Context) (bool, error) {
 // ErrNotFound is returned if the resource doesn't exist anymore.
 func (r *userRepository) Delete(ctx context.Context) error {
 	ref := r.ref.(gitprovider.UserRepositoryRef)
-	return delete(ctx, r.c.client, addTilde(ref.UserLogin), ref.Slug())
+	return deleteRepository(ctx, r.c.client, addTilde(ref.UserLogin), ref.Slug())
 }
 
 // GetCloneURL returns a formatted string that can be used for cloning
@@ -238,7 +238,7 @@ func (r *orgRepository) Update(ctx context.Context) error {
 // ErrNotFound is returned if the resource doesn't exist anymore.
 func (r *orgRepository) Delete(ctx context.Context) error {
 	ref := r.ref.(gitprovider.OrgRepositoryRef)
-	return delete(ctx, r.c.client, ref.Key(), ref.Slug())
+	return deleteRepository(ctx, r.c.client, ref.Key(), ref.Slug())
 }
 
 func repositoryFromAPI(apiObj *Repository) gitprovider.RepositoryInfo {

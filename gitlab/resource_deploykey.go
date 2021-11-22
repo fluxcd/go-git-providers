@@ -78,20 +78,20 @@ func (dk *deployKey) Update(ctx context.Context) error {
 	if err := dk.Delete(ctx); err != nil {
 		return err
 	}
-	return dk.createIntoSelf(ctx)
+	return dk.createIntoSelf()
 }
 
 // Delete deletes a deploy key from the repository.
 //
 // ErrNotFound is returned if the resource does not exist.
-func (dk *deployKey) Delete(ctx context.Context) error {
+func (dk *deployKey) Delete(_ context.Context) error {
 	// We can use the same DeployKey ID that we got from the GET calls. Make sure it's non-nil.
 	// This _should never_ happen, but just check for it anyways to avoid panicing.
 	if dk.k.ID == 0 {
 		return fmt.Errorf("didn't expect ID to be 0: %w", gitprovider.ErrUnexpectedEvent)
 	}
 
-	return dk.c.c.DeleteKey(ctx, getRepoPath(dk.c.ref), dk.k.ID)
+	return dk.c.c.DeleteKey(getRepoPath(dk.c.ref), dk.k.ID)
 }
 
 // Reconcile makes sure the desired state in this object (called "req" here) becomes
@@ -103,11 +103,11 @@ func (dk *deployKey) Delete(ctx context.Context) error {
 //
 // The internal API object will be overridden with the received server data if actionTaken == true.
 func (dk *deployKey) Reconcile(ctx context.Context) (bool, error) {
-	actual, err := dk.c.get(ctx, dk.k.Title)
+	actual, err := dk.c.get(dk.k.Title)
 	if err != nil {
 		// Create if not found
 		if errors.Is(err, gitprovider.ErrNotFound) {
-			return true, dk.createIntoSelf(ctx)
+			return true, dk.createIntoSelf()
 		}
 
 		// Unexpected path, Get should succeed or return NotFound
@@ -126,9 +126,9 @@ func (dk *deployKey) Reconcile(ctx context.Context) (bool, error) {
 	return true, dk.Update(ctx)
 }
 
-func (dk *deployKey) createIntoSelf(ctx context.Context) error {
+func (dk *deployKey) createIntoSelf() error {
 	// POST /repos/{owner}/{repo}/keys
-	apiObj, err := dk.c.c.CreateKey(ctx, getRepoPath(dk.c.ref), &dk.k)
+	apiObj, err := dk.c.c.CreateKey(getRepoPath(dk.c.ref), &dk.k)
 	if err != nil {
 		return err
 	}

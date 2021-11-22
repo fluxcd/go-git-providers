@@ -72,7 +72,7 @@ func (c *BranchClient) Create(ctx context.Context, branch, sha string) error {
 		WithMessage("Create branch"),
 		WithURL(url))
 
-	_, err = c.client.Git.CreateCommit(ctx, dir, r, "", commit)
+	_, err = c.client.Git.CreateCommit(dir, r, "", commit)
 	if err != nil {
 		return fmt.Errorf("failed to create commit: %w", err)
 	}

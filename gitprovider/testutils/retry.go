@@ -22,8 +22,9 @@ import (
 	"time"
 )
 
+// RetryI is an interface for retry operations
 type RetryI interface {
-	Retry(err error, opDesc string) bool
+	IsRetryable(err error, opDesc string) bool
 	SetTimeout(timeout time.Duration)
 	SetInterval(interval time.Duration)
 	SetBackoff(backoff time.Duration)
@@ -34,6 +35,7 @@ type RetryI interface {
 	Retries() int
 }
 
+// RetryOp is a retry operation
 type RetryOp struct {
 	RetryI
 	timeout  time.Duration
@@ -43,39 +45,48 @@ type RetryOp struct {
 	counter  int
 }
 
+// Timeout returns the timeout for the retry operation
 func (r RetryOp) Timeout() time.Duration {
 	return r.timeout
 }
 
+// Interval returns the interval for the retry operation
 func (r RetryOp) Interval() time.Duration {
 	return r.interval
 }
 
+// Backoff returns the backoff for the retry operation
 func (r RetryOp) Backoff() time.Duration {
 	return r.backoff
 }
 
+// Retries returns the number of retries for the retry operation
 func (r RetryOp) Retries() int {
 	return r.retries
 }
 
+// SetTimeout sets the timeout for the retry operation
 func (r RetryOp) SetTimeout(timeout time.Duration) {
 	r.timeout = timeout
 }
 
+// SetInterval sets the interval for the retry operation
 func (r RetryOp) SetInterval(interval time.Duration) {
 	r.interval = interval
 }
 
+// SetBackoff sets the backoff for the retry operation
 func (r RetryOp) SetBackoff(backoff time.Duration) {
 	r.backoff = backoff
 }
 
+// SetRetries sets the number of retries for the retry operation
 func (r RetryOp) SetRetries(retries int) {
 	r.retries = retries
 }
 
-func (r RetryOp) Retry(err error, opDesc string) bool {
+// IsRetryable returns true if the operation is retryable
+func (r RetryOp) IsRetryable(err error, opDesc string) bool {
 	if err == nil {
 		return true
 	}
@@ -89,6 +100,7 @@ func (r RetryOp) Retry(err error, opDesc string) bool {
 	return false
 }
 
+// NewRetry returns a new retry operation
 func NewRetry() RetryI {
 	r := RetryOp{
 		retries:  10,

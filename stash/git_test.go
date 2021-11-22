@@ -17,7 +17,6 @@ limitations under the License.
 package stash
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -199,16 +198,15 @@ func TestCreateCommit(t *testing.T) {
 		t.Fatalf("unexpected error while declaring a client: %v", err)
 	}
 
-	ctx := context.Background()
 	//Init repo
-	r, dir, err := c.Git.InitRepository(ctx, &initCommit, false)
+	r, dir, err := c.Git.InitRepository(&initCommit, false)
 	if err != nil {
 		t.Fatalf("unexpected error while init repo: %v", err)
 	}
 	defer c.Git.Cleanup(dir)
 
 	// create a commit
-	obj, err := c.Git.CreateCommit(ctx, dir, r, "testbranch", &testCommit)
+	obj, err := c.Git.CreateCommit(dir, r, "testbranch", &testCommit)
 
 	if diff := cmp.Diff(testCommit.Author, obj.Author); diff != "" {
 		t.Errorf("Author mismatch (-want +got):\n%s", diff)

@@ -112,6 +112,6 @@ func (c *Client) UserRepositories() gitprovider.UserRepositoriesClient {
 }
 
 // HasTokenPermission returns true if the given token has the given permissions.
-func (c *Client) HasTokenPermission(ctx context.Context, permission gitprovider.TokenPermission) (bool, error) {
+func (c *Client) HasTokenPermission(_ context.Context, _ gitprovider.TokenPermission) (bool, error) {
 	return false, gitprovider.ErrNoProviderSupport
 }

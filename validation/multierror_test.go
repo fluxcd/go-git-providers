@@ -234,6 +234,6 @@ type fakeT struct {
 	calledErrorf uint8
 }
 
-func (t *fakeT) Errorf(format string, args ...interface{}) {
+func (t *fakeT) Errorf(_ string, _ ...interface{}) {
 	t.calledErrorf++
 }

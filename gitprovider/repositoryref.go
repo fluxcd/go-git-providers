@@ -318,14 +318,17 @@ func GetCloneURL(rs RepositoryRef, transport TransportType) string {
 	return ""
 }
 
+// ParseTypeHTTPS returns the HTTPS URL to clone a repository.
 func ParseTypeHTTPS(url string) string {
 	return fmt.Sprintf("%s.git", url)
 }
 
+// ParseTypeGit returns the URL to clone a repository using the Git protocol.
 func ParseTypeGit(domain, identity, repository string) string {
 	return fmt.Sprintf("git@%s:%s/%s.git", domain, identity, repository)
 }
 
+// ParseTypeSSH returns the URL to clone a repository using the SSH protocol.
 func ParseTypeSSH(domain, identity, repository string) string {
 	trimmedDomain := domain
 	trimmedDomain = strings.Replace(trimmedDomain, "https://", "", -1)

@@ -183,7 +183,7 @@ func update(ctx context.Context, c *Client, orgKey, repoSlug string, repository 
 	return apiObj, nil
 }
 
-func delete(ctx context.Context, c *Client, orgKey, repoSlug string) error {
+func deleteRepository(ctx context.Context, c *Client, orgKey, repoSlug string) error {
 	if err := c.Repositories.Delete(ctx, orgKey, repoSlug); err != nil {
 		return fmt.Errorf("failed to delete repository: %w", err)
 	}
@@ -310,7 +310,7 @@ func setDefaultBranch(ctx context.Context, c *Client, orgKey, branch string, rep
 }
 
 func initRepo(ctx context.Context, c *Client, initCommit *CreateCommit, repo *Repository) error {
-	r, dir, err := c.Git.InitRepository(ctx, initCommit, true)
+	r, dir, err := c.Git.InitRepository(initCommit, true)
 	if err != nil {
 		if err := c.Repositories.Delete(ctx, repo.Project.Key, repo.Slug); err != nil {
 			return fmt.Errorf("failed to delete repository: %w", err)

@@ -158,7 +158,7 @@ var _ = Describe("Stash Provider", func() {
 				AutoInit:        gitprovider.BoolVar(true),
 				LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateMIT),
 			})
-			return retryOp.Retry(err, fmt.Sprintf("new user repository: %s", repoRef.RepositoryName))
+			return retryOp.IsRetryable(err, fmt.Sprintf("new user repository: %s", repoRef.RepositoryName))
 		}, retryOp.Timeout(), retryOp.Interval()).Should(BeTrue())
 
 		// Expect the create to succeed, and have modified the state. Also validate the newRepo data
@@ -190,7 +190,7 @@ var _ = Describe("Stash Provider", func() {
 			if err == nil && len(commits) == 0 {
 				err = errors.New("empty commits list")
 			}
-			return retryOp.Retry(err, fmt.Sprintf("get commits, repository: %s", userRepo.Repository().GetRepository()))
+			return retryOp.IsRetryable(err, fmt.Sprintf("get commits, repository: %s", userRepo.Repository().GetRepository()))
 		}, retryOp.Timeout(), retryOp.Interval()).Should(BeTrue())
 
 		latestCommit := commits[0]

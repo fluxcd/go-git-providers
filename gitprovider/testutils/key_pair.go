@@ -34,18 +34,22 @@ type KeyPair struct {
 	PrivateKey []byte
 }
 
+// KeyPairGenerator generates a new key pair.
 type KeyPairGenerator interface {
 	Generate() (*KeyPair, error)
 }
 
+// RSAGenerator generates RSA key pairs.
 type RSAGenerator struct {
 	bits int
 }
 
+// NewRSAGenerator returns a new RSA key pair generator.
 func NewRSAGenerator(bits int) KeyPairGenerator {
 	return &RSAGenerator{bits}
 }
 
+// Generate generates a new key pair.
 func (g *RSAGenerator) Generate() (*KeyPair, error) {
 	pk, err := rsa.GenerateKey(rand.Reader, g.bits)
 	if err != nil {
@@ -69,14 +73,17 @@ func (g *RSAGenerator) Generate() (*KeyPair, error) {
 	}, nil
 }
 
+// ECDSAGenerator generates ECDSA key pairs.
 type ECDSAGenerator struct {
 	c elliptic.Curve
 }
 
+// NewECDSAGenerator returns a new ECDSA key pair generator.
 func NewECDSAGenerator(c elliptic.Curve) KeyPairGenerator {
 	return &ECDSAGenerator{c}
 }
 
+// Generate generates a new key pair.
 func (g *ECDSAGenerator) Generate() (*KeyPair, error) {
 	pk, err := ecdsa.GenerateKey(g.c, rand.Reader)
 	if err != nil {
@@ -96,12 +103,15 @@ func (g *ECDSAGenerator) Generate() (*KeyPair, error) {
 	}, nil
 }
 
+// Ed25519Generator generates Ed25519 key pairs.
 type Ed25519Generator struct{}
 
+// NewEd25519Generator returns a new Ed25519 key pair generator.
 func NewEd25519Generator() KeyPairGenerator {
 	return &Ed25519Generator{}
 }
 
+// Generate generates a new key pair.
 func (g *Ed25519Generator) Generate() (*KeyPair, error) {
 	pk, pv, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {

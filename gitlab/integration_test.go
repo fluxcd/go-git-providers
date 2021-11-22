@@ -23,7 +23,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"os"
@@ -90,9 +89,9 @@ type customTransport struct {
 }
 
 func getBodyFromReaderWithoutConsuming(r *io.ReadCloser) string {
-	body, _ := ioutil.ReadAll(*r)
+	body, _ := io.ReadAll(*r)
 	(*r).Close()
-	*r = ioutil.NopCloser(bytes.NewBuffer(body))
+	*r = io.NopCloser(bytes.NewBuffer(body))
 	return string(body)
 }
 
@@ -124,7 +123,7 @@ func (t *customTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 			strings.Contains(string(responseBody), ProjectStillBeingDeleted) {
 			time.Sleep(2 * time.Second)
 			if req != nil && req.Body != nil {
-				req.Body = ioutil.NopCloser(strings.NewReader(requestBody))
+				req.Body = io.NopCloser(strings.NewReader(requestBody))
 			}
 			retryCount--
 			continue
@@ -189,7 +188,7 @@ var _ = Describe("GitLab Provider", func() {
 	BeforeSuite(func() {
 		gitlabToken := os.Getenv("GITLAB_TOKEN")
 		if len(gitlabToken) == 0 {
-			b, err := ioutil.ReadFile(ghTokenFile)
+			b, err := os.ReadFile(ghTokenFile)
 			if token := string(b); err == nil && len(token) != 0 {
 				gitlabToken = token
 			} else {

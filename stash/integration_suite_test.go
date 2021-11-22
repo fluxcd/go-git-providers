@@ -19,7 +19,6 @@ package stash
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"os"
@@ -186,7 +185,7 @@ var _ = Describe("Stash Provider", func() {
 
 		stashToken := os.Getenv("STASH_TOKEN")
 		if stashToken == "" {
-			b, err := ioutil.ReadFile(stashTokenFile)
+			b, err := os.ReadFile(stashTokenFile)
 			if token := string(b); err == nil && token != "" {
 				stashToken = token
 			} else {

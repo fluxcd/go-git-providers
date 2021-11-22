@@ -20,7 +20,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"os"
@@ -140,7 +139,7 @@ var _ = Describe("GitHub Provider", func() {
 	BeforeSuite(func() {
 		githubToken := os.Getenv("GITHUB_TOKEN")
 		if len(githubToken) == 0 {
-			b, err := ioutil.ReadFile(ghTokenFile)
+			b, err := os.ReadFile(ghTokenFile)
 			if token := string(b); err == nil && len(token) != 0 {
 				githubToken = token
 			} else {

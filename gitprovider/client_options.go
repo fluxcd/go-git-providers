@@ -17,6 +17,8 @@ limitations under the License.
 package gitprovider
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"net/http"
 
@@ -59,6 +61,9 @@ type CommonClientOptions struct {
 
 	// Logger allows the caller to pass a logger for use by the provider
 	Logger *logr.Logger
+
+	// CABundle is a []byte containing the CA bundle to use for the client.
+	CABundle []byte
 }
 
 // ApplyToCommonClientOptions applies the currently set fields in opts to target. If both opts and
@@ -106,6 +111,14 @@ func (opts *CommonClientOptions) ApplyToCommonClientOptions(target *CommonClient
 		}
 		target.Logger = opts.Logger
 	}
+
+	if opts.CABundle != nil {
+		if target.CABundle != nil {
+			return fmt.Errorf("option CABundle already configured: %w", ErrInvalidClientOptions)
+		}
+		target.CABundle = opts.CABundle
+	}
+
 	return nil
 }
 
@@ -291,4 +304,33 @@ func MakeClientOptions(opts ...ClientOption) (*ClientOptions, error) {
 		}
 	}
 	return o, nil
+}
+
+// WithCustomCAPostChainTransportHook registers a ChainableRoundTripperFunc "after" the cache and authentication
+// transports in the chain.
+func WithCustomCAPostChainTransportHook(caBundle []byte) ClientOption {
+	// Don't allow an empty value
+	if len(caBundle) == 0 {
+		return optionError(fmt.Errorf("caBundle cannot be empty: %w", ErrInvalidClientOptions))
+	}
+
+	return buildCommonOption(CommonClientOptions{CABundle: caBundle, PostChainTransportHook: caCustomTransport(caBundle)})
+}
+
+func caCustomTransport(caBundle []byte) ChainableRoundTripperFunc {
+	return func(_ http.RoundTripper) http.RoundTripper {
+		// discard error, as we're only using it to check if rootCA is empty
+		rootCAs, _ := x509.SystemCertPool()
+		if rootCAs == nil {
+			rootCAs = x509.NewCertPool()
+		}
+
+		rootCAs.AppendCertsFromPEM(caBundle)
+
+		return &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs: rootCAs,
+			},
+		}
+	}
 }

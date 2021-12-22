@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
@@ -191,6 +192,17 @@ func validateOrganizationRef(ref gitprovider.OrganizationRef, expectedDomain str
 // validateIdentityFields makes sure the type of the IdentityRef is supported, and the domain is as expected.
 func validateIdentityFields(ref gitprovider.IdentityRef, expectedDomain string) error {
 	// Make sure the expected domain is used
+
+	// For custom domains ensure the expected domain only includes host
+	// and port information but not the scheme.
+	if expectedDomain != DefaultDomain {
+		d, err := url.Parse(expectedDomain)
+		if err != nil {
+			return err
+		}
+		expectedDomain = d.Host
+	}
+
 	if ref.GetDomain() != expectedDomain {
 		return fmt.Errorf("domain %q not supported by this client: %w", ref.GetDomain(), gitprovider.ErrDomainUnsupported)
 	}

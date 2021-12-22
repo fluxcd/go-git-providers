@@ -17,6 +17,8 @@ limitations under the License.
 package gitlab
 
 import (
+	"net/url"
+
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	gogitlab "github.com/xanzy/go-gitlab"
 )
@@ -35,6 +37,21 @@ func NewClient(token string, tokenType string, optFns ...gitprovider.ClientOptio
 	opts, err := gitprovider.MakeClientOptions(optFns...)
 	if err != nil {
 		return nil, err
+	}
+
+	// Ensure that the URL includes a scheme when using a custom domain.
+	if opts.Domain != nil && *opts.Domain != "" {
+		d, err := url.Parse(*opts.Domain)
+		if err != nil {
+			return nil, err
+		}
+		if d.Scheme != "http" && d.Scheme != "https" {
+			u := url.URL{
+				Scheme: "https",
+				Host:   *opts.Domain,
+			}
+			*opts.Domain = u.String()
+		}
 	}
 
 	// Create a *http.Client using the transport chain

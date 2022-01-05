@@ -70,16 +70,17 @@ func (c *CommitClient) Create(_ context.Context, branch string, message string, 
 		return nil, fmt.Errorf("no files added")
 	}
 
-	fileAction := gitlab.FileCreate
-
 	commitActions := make([]*gitlab.CommitActionOptions, 0)
 	for _, file := range files {
-		filePath := *file.Path
-		fileContent := *file.Content
+		fileAction := gitlab.FileCreate
+		if file.Content == nil {
+			fileAction = gitlab.FileDelete
+		}
+
 		commitActions = append(commitActions, &gitlab.CommitActionOptions{
 			Action:   &fileAction,
-			FilePath: &filePath,
-			Content:  &fileContent,
+			FilePath: file.Path,
+			Content:  file.Content,
 		})
 	}
 

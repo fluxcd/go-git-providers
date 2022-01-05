@@ -729,7 +729,7 @@ var _ = Describe("GitLab Provider", func() {
 		validateUserRepo(newRepo, repoRef)
 	})
 
-	It("should be possible to create a pr for a user repository", func() {
+	FIt("should be possible to create a pr for a user repository", func() {
 
 		testRepoName = fmt.Sprintf("test-repo2-%03d", rand.Intn(1000))
 		repoRef := newUserRepoRef(testUserName, testRepoName)
@@ -764,14 +764,14 @@ var _ = Describe("GitLab Provider", func() {
 		branchName := fmt.Sprintf("test-branch-%03d", rand.Intn(1000))
 		branchName2 := fmt.Sprintf("test-branch-%03d", rand.Intn(1000))
 
-		err = userRepo.Branches().Create(ctx, branchName, latestCommit.Get().Sha)
-		Expect(err).ToNot(HaveOccurred())
-
 		err = userRepo.Branches().Create(ctx, branchName2, "wrong-sha")
 		Expect(err).To(HaveOccurred())
 
+		err = userRepo.Branches().Create(ctx, branchName, latestCommit.Get().Sha)
+		Expect(err).ToNot(HaveOccurred())
+
 		path := "setup/config.txt"
-		content := "yaml content"
+		content := "yaml content 1"
 		files := []gitprovider.CommitFile{
 			{
 				Path:    &path,
@@ -786,6 +786,7 @@ var _ = Describe("GitLab Provider", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		prs, err := userRepo.PullRequests().List(ctx)
+		Expect(err).ToNot(HaveOccurred())
 		Expect(len(prs)).To(Equal(1))
 		Expect(prs[0].Get().WebURL).To(Equal(pr.Get().WebURL))
 
@@ -794,24 +795,33 @@ var _ = Describe("GitLab Provider", func() {
 		err = userRepo.PullRequests().Merge(ctx, pr.Get().Number, gitprovider.MergeMethodSquash, "squash merged")
 		Expect(err).ToNot(HaveOccurred())
 
-		getPR, err := userRepo.PullRequests().Get(ctx, pr.Get().Number)
+		expectPRToBeMerged(ctx, userRepo, pr.Get().Number)
+
+		// another pr
+
+		commits, err = userRepo.Commits().ListPage(ctx, defaultBranch, 1, 0)
+		Expect(err).ToNot(HaveOccurred())
+		latestCommit = commits[0]
+		err = userRepo.Branches().Create(ctx, branchName2, latestCommit.Get().Sha)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(getPR.Get().Merged).To(BeTrue())
-
-		path = "setup/config2.txt"
-		content = "yaml content"
+		path2 := "setup/config2.txt"
+		content2 := "yaml content 2"
 		files = []gitprovider.CommitFile{
-			gitprovider.CommitFile{
+			{
 				Path:    &path,
-				Content: &content,
+				Content: nil,
+			},
+			{
+				Path:    &path2,
+				Content: &content2,
 			},
 		}
 
-		_, err = userRepo.Commits().Create(ctx, branchName, "added second config file", files)
+		_, err = userRepo.Commits().Create(ctx, branchName2, "added second config file and removed first", files)
 		Expect(err).ToNot(HaveOccurred())
 
-		pr, err = userRepo.PullRequests().Create(ctx, "Added second config file", branchName, defaultBranch, "added second config file")
+		pr, err = userRepo.PullRequests().Create(ctx, "Added second config file", branchName2, defaultBranch, "added second config file")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(pr.Get().WebURL).ToNot(BeEmpty())
 		Expect(pr.Get().Merged).To(BeFalse())
@@ -819,10 +829,14 @@ var _ = Describe("GitLab Provider", func() {
 		err = userRepo.PullRequests().Merge(ctx, pr.Get().Number, gitprovider.MergeMethodMerge, "merged")
 		Expect(err).ToNot(HaveOccurred())
 
-		getPR, err = userRepo.PullRequests().Get(ctx, pr.Get().Number)
-		Expect(err).ToNot(HaveOccurred())
+		expectPRToBeMerged(ctx, userRepo, pr.Get().Number)
 
-		Expect(getPR.Get().Merged).To(BeTrue())
+		gitlabClient := c.Raw().(*gitlab.Client)
+		_, res, err := gitlabClient.RepositoryFiles.GetFile(testUserName+"/"+testRepoName, path, &gitlab.GetFileOptions{
+			Ref: gitlab.String(defaultBranchName),
+		})
+		Expect(err).To(HaveOccurred())
+		Expect(res.StatusCode).To(Equal(404))
 	})
 
 	AfterSuite(func() {
@@ -871,6 +885,14 @@ var _ = Describe("GitLab Provider", func() {
 		Expect(repo.Delete(ctx)).ToNot(HaveOccurred())
 	})
 })
+
+func expectPRToBeMerged(ctx context.Context, userRepo gitprovider.UserRepository, prNumber int) {
+	Eventually(func() bool {
+		getPR, err := userRepo.PullRequests().Get(ctx, prNumber)
+		Expect(err).ToNot(HaveOccurred())
+		return getPR.Get().Merged
+	}, time.Second*5).Should(BeTrue(), `PR status didn't change to "merged"`)
+}
 
 func newOrgRef(organizationName string) gitprovider.OrganizationRef {
 	return gitprovider.OrganizationRef{

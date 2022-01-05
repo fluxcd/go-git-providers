@@ -729,7 +729,7 @@ var _ = Describe("GitLab Provider", func() {
 		validateUserRepo(newRepo, repoRef)
 	})
 
-	FIt("should be possible to create a pr for a user repository", func() {
+	It("should be possible to create a pr for a user repository", func() {
 
 		testRepoName = fmt.Sprintf("test-repo2-%03d", rand.Intn(1000))
 		repoRef := newUserRepoRef(testUserName, testRepoName)

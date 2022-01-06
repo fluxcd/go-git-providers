@@ -172,7 +172,7 @@ func NewClient(httpClient *http.Client, host string, header *http.Header, logger
 		return nil, errors.New("host is required")
 	}
 
-	if logger == nil {
+	if (logr.Logger{} == logger) {
 		return nil, errors.New("logger is required")
 	}
 

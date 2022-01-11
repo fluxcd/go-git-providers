@@ -20,7 +20,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/google/go-github/v35/github"
+	"github.com/google/go-github/v41/github"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
@@ -77,7 +77,7 @@ func (c *Client) ProviderID() gitprovider.ProviderID {
 	return ProviderID
 }
 
-// Raw returns the Go GitHub client (github.com/google/go-github/v35/github *Client)
+// Raw returns the Go GitHub client (github.com/google/go-github/v41/github *Client)
 // used under the hood for accessing GitHub.
 func (c *Client) Raw() interface{} {
 	return c.c.Client()

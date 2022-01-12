@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	gogitlab "github.com/xanzy/go-gitlab"
 )
 
 func TestSupportedDomain(t *testing.T) {
@@ -41,29 +40,14 @@ func TestSupportedDomain(t *testing.T) {
 			want: "https://my-gitlab.dev.com",
 		},
 		{
-			name: "custom domain without protocol with port",
-			opts: gitprovider.WithDomain("my-gitlab.dev.com:1234"),
-			want: "https://my-gitlab.dev.com:1234",
-		},
-		{
 			name: "custom domain with https protocol",
 			opts: gitprovider.WithDomain("https://my-gitlab.dev.com"),
 			want: "https://my-gitlab.dev.com",
 		},
 		{
-			name: "custom domain with https protocol with port",
-			opts: gitprovider.WithDomain("https://my-gitlab.dev.com:1234"),
-			want: "https://my-gitlab.dev.com:1234",
-		},
-		{
 			name: "custom domain with http protocol",
 			opts: gitprovider.WithDomain("http://my-gitlab.dev.com"),
 			want: "http://my-gitlab.dev.com",
-		},
-		{
-			name: "custom domain with http protocol with port",
-			opts: gitprovider.WithDomain("http://my-gitlab.dev.com:1234"),
-			want: "http://my-gitlab.dev.com:1234",
 		},
 	}
 	for _, tt := range tests {
@@ -73,61 +57,6 @@ func TestSupportedDomain(t *testing.T) {
 
 			c2, _ := NewClient("token", "pat", tt.opts)
 			assertEqual(t, tt.want, c2.SupportedDomain())
-		})
-	}
-}
-
-func TestBaseURL(t *testing.T) {
-	tests := []struct {
-		name     string
-		opts     gitprovider.ClientOption
-		expected string
-	}{
-		{
-			name:     "gitlab.com domain",
-			opts:     gitprovider.WithDomain("gitlab.com"),
-			expected: "https://gitlab.com/api/v4/",
-		},
-		{
-			name:     "custom domain without protocol",
-			opts:     gitprovider.WithDomain("my-gitlab.dev.com"),
-			expected: "https://my-gitlab.dev.com/api/v4/",
-		},
-		{
-			name:     "custom domain without protocol with port",
-			opts:     gitprovider.WithDomain("my-gitlab.dev.com:1234"),
-			expected: "https://my-gitlab.dev.com:1234/api/v4/",
-		},
-		{
-			name:     "custom domain with https protocol",
-			opts:     gitprovider.WithDomain("https://my-gitlab.dev.com"),
-			expected: "https://my-gitlab.dev.com/api/v4/",
-		},
-		{
-			name:     "custom domain with https protocol with port",
-			opts:     gitprovider.WithDomain("https://my-gitlab.dev.com:1234"),
-			expected: "https://my-gitlab.dev.com:1234/api/v4/",
-		},
-		{
-			name:     "custom domain with http protocol",
-			opts:     gitprovider.WithDomain("http://my-gitlab.dev.com"),
-			expected: "http://my-gitlab.dev.com/api/v4/",
-		},
-		{
-			name:     "custom domain with http protocol with port",
-			opts:     gitprovider.WithDomain("http://my-gitlab.dev.com:1234"),
-			expected: "http://my-gitlab.dev.com:1234/api/v4/",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c1, _ := NewClient("token", "oauth2", tt.opts)
-			gc1 := c1.Raw().(*gogitlab.Client)
-			assertEqual(t, tt.expected, gc1.BaseURL().String())
-
-			c2, _ := NewClient("token", "pat", tt.opts)
-			gc2 := c2.Raw().(*gogitlab.Client)
-			assertEqual(t, tt.expected, gc2.BaseURL().String())
 		})
 	}
 }

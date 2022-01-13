@@ -5,11 +5,16 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/fluxcd/go-git-providers)](https://goreportcard.com/report/github.com/fluxcd/go-git-providers)
 [![codecov.io](https://codecov.io/github/fluxcd/go-git-providers/coverage.svg?branch=master)](https://codecov.io/github/fluxcd/go-git-providers?branch=master)
 [![LICENSE](https://img.shields.io/github/license/fluxcd/go-git-providers)](https://github.com/fluxcd/go-git-providers/blob/master/LICENSE)
-[![Contributors](https://img.shields.io/github/contributors/fluxcd/go-git-providers)](https://github.com/fluxcd/go-git-providers/graphs/contributors)
 [![Release](https://img.shields.io/github/v/release/fluxcd/go-git-providers?include_prereleases)](https://github.com/fluxcd/go-git-providers/releases/latest)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://github.com/fluxcd/go-git-providers/blob/master/CONTRIBUTING.md)
 
-[go-git-providers](https://pkg.go.dev/github.com/fluxcd/go-git-providers) is a general-purpose Go client for interacting with Git providers' APIs (e.g. GitHub, GitLab, Bitbucket).
+[go-git-providers](https://pkg.go.dev/github.com/fluxcd/go-git-providers)
+is a general-purpose Go client for interacting with Git providers' APIs.
+
+Supported providers:
+
+- GitHub API (GitHub.com and on-prem)
+- GitLab API (GitLab.com and on-prem)
+- Bitbucket Server API (on-prem)
 
 ## Features
 
@@ -171,17 +176,6 @@ See the following (automatically tested) examples:
 
 - [github/example_organization_test.go](github/example_organization_test.go)
 - [github/example_repository_test.go](github/example_repository_test.go)
-
-
-If you need to run `make test` for your fork/branch you may need to supply the following environment variables:
-- GIT_PROVIDER_ORGANIZATION : For GitHub this should be an organization whereas for GitLab this should be a top-level group. As this environment variable is used for both test suites, the name of the GitHub organization must match the name of the GitLab top-level group. Also, this organization needs to have its repository default branch set to `main`.
-- GIT_PROVIDER_USER : This should be the same username for both GitHub and GitLab.
-- GITLAB_TEST_TEAM_NAME : An existing GitLab group.
-- GITLAB_TEST_SUBGROUP : An existing GitLab subgroup of the GIT_PROVIDER_ORGANIZATION top-level group.
-- GITPROVIDER_BOT_TOKEN : A GitHub token with `repo`, `admin:org` and `delete_repo` permissions.
-- GITLAB_TOKEN: A GitLab token with `api` scope.
-- TEST_VERBOSE: Set to '-v' to emit test output for debugging purposes
-- CLEANUP_ALL: Set to delete all test repos after testing.
 
 ## Getting Help
 

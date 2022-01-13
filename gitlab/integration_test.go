@@ -772,8 +772,8 @@ var _ = Describe("GitLab Provider", func() {
 
 		path := "setup/config.txt"
 		content := "yaml content 1"
-		files := []gitprovider.File{
-			gitprovider.File{
+		files := []gitprovider.CommitFile{
+			{
 				Path:    &path,
 				Content: &content,
 			},
@@ -849,30 +849,26 @@ var _ = Describe("GitLab Provider", func() {
 		defaultBranch := userRepo.Get().DefaultBranch
 
 		path0 := "cluster/machine1.yaml"
-		name0 := "machine1.yaml"
 		content0 := "machine1 yaml content"
 		path1 := "cluster/machine2.yaml"
-		name1 := "machine2.yaml"
 		content1 := "machine2 yaml content"
 
-		files := []gitprovider.File{
+		files := []gitprovider.CommitFile{
 			{
 				Path:    &path0,
-				Name:    &name0,
 				Content: &content0,
 			},
 			{
 				Path:    &path1,
-				Name:    &name1,
 				Content: &content1,
 			},
 		}
 
-		commitFiles := make([]gitprovider.File, 0)
+		commitFiles := make([]gitprovider.CommitFile, 0)
 		for _, file := range files {
 			path := file.Path
 			content := file.Content
-			commitFiles = append(commitFiles, gitprovider.File{
+			commitFiles = append(commitFiles, gitprovider.CommitFile{
 				Path:    path,
 				Content: content,
 			})

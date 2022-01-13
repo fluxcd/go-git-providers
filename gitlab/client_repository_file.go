@@ -19,10 +19,11 @@ package gitlab
 import (
 	"context"
 	"encoding/base64"
-	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/xanzy/go-gitlab"
 	"io/ioutil"
 	"strings"
+
+	"github.com/fluxcd/go-git-providers/gitprovider"
+	"github.com/xanzy/go-gitlab"
 )
 
 // FileClient implements the gitprovider.FileClient interface.
@@ -34,7 +35,7 @@ type FileClient struct {
 	ref gitprovider.RepositoryRef
 }
 
-func (c *FileClient) Get(ctx context.Context, path, branch string) ([]*gitprovider.File, error) {
+func (c *FileClient) Get(ctx context.Context, path, branch string) ([]*gitprovider.CommitFile, error) {
 
 	opts := &gitlab.ListTreeOptions{
 		Path: &path,
@@ -50,23 +51,21 @@ func (c *FileClient) Get(ctx context.Context, path, branch string) ([]*gitprovid
 		Ref: &branch,
 	}
 
-	files := make([]*gitprovider.File, 0)
+	files := make([]*gitprovider.CommitFile, 0)
 	for _, file := range listFiles {
 		fileDownloaded, _, err := c.c.Client().RepositoryFiles.GetFile(getRepoPath(c.ref), file.Path, fileOpts)
 		if err != nil {
 			return nil, err
 		}
 		filePath := fileDownloaded.FilePath
-		fileName := fileDownloaded.FileName
 		fileContentDecoded := base64.NewDecoder(base64.RawStdEncoding, strings.NewReader(fileDownloaded.Content))
 		fileBytes, err := ioutil.ReadAll(fileContentDecoded)
 		if err != nil {
 			return nil, err
 		}
 		fileStr := string(fileBytes)
-		files = append(files, &gitprovider.File{
+		files = append(files, &gitprovider.CommitFile{
 			Path:    &filePath,
-			Name:    &fileName,
 			Content: &fileStr,
 		})
 	}

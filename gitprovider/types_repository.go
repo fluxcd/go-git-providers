@@ -202,15 +202,11 @@ type CommitInfo struct {
 	URL string `json:"url"`
 }
 
-// File contains high-level information about a file either add it to a commit or for content downloads
-type File struct {
+// CommitFile contains high-level information about a file added to a commit.
+type CommitFile struct {
 	// Path is path where this file is located.
 	// +required
 	Path *string `json:"path"`
-
-	// Name is path where this file is located.
-	//
-	Name *string `json:"name"`
 
 	// Content is the content of the file.
 	// +required

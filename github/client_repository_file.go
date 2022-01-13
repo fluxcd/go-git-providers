@@ -19,9 +19,10 @@ package github
 import (
 	"context"
 	"fmt"
-	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/google/go-github/v32/github"
 	"io/ioutil"
+
+	"github.com/fluxcd/go-git-providers/gitprovider"
+	"github.com/google/go-github/v41/github"
 )
 
 // FileClient implements the gitprovider.FileClient interface.
@@ -33,7 +34,7 @@ type FileClient struct {
 	ref gitprovider.RepositoryRef
 }
 
-func (c *FileClient) Get(ctx context.Context, path, branch string) ([]*gitprovider.File, error) {
+func (c *FileClient) Get(ctx context.Context, path, branch string) ([]*gitprovider.CommitFile, error) {
 
 	opts := &github.RepositoryContentGetOptions{
 		Ref: branch,
@@ -48,12 +49,11 @@ func (c *FileClient) Get(ctx context.Context, path, branch string) ([]*gitprovid
 		return nil, fmt.Errorf("no files found on this path[%s]", path)
 	}
 
-	files := make([]*gitprovider.File, 0)
+	files := make([]*gitprovider.CommitFile, 0)
 
 	for _, file := range directoryContent {
 		filePath := file.Path
-		name := file.Name
-		output, err := c.c.Client().Repositories.DownloadContents(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), *filePath, opts)
+		output, _, err := c.c.Client().Repositories.DownloadContents(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), *filePath, opts)
 		if err != nil {
 			return nil, err
 		}
@@ -61,10 +61,13 @@ func (c *FileClient) Get(ctx context.Context, path, branch string) ([]*gitprovid
 		if err != nil {
 			return nil, err
 		}
+		err = output.Close()
+		if err != nil {
+			return nil, err
+		}
 		contentStr := string(content)
-		files = append(files, &gitprovider.File{
+		files = append(files, &gitprovider.CommitFile{
 			Path:    filePath,
-			Name:    name,
 			Content: &contentStr,
 		})
 	}

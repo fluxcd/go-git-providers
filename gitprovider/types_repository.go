@@ -18,6 +18,7 @@ package gitprovider
 
 import (
 	"reflect"
+	"time"
 
 	"github.com/fluxcd/go-git-providers/validation"
 )
@@ -30,7 +31,7 @@ const (
 	// the default branch name.
 	// TODO: When enough Git providers support setting this at both POST and PATCH-time
 	// (including when auto-initing), change this to "main".
-	defaultBranchName = "master"
+	defaultBranchName = "main"
 	// by default, deploy keys are read-only.
 	defaultDeployKeyReadOnly = true
 )
@@ -187,6 +188,18 @@ type CommitInfo struct {
 	// TreeSha is the tree sha this commit belongs to.
 	// +required
 	TreeSha string `json:"tree_sha"`
+
+	// Author is the author of the commit
+	Author string `json:"author"`
+
+	// Message is the commit message
+	Message string `json:"message"`
+
+	// CreatedAt is the time the commit was created
+	CreatedAt time.Time `json:"created_at"`
+
+	// URL is the link for the commit
+	URL string `json:"url"`
 }
 
 // File contains high-level information about a file either add it to a commit or for content downloads
@@ -202,4 +215,17 @@ type File struct {
 	// Content is the content of the file.
 	// +required
 	Content *string `json:"content"`
+}
+
+// PullRequestInfo contains high-level information about a pull request.
+type PullRequestInfo struct {
+	// Merged specifes whether or not this pull request has been merged
+	Merged bool `json:"merged"`
+
+	// Number is the number of the pull request that can be used to merge
+	Number int `json:"number"`
+
+	// WebURL is the URL of the pull request in the git provider web interface.
+	// +required
+	WebURL string `json:"web_url"`
 }

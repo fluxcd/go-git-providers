@@ -18,8 +18,9 @@ package github
 
 import (
 	"context"
+
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/google/go-github/v32/github"
+	"github.com/google/go-github/v41/github"
 )
 
 // PullRequestClient implements the gitprovider.PullRequestClient interface.
@@ -31,8 +32,24 @@ type PullRequestClient struct {
 	ref gitprovider.RepositoryRef
 }
 
+// List lists all pull requests in the repository
+func (c *PullRequestClient) List(ctx context.Context) ([]gitprovider.PullRequest, error) {
+	prs, _, err := c.c.Client().PullRequests.List(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	requests := make([]gitprovider.PullRequest, len(prs))
+
+	for idx, pr := range prs {
+		requests[idx] = newPullRequest(c.clientContext, pr)
+	}
+
+	return requests, nil
+}
+
 // Create creates a pull request with the given specifications.
-func (c *PullRequestClient) Create(ctx context.Context, title, branch, baseBranch, description string) error {
+func (c *PullRequestClient) Create(ctx context.Context, title, branch, baseBranch, description string) (gitprovider.PullRequest, error) {
 
 	prOpts := &github.NewPullRequest{
 		Title: &title,
@@ -41,7 +58,36 @@ func (c *PullRequestClient) Create(ctx context.Context, title, branch, baseBranc
 		Body:  &description,
 	}
 
-	if _, _, err := c.c.Client().PullRequests.Create(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), prOpts); err != nil {
+	pr, _, err := c.c.Client().PullRequests.Create(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), prOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	return newPullRequest(c.clientContext, pr), nil
+}
+
+// Get retrieves an existing pull request by number
+func (c *PullRequestClient) Get(ctx context.Context, number int) (gitprovider.PullRequest, error) {
+
+	pr, _, err := c.c.Client().PullRequests.Get(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), number)
+	if err != nil {
+		return nil, err
+	}
+
+	return newPullRequest(c.clientContext, pr), nil
+}
+
+// Merge merges a pull request with the given specifications.
+func (c *PullRequestClient) Merge(ctx context.Context, number int, mergeMethod gitprovider.MergeMethod, message string) error {
+
+	prOpts := &github.PullRequestOptions{
+		CommitTitle: "",
+		SHA:         "",
+		MergeMethod: string(mergeMethod),
+	}
+
+	_, _, err := c.c.Client().PullRequests.Merge(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), number, message, prOpts)
+	if err != nil {
 		return err
 	}
 

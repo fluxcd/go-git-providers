@@ -20,7 +20,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/google/go-github/v32/github"
+	"github.com/google/go-github/v41/github"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
@@ -77,7 +77,7 @@ func (c *Client) ProviderID() gitprovider.ProviderID {
 	return ProviderID
 }
 
-// Raw returns the Go GitHub client (github.com/google/go-github/v32/github *Client)
+// Raw returns the Go GitHub client (github.com/google/go-github/v41/github *Client)
 // used under the hood for accessing GitHub.
 func (c *Client) Raw() interface{} {
 	return c.c.Client()
@@ -103,6 +103,7 @@ var permissionScopes = map[gitprovider.TokenPermission]string{
 	gitprovider.TokenPermissionRWRepository: "repo",
 }
 
+// HasTokenPermission returns true if the given token has the given permissions.
 func (c *Client) HasTokenPermission(ctx context.Context, permission gitprovider.TokenPermission) (bool, error) {
 	requestedScope, ok := permissionScopes[permission]
 	if !ok {

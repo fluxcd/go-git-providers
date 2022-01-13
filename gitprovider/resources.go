@@ -90,6 +90,11 @@ type OrgRepository interface {
 	TeamAccess() TeamAccessClient
 }
 
+// CloneableURL returns the HTTPS URL to clone the repository.
+type CloneableURL interface {
+	GetCloneURL(prefix string, transport TransportType) string
+}
+
 // DeployKey represents a short-lived credential (e.g. an SSH public key) used to access a repository.
 type DeployKey interface {
 	// DeployKey implements the Object interface,
@@ -140,4 +145,14 @@ type Commit interface {
 
 	// Get returns high-level information about this commit.
 	Get() CommitInfo
+}
+
+// PullRequest represents a pull request.
+type PullRequest interface {
+	// Object implements the Object interface,
+	// allowing access to the underlying object returned from the API.
+	Object
+
+	// Get returns high-level information about this pull request.
+	Get() PullRequestInfo
 }

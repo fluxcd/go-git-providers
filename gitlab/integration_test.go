@@ -23,7 +23,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"os"
@@ -50,7 +49,7 @@ const (
 	gitlabDomain = "gitlab.com"
 
 	defaultDescription = "Foo description"
-	defaultBranch      = "master"
+	defaultBranch      = "main"
 )
 
 var (
@@ -90,9 +89,9 @@ type customTransport struct {
 }
 
 func getBodyFromReaderWithoutConsuming(r *io.ReadCloser) string {
-	body, _ := ioutil.ReadAll(*r)
+	body, _ := io.ReadAll(*r)
 	(*r).Close()
-	*r = ioutil.NopCloser(bytes.NewBuffer(body))
+	*r = io.NopCloser(bytes.NewBuffer(body))
 	return string(body)
 }
 
@@ -124,7 +123,7 @@ func (t *customTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 			strings.Contains(string(responseBody), ProjectStillBeingDeleted) {
 			time.Sleep(2 * time.Second)
 			if req != nil && req.Body != nil {
-				req.Body = ioutil.NopCloser(strings.NewReader(requestBody))
+				req.Body = io.NopCloser(strings.NewReader(requestBody))
 			}
 			retryCount--
 			continue
@@ -189,7 +188,7 @@ var _ = Describe("GitLab Provider", func() {
 	BeforeSuite(func() {
 		gitlabToken := os.Getenv("GITLAB_TOKEN")
 		if len(gitlabToken) == 0 {
-			b, err := ioutil.ReadFile(ghTokenFile)
+			b, err := os.ReadFile(ghTokenFile)
 			if token := string(b); err == nil && len(token) != 0 {
 				gitlabToken = token
 			} else {
@@ -216,21 +215,22 @@ var _ = Describe("GitLab Provider", func() {
 		var err error
 		c, err = NewClient(
 			gitlabToken, "",
-			WithDomain(gitlabDomain),
-			WithDestructiveAPICalls(true),
-			WithConditionalRequests(true),
-			WithPreChainTransportHook(customTransportFactory),
+			gitprovider.WithDomain(gitlabDomain),
+			gitprovider.WithDestructiveAPICalls(true),
+			gitprovider.WithConditionalRequests(true),
+			gitprovider.WithPreChainTransportHook(customTransportFactory),
 		)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
 	validateOrgRepo := func(repo gitprovider.OrgRepository, expectedRepoRef gitprovider.RepositoryRef) {
 		info := repo.Get()
+		fmt.Fprintf(os.Stderr, "validating repo: %s\n", repo.Repository().GetRepository())
 		// Expect certain fields to be set
 		Expect(repo.Repository()).To(Equal(expectedRepoRef))
 		Expect(*info.Description).To(Equal(defaultDescription))
 		Expect(*info.Visibility).To(Equal(gitprovider.RepositoryVisibilityPrivate))
-		Expect(*info.DefaultBranch).To(Equal(masterBranchName))
+		Expect(*info.DefaultBranch).To(Equal(defaultBranchName))
 		// Expect high-level fields to match their underlying data
 		internal := repo.APIObject().(*gitlab.Project)
 		Expect(repo.Repository().GetRepository()).To(Equal(internal.Name))
@@ -246,7 +246,7 @@ var _ = Describe("GitLab Provider", func() {
 		Expect(repo.Repository()).To(Equal(expectedRepoRef))
 		Expect(*info.Description).To(Equal(defaultDescription))
 		Expect(*info.Visibility).To(Equal(gitprovider.RepositoryVisibilityPrivate))
-		Expect(*info.DefaultBranch).To(Equal(masterBranchName))
+		Expect(*info.DefaultBranch).To(Equal(defaultBranchName))
 		// Expect high-level fields to match their underlying data
 		internal := repo.APIObject().(*gitlab.Project)
 		Expect(repo.Repository().GetRepository()).To(Equal(internal.Name))
@@ -254,6 +254,38 @@ var _ = Describe("GitLab Provider", func() {
 		Expect(*info.Description).To(Equal(internal.Description))
 		Expect(string(*info.Visibility)).To(Equal(string(internal.Visibility)))
 		Expect(*info.DefaultBranch).To(Equal(internal.DefaultBranch))
+	}
+
+	cleanupOrgRepos := func(prefix string) {
+		fmt.Fprintf(os.Stderr, "Deleting repos starting with %s in org: %s\n", prefix, testOrgName)
+		repos, err := c.OrgRepositories().List(ctx, newOrgRef(testOrgName))
+		Expect(err).ToNot(HaveOccurred())
+		for _, repo := range repos {
+			// Delete the test org repo used
+			name := repo.Repository().GetRepository()
+			if !strings.HasPrefix(name, prefix) {
+				continue
+			}
+			fmt.Fprintf(os.Stderr, "Deleting the org repo: %s\n", name)
+			repo.Delete(ctx)
+			Expect(err).ToNot(HaveOccurred())
+		}
+	}
+
+	cleanupUserRepos := func(prefix string) {
+		fmt.Fprintf(os.Stderr, "Deleting repos starting with %s for user: %s\n", prefix, testUserName)
+		repos, err := c.UserRepositories().List(ctx, newUserRef(testUserName))
+		Expect(err).ToNot(HaveOccurred())
+		for _, repo := range repos {
+			// Delete the test org repo used
+			name := repo.Repository().GetRepository()
+			if !strings.HasPrefix(name, prefix) {
+				continue
+			}
+			fmt.Fprintf(os.Stderr, "Deleting the org repo: %s\n", name)
+			repo.Delete(ctx)
+			Expect(err).ToNot(HaveOccurred())
+		}
 	}
 
 	It("should list the available organizations the user has access to", func() {
@@ -389,15 +421,20 @@ var _ = Describe("GitLab Provider", func() {
 		// Delete the repository and later re-create
 		Expect(resp.Delete(ctx)).ToNot(HaveOccurred())
 
-		// Reconcile and create
-		newRepo, actionTaken, err := c.OrgRepositories().Reconcile(ctx, repoRef, gitprovider.RepositoryInfo{
-			Description: gitprovider.StringVar(defaultDescription),
-		}, &gitprovider.RepositoryCreateOptions{
-			AutoInit:        gitprovider.BoolVar(true),
-			LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateMIT),
-		})
-		// Expect the create to succeed, and have modified the state. Also validate the newRepo data
-		Expect(err).ToNot(HaveOccurred())
+		var newRepo gitprovider.OrgRepository
+		retryOp := testutils.NewRetry()
+		Eventually(func() bool {
+			var err error
+			// Reconcile and create
+			newRepo, actionTaken, err = c.OrgRepositories().Reconcile(ctx, repoRef, gitprovider.RepositoryInfo{
+				Description: gitprovider.StringVar(defaultDescription),
+			}, &gitprovider.RepositoryCreateOptions{
+				AutoInit:        gitprovider.BoolVar(true),
+				LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateMIT),
+			})
+			return retryOp.IsRetryable(err, fmt.Sprintf("reconcile org repository: %s", repoRef.RepositoryName))
+		}, retryOp.Timeout(), retryOp.Interval()).Should(BeTrue())
+
 		Expect(actionTaken).To(BeTrue())
 		validateOrgRepo(newRepo, repoRef)
 	})
@@ -604,10 +641,12 @@ var _ = Describe("GitLab Provider", func() {
 		repoRef := newUserRepoRef(testUserName, testRepoName)
 		_, err = c.UserRepositories().Get(ctx, repoRef)
 		Expect(errors.Is(err, gitprovider.ErrNotFound)).To(BeTrue())
+		db := defaultBranchName
 
 		// Create a new repo
 		repo, err := c.UserRepositories().Create(ctx, repoRef, gitprovider.RepositoryInfo{
-			Description: gitprovider.StringVar(defaultDescription),
+			DefaultBranch: &db,
+			Description:   gitprovider.StringVar(defaultDescription),
 			// Default visibility is private, no need to set this at least now
 			//Visibility:     gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
 		}, &gitprovider.RepositoryCreateOptions{
@@ -627,7 +666,7 @@ var _ = Describe("GitLab Provider", func() {
 
 		gitlabClient := c.Raw().(*gitlab.Client)
 		f, _, err := gitlabClient.RepositoryFiles.GetFile(testUserName+"/"+testRepoName, "README.md", &gitlab.GetFileOptions{
-			Ref: gitlab.String("master"),
+			Ref: gitlab.String(defaultBranchName),
 		})
 		Expect(err).ToNot(HaveOccurred())
 		fileContents, err := base64.StdEncoding.DecodeString(f.Content)
@@ -646,7 +685,7 @@ var _ = Describe("GitLab Provider", func() {
 		// No-op reconcile
 		resp, actionTaken, err := c.UserRepositories().Reconcile(ctx, repoRef, gitprovider.RepositoryInfo{
 			Description:   gitprovider.StringVar(defaultDescription),
-			DefaultBranch: gitprovider.StringVar(defaultBranch),
+			DefaultBranch: gitprovider.StringVar(defaultBranchName),
 			Visibility:    gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
 		})
 		Expect(err).ToNot(HaveOccurred())
@@ -671,15 +710,21 @@ var _ = Describe("GitLab Provider", func() {
 		// Delete the repository and later re-create
 		Expect(resp.Delete(ctx)).ToNot(HaveOccurred())
 
-		// Reconcile and create
-		newRepo, actionTaken, err := c.UserRepositories().Reconcile(ctx, repoRef, gitprovider.RepositoryInfo{
-			Description: gitprovider.StringVar(defaultDescription),
-		}, &gitprovider.RepositoryCreateOptions{
-			AutoInit:        gitprovider.BoolVar(true),
-			LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateMIT),
-		})
+		var newRepo gitprovider.UserRepository
+		retryOp := testutils.NewRetry()
+		Eventually(func() bool {
+			var err error
+			// Reconcile and create
+			newRepo, actionTaken, err = c.UserRepositories().Reconcile(ctx, repoRef, gitprovider.RepositoryInfo{
+				Description: gitprovider.StringVar(defaultDescription),
+			}, &gitprovider.RepositoryCreateOptions{
+				AutoInit:        gitprovider.BoolVar(true),
+				LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateMIT),
+			})
+			return retryOp.IsRetryable(err, fmt.Sprintf("new user repository: %s", repoRef.RepositoryName))
+		}, retryOp.Timeout(), retryOp.Interval()).Should(BeTrue())
+
 		// Expect the create to succeed, and have modified the state. Also validate the newRepo data
-		Expect(err).ToNot(HaveOccurred())
 		Expect(actionTaken).To(BeTrue())
 		validateUserRepo(newRepo, repoRef)
 	})
@@ -689,7 +734,7 @@ var _ = Describe("GitLab Provider", func() {
 		testRepoName = fmt.Sprintf("test-repo2-%03d", rand.Intn(1000))
 		repoRef := newUserRepoRef(testUserName, testRepoName)
 
-		defaultBranch := "master"
+		defaultBranch := defaultBranchName
 		description := "test description"
 		// Create a new repo
 		userRepo, err := c.UserRepositories().Create(ctx, repoRef,
@@ -703,22 +748,30 @@ var _ = Describe("GitLab Provider", func() {
 			})
 		Expect(err).ToNot(HaveOccurred())
 
-		commits, err := userRepo.Commits().ListPage(ctx, defaultBranch, 1, 0)
-		Expect(err).ToNot(HaveOccurred())
+		var commits []gitprovider.Commit = []gitprovider.Commit{}
+		retryOp := testutils.NewRetry()
+		Eventually(func() bool {
+			var err error
+			commits, err = userRepo.Commits().ListPage(ctx, defaultBranch, 1, 0)
+			if err == nil && len(commits) == 0 {
+				err = errors.New("empty commits list")
+			}
+			return retryOp.IsRetryable(err, fmt.Sprintf("get commits, repository: %s", userRepo.Repository().GetRepository()))
+		}, retryOp.Timeout(), retryOp.Interval()).Should(BeTrue())
 
 		latestCommit := commits[0]
 
 		branchName := fmt.Sprintf("test-branch-%03d", rand.Intn(1000))
 		branchName2 := fmt.Sprintf("test-branch-%03d", rand.Intn(1000))
 
-		err = userRepo.Branches().Create(ctx, branchName, latestCommit.Get().Sha)
-		Expect(err).ToNot(HaveOccurred())
-
 		err = userRepo.Branches().Create(ctx, branchName2, "wrong-sha")
 		Expect(err).To(HaveOccurred())
 
+		err = userRepo.Branches().Create(ctx, branchName, latestCommit.Get().Sha)
+		Expect(err).ToNot(HaveOccurred())
+
 		path := "setup/config.txt"
-		content := "yaml content"
+		content := "yaml content 1"
 		files := []gitprovider.File{
 			gitprovider.File{
 				Path:    &path,
@@ -729,9 +782,61 @@ var _ = Describe("GitLab Provider", func() {
 		_, err = userRepo.Commits().Create(ctx, branchName, "added config file", files)
 		Expect(err).ToNot(HaveOccurred())
 
-		err = userRepo.PullRequests().Create(ctx, "Added config file", branchName, defaultBranch, "added config file")
+		pr, err := userRepo.PullRequests().Create(ctx, "Added config file", branchName, defaultBranch, "added config file")
 		Expect(err).ToNot(HaveOccurred())
 
+		prs, err := userRepo.PullRequests().List(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(len(prs)).To(Equal(1))
+		Expect(prs[0].Get().WebURL).To(Equal(pr.Get().WebURL))
+
+		Expect(pr.Get().WebURL).ToNot(BeEmpty())
+		Expect(pr.Get().Merged).To(BeFalse())
+		err = userRepo.PullRequests().Merge(ctx, pr.Get().Number, gitprovider.MergeMethodSquash, "squash merged")
+		Expect(err).ToNot(HaveOccurred())
+
+		expectPRToBeMerged(ctx, userRepo, pr.Get().Number)
+
+		// another pr
+
+		commits, err = userRepo.Commits().ListPage(ctx, defaultBranch, 1, 0)
+		Expect(err).ToNot(HaveOccurred())
+		latestCommit = commits[0]
+		err = userRepo.Branches().Create(ctx, branchName2, latestCommit.Get().Sha)
+		Expect(err).ToNot(HaveOccurred())
+
+		path2 := "setup/config2.txt"
+		content2 := "yaml content 2"
+		files = []gitprovider.CommitFile{
+			{
+				Path:    &path,
+				Content: nil,
+			},
+			{
+				Path:    &path2,
+				Content: &content2,
+			},
+		}
+
+		_, err = userRepo.Commits().Create(ctx, branchName2, "added second config file and removed first", files)
+		Expect(err).ToNot(HaveOccurred())
+
+		pr, err = userRepo.PullRequests().Create(ctx, "Added second config file", branchName2, defaultBranch, "added second config file")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(pr.Get().WebURL).ToNot(BeEmpty())
+		Expect(pr.Get().Merged).To(BeFalse())
+
+		err = userRepo.PullRequests().Merge(ctx, pr.Get().Number, gitprovider.MergeMethodMerge, "merged")
+		Expect(err).ToNot(HaveOccurred())
+
+		expectPRToBeMerged(ctx, userRepo, pr.Get().Number)
+
+		gitlabClient := c.Raw().(*gitlab.Client)
+		_, res, err := gitlabClient.RepositoryFiles.GetFile(testUserName+"/"+testRepoName, path, &gitlab.GetFileOptions{
+			Ref: gitlab.String(defaultBranchName),
+		})
+		Expect(err).To(HaveOccurred())
+		Expect(res.StatusCode).To(Equal(404))
 	})
 
 	It("should be possible to download files from path and branch specified", func() {
@@ -794,6 +899,12 @@ var _ = Describe("GitLab Provider", func() {
 		if c == nil {
 			return
 		}
+
+		if len(os.Getenv("CLEANUP_ALL")) > 0 {
+			defer cleanupOrgRepos("test-org-repo")
+			defer cleanupOrgRepos("test-shared-org-repo")
+			defer cleanupUserRepos("test-repo")
+		}
 		// Delete the test repo used
 		fmt.Println("Deleting the user repo: ", testRepoName)
 		repoRef := newUserRepoRef(testUserName, testRepoName)
@@ -825,6 +936,14 @@ var _ = Describe("GitLab Provider", func() {
 		Expect(repo.Delete(ctx)).ToNot(HaveOccurred())
 	})
 })
+
+func expectPRToBeMerged(ctx context.Context, userRepo gitprovider.UserRepository, prNumber int) {
+	Eventually(func() bool {
+		getPR, err := userRepo.PullRequests().Get(ctx, prNumber)
+		Expect(err).ToNot(HaveOccurred())
+		return getPR.Get().Merged
+	}, time.Second*5).Should(BeTrue(), `PR status didn't change to "merged"`)
+}
 
 func newOrgRef(organizationName string) gitprovider.OrganizationRef {
 	return gitprovider.OrganizationRef{

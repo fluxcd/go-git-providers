@@ -37,12 +37,12 @@ type DeployKeyClient struct {
 // Get returns the repository at the given path.
 //
 // ErrNotFound is returned if the resource does not exist.
-func (c *DeployKeyClient) Get(ctx context.Context, deployKeyName string) (gitprovider.DeployKey, error) {
-	return c.get(ctx, deployKeyName)
+func (c *DeployKeyClient) Get(_ context.Context, deployKeyName string) (gitprovider.DeployKey, error) {
+	return c.get(deployKeyName)
 }
 
-func (c *DeployKeyClient) get(ctx context.Context, deployKeyName string) (*deployKey, error) {
-	deployKeys, err := c.list(ctx)
+func (c *DeployKeyClient) get(deployKeyName string) (*deployKey, error) {
+	deployKeys, err := c.list()
 	if err != nil {
 		return nil, err
 	}
@@ -59,8 +59,8 @@ func (c *DeployKeyClient) get(ctx context.Context, deployKeyName string) (*deplo
 //
 // List returns all available repository deploy keys for the given type,
 // using multiple paginated requests if needed.
-func (c *DeployKeyClient) List(ctx context.Context) ([]gitprovider.DeployKey, error) {
-	dks, err := c.list(ctx)
+func (c *DeployKeyClient) List(_ context.Context) ([]gitprovider.DeployKey, error) {
+	dks, err := c.list()
 	if err != nil {
 		return nil, err
 	}
@@ -72,9 +72,9 @@ func (c *DeployKeyClient) List(ctx context.Context) ([]gitprovider.DeployKey, er
 	return keys, nil
 }
 
-func (c *DeployKeyClient) list(ctx context.Context) ([]*deployKey, error) {
+func (c *DeployKeyClient) list() ([]*deployKey, error) {
 	// GET /repos/{owner}/{repo}/keys
-	apiObjs, err := c.c.ListKeys(ctx, getRepoPath(c.ref))
+	apiObjs, err := c.c.ListKeys(getRepoPath(c.ref))
 	if err != nil {
 		return nil, err
 	}
@@ -92,8 +92,8 @@ func (c *DeployKeyClient) list(ctx context.Context) ([]*deployKey, error) {
 // Create creates a deploy key with the given specifications.
 //
 // ErrAlreadyExists will be returned if the resource already exists.
-func (c *DeployKeyClient) Create(ctx context.Context, req gitprovider.DeployKeyInfo) (gitprovider.DeployKey, error) {
-	apiObj, err := createDeployKey(ctx, c.c, c.ref, req)
+func (c *DeployKeyClient) Create(_ context.Context, req gitprovider.DeployKeyInfo) (gitprovider.DeployKey, error) {
+	apiObj, err := createDeployKey(c.c, c.ref, req)
 	if err != nil {
 		return nil, err
 	}
@@ -138,12 +138,12 @@ func (c *DeployKeyClient) Reconcile(ctx context.Context, req gitprovider.DeployK
 	return actual, true, actual.Update(ctx)
 }
 
-func createDeployKey(ctx context.Context, c gitlabClient, ref gitprovider.RepositoryRef, req gitprovider.DeployKeyInfo) (*gitlab.DeployKey, error) {
+func createDeployKey(c gitlabClient, ref gitprovider.RepositoryRef, req gitprovider.DeployKeyInfo) (*gitlab.DeployKey, error) {
 	// First thing, validate and default the request to ensure a valid and fully-populated object
 	// (to minimize any possible diffs between desired and actual state)
 	if err := gitprovider.ValidateAndDefaultInfo(&req); err != nil {
 		return nil, err
 	}
 
-	return c.CreateKey(ctx, fmt.Sprintf("%s/%s", ref.GetIdentity(), ref.GetRepository()), deployKeyToAPI(&req))
+	return c.CreateKey(fmt.Sprintf("%s/%s", ref.GetIdentity(), ref.GetRepository()), deployKeyToAPI(&req))
 }

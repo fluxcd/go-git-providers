@@ -69,7 +69,7 @@ func (opts *RepositoryCreateOptions) ApplyToRepositoryCreateOptions(target *Repo
 	}
 }
 
-// ValidateInfo validates that the options are valid.
+// ValidateOptions validates that the options are valid.
 func (opts *RepositoryCreateOptions) ValidateOptions() error {
 	errs := validation.New("RepositoryCreateOptions")
 	if opts.LicenseTemplate != nil {

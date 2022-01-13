@@ -162,9 +162,21 @@ func LicenseTemplateVar(t LicenseTemplate) *LicenseTemplate {
 	return &t
 }
 
+// TokenPermission is an enum specifying the permissions for a token.
 type TokenPermission int
 
 const (
-	// Read/Write permission for public/private repositories.
+	// TokenPermissionRWRepository Read/Write permission for public/private repositories.
 	TokenPermissionRWRepository TokenPermission = iota + 1
+)
+
+// MergeMethod is an enum specifying the merge method for a pull request.
+type MergeMethod string
+
+const (
+	// MergeMethodMerge causes a pull request merge to create a simple merge commit
+	MergeMethodMerge = MergeMethod("merge")
+
+	// MergeMethodSquash causes a pull request merge to first squash commits
+	MergeMethodSquash = MergeMethod("squash")
 )

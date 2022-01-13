@@ -20,20 +20,21 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/google/go-github/v32/github"
+	"github.com/google/go-github/v41/github"
 	"github.com/gregjones/httpcache"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
+	"github.com/fluxcd/go-git-providers/gitprovider/testutils"
 )
 
 const (
@@ -138,7 +139,7 @@ var _ = Describe("GitHub Provider", func() {
 	BeforeSuite(func() {
 		githubToken := os.Getenv("GITHUB_TOKEN")
 		if len(githubToken) == 0 {
-			b, err := ioutil.ReadFile(ghTokenFile)
+			b, err := os.ReadFile(ghTokenFile)
 			if token := string(b); err == nil && len(token) != 0 {
 				githubToken = token
 			} else {
@@ -156,13 +157,47 @@ var _ = Describe("GitHub Provider", func() {
 
 		var err error
 		c, err = NewClient(
-			WithOAuth2Token(githubToken),
-			WithDestructiveAPICalls(true),
-			WithConditionalRequests(true),
-			WithPreChainTransportHook(customTransportFactory),
+			gitprovider.WithOAuth2Token(githubToken),
+			gitprovider.WithDestructiveAPICalls(true),
+			gitprovider.WithConditionalRequests(true),
+			gitprovider.WithPreChainTransportHook(customTransportFactory),
 		)
 		Expect(err).ToNot(HaveOccurred())
 	})
+
+	cleanupOrgRepos := func(prefix string) {
+		fmt.Fprintf(os.Stderr, "Deleting repos starting with %s in org: %s\n", prefix, testOrgName)
+		repos, err := c.OrgRepositories().List(ctx, newOrgRef(testOrgName))
+		Expect(err).ToNot(HaveOccurred())
+		for _, repo := range repos {
+			// Delete the test org repo used
+			name := repo.Repository().GetRepository()
+			if !strings.HasPrefix(name, prefix) {
+				continue
+			}
+			fmt.Fprintf(os.Stderr, "Deleting the org repo: %s\n", name)
+			repo.Delete(ctx)
+			Expect(err).ToNot(HaveOccurred())
+		}
+	}
+
+	cleanupUserRepos := func(prefix string) {
+		fmt.Fprintf(os.Stderr, "Deleting repos starting with %s for user: %s\n", prefix, testUser)
+		repos, err := c.UserRepositories().List(ctx, newUserRef(testUser))
+		Expect(err).ToNot(HaveOccurred())
+		fmt.Fprintf(os.Stderr, "repos, len: %d\n", len(repos))
+		for _, repo := range repos {
+			fmt.Fprintf(os.Stderr, "repo: %s\n", repo.Repository().GetRepository())
+			name := repo.Repository().GetRepository()
+			if !strings.HasPrefix(name, prefix) {
+				fmt.Fprintf(os.Stderr, "Skipping the org repo: %s\n", name)
+				continue
+			}
+			fmt.Fprintf(os.Stderr, "Deleting the org repo: %s\n", name)
+			repo.Delete(ctx)
+			Expect(err).ToNot(HaveOccurred())
+		}
+	}
 
 	It("should list the available organizations the user has access to", func() {
 		// Get a list of all organizations the user is part of
@@ -343,24 +378,40 @@ var _ = Describe("GitHub Provider", func() {
 		// Delete the repository and later re-create
 		Expect(resp.Delete(ctx)).ToNot(HaveOccurred())
 
-		// Reconcile and create
-		newRepo, actionTaken, err := c.OrgRepositories().Reconcile(ctx, repoRef, gitprovider.RepositoryInfo{
-			Description: gitprovider.StringVar(defaultDescription),
-		}, &gitprovider.RepositoryCreateOptions{
-			AutoInit:        gitprovider.BoolVar(true),
-			LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateMIT),
-		})
-		// Expect the create to succeed, and have modified the state. Also validate the newRepo data
-		Expect(err).ToNot(HaveOccurred())
+		var newRepo gitprovider.OrgRepository
+		retryOp := testutils.NewRetry()
+		Eventually(func() bool {
+			var err error
+			newRepo, actionTaken, err = c.OrgRepositories().Reconcile(ctx, repoRef, gitprovider.RepositoryInfo{
+				Description: gitprovider.StringVar(defaultDescription),
+			}, &gitprovider.RepositoryCreateOptions{
+				AutoInit:        gitprovider.BoolVar(true),
+				LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateMIT),
+			})
+			if err == nil && !actionTaken {
+				err = errors.New("expecting action taken to be true")
+			}
+			return retryOp.IsRetryable(err, fmt.Sprintf("reconcile user repository: %s", repoRef.RepositoryName))
+		}, time.Second*90, retryOp.Interval()).Should(BeTrue())
+
 		Expect(actionTaken).To(BeTrue())
 		validateRepo(newRepo, repoRef)
 
 		// Reconcile by setting an "internal" field and updating it
 		r := newRepo.APIObject().(*github.Repository)
 		r.DeleteBranchOnMerge = gitprovider.BoolVar(true)
-		actionTaken, err = newRepo.Reconcile(ctx)
-		// Expect the update to succeed, and modify the state
-		Expect(err).ToNot(HaveOccurred())
+
+		retryOp = testutils.NewRetry()
+		retryOp.SetTimeout(time.Second * 90)
+		Eventually(func() bool {
+			var err error
+			actionTaken, err = newRepo.Reconcile(ctx)
+			if err == nil && !actionTaken {
+				err = errors.New("expecting action taken to be true")
+			}
+			return retryOp.IsRetryable(err, fmt.Sprintf("reconcile repository: %s", newRepo.Repository().GetRepository()))
+		}, retryOp.Timeout(), retryOp.Interval()).Should(BeTrue())
+
 		Expect(actionTaken).To(BeTrue())
 	})
 
@@ -378,19 +429,32 @@ var _ = Describe("GitHub Provider", func() {
 
 		userRepoRef := newUserRepoRef(testUser, testUserRepoName)
 
-		userRepo, err := c.UserRepositories().Get(ctx, userRepoRef)
-		Expect(err).ToNot(HaveOccurred())
+		var userRepo gitprovider.UserRepository
+		retryOp := testutils.NewRetry()
+		Eventually(func() bool {
+			var err error
+			userRepo, err = c.UserRepositories().Get(ctx, userRepoRef)
+			return retryOp.IsRetryable(err, fmt.Sprintf("get user repository: %s", userRepoRef.RepositoryName))
+		}, retryOp.Timeout(), retryOp.Interval()).Should(BeTrue())
 
 		defaultBranch := userRepo.Get().DefaultBranch
 
-		commits, err := userRepo.Commits().ListPage(ctx, *defaultBranch, 1, 0)
-		Expect(err).ToNot(HaveOccurred())
+		var commits []gitprovider.Commit = []gitprovider.Commit{}
+		retryOp = testutils.NewRetry()
+		Eventually(func() bool {
+			var err error
+			commits, err = userRepo.Commits().ListPage(ctx, *defaultBranch, 1, 0)
+			if err == nil && len(commits) == 0 {
+				err = errors.New("empty commits list")
+			}
+			return retryOp.IsRetryable(err, fmt.Sprintf("get commits, repository: %s", userRepo.Repository().GetRepository()))
+		}, retryOp.Timeout(), retryOp.Interval()).Should(BeTrue())
 
 		latestCommit := commits[0]
 
 		branchName := fmt.Sprintf("test-branch-%03d", rand.Intn(1000))
 
-		err = userRepo.Branches().Create(ctx, branchName, latestCommit.Get().Sha)
+		err := userRepo.Branches().Create(ctx, branchName, latestCommit.Get().Sha)
 		Expect(err).ToNot(HaveOccurred())
 
 		err = userRepo.Branches().Create(ctx, branchName, "wrong-sha")
@@ -408,9 +472,46 @@ var _ = Describe("GitHub Provider", func() {
 		_, err = userRepo.Commits().Create(ctx, branchName, "added config file", files)
 		Expect(err).ToNot(HaveOccurred())
 
-		err = userRepo.PullRequests().Create(ctx, "Added config file", branchName, *defaultBranch, "added config file")
+		pr, err := userRepo.PullRequests().Create(ctx, "Added config file", branchName, *defaultBranch, "added config file")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(pr.Get().WebURL).ToNot(BeEmpty())
+		Expect(pr.Get().Merged).To(BeFalse())
+
+		prs, err := userRepo.PullRequests().List(ctx)
+		Expect(len(prs)).To(Equal(1))
+		Expect(prs[0].Get().WebURL).To(Equal(pr.Get().WebURL))
+
+		err = userRepo.PullRequests().Merge(ctx, pr.Get().Number, gitprovider.MergeMethodSquash, "squash merged")
 		Expect(err).ToNot(HaveOccurred())
 
+		getPR, err := userRepo.PullRequests().Get(ctx, pr.Get().Number)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(getPR.Get().Merged).To(BeTrue())
+
+		path = "setup/config2.txt"
+		content = "yaml content"
+		files = []gitprovider.CommitFile{
+				Path:    &path,
+				Content: &content,
+			},
+		}
+
+		_, err = userRepo.Commits().Create(ctx, branchName, "added second config file", files)
+		Expect(err).ToNot(HaveOccurred())
+
+		pr, err = userRepo.PullRequests().Create(ctx, "Added second config file", branchName, *defaultBranch, "added second config file")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(pr.Get().WebURL).ToNot(BeEmpty())
+		Expect(pr.Get().Merged).To(BeFalse())
+
+		err = userRepo.PullRequests().Merge(ctx, pr.Get().Number, gitprovider.MergeMethodMerge, "merged")
+		Expect(err).ToNot(HaveOccurred())
+
+		getPR, err = userRepo.PullRequests().Get(ctx, pr.Get().Number)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(getPR.Get().Merged).To(BeTrue())
 	})
 
 	It("should be possible to download files from path and branch specified", func() {
@@ -465,15 +566,28 @@ var _ = Describe("GitHub Provider", func() {
 	})
 
 	AfterSuite(func() {
+		if os.Getenv("SKIP_CLEANUP") == "1" {
+			return
+		}
 		// Don't do anything more if c wasn't created
 		if c == nil {
 			return
 		}
+
+		if len(os.Getenv("CLEANUP_ALL")) > 0 {
+			defer cleanupOrgRepos("test-repo")
+			defer cleanupUserRepos("test-repo")
+		}
+
 		// Delete the org test repo used
 		orgRepo, err := c.OrgRepositories().Get(ctx, newOrgRepoRef(testOrgName, testOrgRepoName))
-		Expect(err).ToNot(HaveOccurred())
-		Expect(orgRepo.Delete(ctx)).ToNot(HaveOccurred())
-
+		if err != nil && len(os.Getenv("CLEANUP_ALL")) > 0 {
+			fmt.Fprintf(os.Stderr, "failed to get repo: %s in org: %s, error: %s\n", testOrgRepoName, testOrgName, err)
+			fmt.Fprintf(os.Stderr, "CLEANUP_ALL set so continuing\n")
+		} else {
+			Expect(err).ToNot(HaveOccurred())
+			Expect(orgRepo.Delete(ctx)).ToNot(HaveOccurred())
+		}
 		// Delete the user test repo used
 		userRepo, err := c.UserRepositories().Get(ctx, newUserRepoRef(testUser, testUserRepoName))
 		Expect(err).ToNot(HaveOccurred())

@@ -14,7 +14,7 @@ import (
 const (
 	alreadyExistsMagicString = "name: [has already been taken]"
 	alreadySharedWithGroup   = "already shared with this group"
-	masterBranchName         = "master"
+	defaultBranchName        = "main"
 )
 
 func getRepoPath(ref gitprovider.RepositoryRef) string {
@@ -173,7 +173,7 @@ func validateProjectAPI(apiObj *gitlab.Project) error {
 		}
 		// Set default branch to master if unset
 		if apiObj.DefaultBranch == "" {
-			apiObj.DefaultBranch = masterBranchName
+			apiObj.DefaultBranch = defaultBranchName
 		}
 	})
 }
@@ -191,6 +191,7 @@ func validateOrganizationRef(ref gitprovider.OrganizationRef, expectedDomain str
 // validateIdentityFields makes sure the type of the IdentityRef is supported, and the domain is as expected.
 func validateIdentityFields(ref gitprovider.IdentityRef, expectedDomain string) error {
 	// Make sure the expected domain is used
+
 	if ref.GetDomain() != expectedDomain {
 		return fmt.Errorf("domain %q not supported by this client: %w", ref.GetDomain(), gitprovider.ErrDomainUnsupported)
 	}
@@ -199,7 +200,7 @@ func validateIdentityFields(ref gitprovider.IdentityRef, expectedDomain string) 
 	case gitprovider.IdentityTypeOrganization, gitprovider.IdentityTypeUser:
 		return nil
 	case gitprovider.IdentityTypeSuborganization:
-		return fmt.Errorf("github doesn't support sub-organizations: %w", gitprovider.ErrNoProviderSupport)
+		return fmt.Errorf("gitlab doesn't support sub-organizations: %w", gitprovider.ErrNoProviderSupport)
 	}
 	return fmt.Errorf("invalid identity type: %v: %w", ref.GetType(), gitprovider.ErrInvalidArgument)
 }

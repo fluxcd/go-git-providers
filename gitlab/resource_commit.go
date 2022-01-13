@@ -46,6 +46,10 @@ func (c *commitType) APIObject() interface{} {
 
 func commitFromAPI(apiObj *gitlab.Commit) gitprovider.CommitInfo {
 	return gitprovider.CommitInfo{
-		Sha: apiObj.ID,
+		Sha:       apiObj.ID,
+		Author:    apiObj.AuthorName,
+		Message:   apiObj.Message,
+		CreatedAt: *apiObj.CreatedAt,
+		URL:       apiObj.WebURL,
 	}
 }

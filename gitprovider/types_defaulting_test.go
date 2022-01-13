@@ -62,7 +62,7 @@ func TestDefaulting(t *testing.T) {
 			object:     &RepositoryInfo{},
 			expected: &RepositoryInfo{
 				Visibility:    RepositoryVisibilityVar(RepositoryVisibilityPrivate),
-				DefaultBranch: StringVar("master"),
+				DefaultBranch: StringVar("main"),
 			},
 		},
 		{
@@ -70,11 +70,11 @@ func TestDefaulting(t *testing.T) {
 			structName: "Repository",
 			object: &RepositoryInfo{
 				Visibility:    RepositoryVisibilityVar(RepositoryVisibilityPrivate),
-				DefaultBranch: StringVar("master"),
+				DefaultBranch: StringVar("main"),
 			},
 			expected: &RepositoryInfo{
 				Visibility:    RepositoryVisibilityVar(RepositoryVisibilityPrivate),
-				DefaultBranch: StringVar("master"),
+				DefaultBranch: StringVar("main"),
 			},
 		},
 		{

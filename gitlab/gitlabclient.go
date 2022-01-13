@@ -80,28 +80,28 @@ type gitlabClient interface {
 
 	// ListKeys is a wrapper for "GET /projects/{project}/deploy_keys".
 	// This function handles pagination, HTTP error wrapping, and validates the server result.
-	ListKeys(ctx context.Context, projectName string) ([]*gitlab.DeployKey, error)
+	ListKeys(projectName string) ([]*gitlab.DeployKey, error)
 	// CreateProjectKey is a wrapper for "POST /projects/{project}/deploy_keys".
 	// This function handles HTTP error wrapping, and validates the server result.
-	CreateKey(ctx context.Context, projectName string, req *gitlab.DeployKey) (*gitlab.DeployKey, error)
+	CreateKey(projectName string, req *gitlab.DeployKey) (*gitlab.DeployKey, error)
 	// DeleteKey is a wrapper for "DELETE /projects/{project}/deploy_keys/{key_id}".
 	// This function handles HTTP error wrapping.
-	DeleteKey(ctx context.Context, projectName string, keyID int) error
+	DeleteKey(projectName string, keyID int) error
 
 	// Team related methods
 
 	// ShareGroup is a wrapper for ""
 	// This function handles HTTP error wrapping, and validates the server result.
-	ShareProject(ctx context.Context, projectName string, groupID, groupAccess int) error
+	ShareProject(projectName string, groupID, groupAccess int) error
 	// UnshareProject is a wrapper for ""
 	// This function handles HTTP error wrapping, and validates the server result.
-	UnshareProject(ctx context.Context, projectName string, groupID int) error
+	UnshareProject(projectName string, groupID int) error
 
 	// Commits
 
 	// ListCommitsPage is a wrapper for "GET /projects/{project}/repository/commits".
 	// This function handles pagination, HTTP error wrapping.
-	ListCommitsPage(ctx context.Context, projectName, branch string, perPage int, page int) ([]*gitlab.Commit, error)
+	ListCommitsPage(projectName, branch string, perPage int, page int) ([]*gitlab.Commit, error)
 }
 
 // gitlabClientImpl is a wrapper around *gitlab.Client, which implements higher-level methods,
@@ -121,7 +121,7 @@ func (c *gitlabClientImpl) Client() *gitlab.Client {
 }
 
 func (c *gitlabClientImpl) GetGroup(ctx context.Context, groupID interface{}) (*gitlab.Group, error) {
-	apiObj, _, err := c.c.Groups.GetGroup(groupID, gitlab.WithContext(ctx))
+	apiObj, _, err := c.c.Groups.GetGroup(groupID, nil, gitlab.WithContext(ctx))
 	if err != nil {
 		return nil, err
 	}
@@ -329,7 +329,7 @@ func (c *gitlabClientImpl) DeleteProject(ctx context.Context, projectName string
 	return err
 }
 
-func (c *gitlabClientImpl) ListKeys(ctx context.Context, projectName string) ([]*gitlab.DeployKey, error) {
+func (c *gitlabClientImpl) ListKeys(projectName string) ([]*gitlab.DeployKey, error) {
 	apiObjs := []*gitlab.DeployKey{}
 	opts := &gitlab.ListProjectDeployKeysOptions{}
 	err := allDeployKeyPages(opts, func() (*gitlab.Response, error) {
@@ -350,7 +350,7 @@ func (c *gitlabClientImpl) ListKeys(ctx context.Context, projectName string) ([]
 	return apiObjs, nil
 }
 
-func (c *gitlabClientImpl) CreateKey(ctx context.Context, projectName string, req *gitlab.DeployKey) (*gitlab.DeployKey, error) {
+func (c *gitlabClientImpl) CreateKey(projectName string, req *gitlab.DeployKey) (*gitlab.DeployKey, error) {
 	opts := &gitlab.AddDeployKeyOptions{
 		Title:   &req.Title,
 		Key:     &req.Key,
@@ -367,13 +367,13 @@ func (c *gitlabClientImpl) CreateKey(ctx context.Context, projectName string, re
 	return apiObj, nil
 }
 
-func (c *gitlabClientImpl) DeleteKey(ctx context.Context, projectName string, keyID int) error {
+func (c *gitlabClientImpl) DeleteKey(projectName string, keyID int) error {
 	// DELETE /projects/{project}/deploy_keys
 	_, err := c.c.DeployKeys.DeleteDeployKey(projectName, keyID)
 	return handleHTTPError(err)
 }
 
-func (c *gitlabClientImpl) ShareProject(ctx context.Context, projectName string, groupIDObj, groupAccessObj int) error {
+func (c *gitlabClientImpl) ShareProject(projectName string, groupIDObj, groupAccessObj int) error {
 	groupAccess := gitlab.AccessLevel(gitlab.AccessLevelValue(groupAccessObj))
 	groupID := &groupIDObj
 	opt := &gitlab.ShareWithGroupOptions{
@@ -385,12 +385,12 @@ func (c *gitlabClientImpl) ShareProject(ctx context.Context, projectName string,
 	return handleHTTPError(err)
 }
 
-func (c *gitlabClientImpl) UnshareProject(ctx context.Context, projectName string, groupID int) error {
+func (c *gitlabClientImpl) UnshareProject(projectName string, groupID int) error {
 	_, err := c.c.Projects.DeleteSharedProjectFromGroup(projectName, groupID)
 	return handleHTTPError(err)
 }
 
-func (c *gitlabClientImpl) ListCommitsPage(ctx context.Context, projectName string, branch string, perPage int, page int) ([]*gitlab.Commit, error) {
+func (c *gitlabClientImpl) ListCommitsPage(projectName string, branch string, perPage int, page int) ([]*gitlab.Commit, error) {
 	apiObjs := make([]*gitlab.Commit, 0)
 
 	opts := gitlab.ListCommitsOptions{
@@ -405,7 +405,11 @@ func (c *gitlabClientImpl) ListCommitsPage(ctx context.Context, projectName stri
 	pageObjs, _, listErr := c.c.Commits.ListCommits(projectName, &opts)
 	for _, c := range pageObjs {
 		apiObjs = append(apiObjs, &gitlab.Commit{
-			ID: c.ID,
+			ID:         c.ID,
+			AuthorName: c.AuthorName,
+			Message:    c.Message,
+			CreatedAt:  c.CreatedAt,
+			WebURL:     c.WebURL,
 		})
 	}
 

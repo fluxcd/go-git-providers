@@ -59,6 +59,12 @@ type IdentityRef interface {
 	String() string
 }
 
+// Keyer is an interface that can be used to get a unique key for an object.
+type Keyer interface {
+	// Key returns a unique key for this object.
+	Key() string
+}
+
 // RepositoryRef describes a reference to a repository owned by either a user account or organization.
 type RepositoryRef interface {
 	// RepositoryRef is a superset of IdentityRef.
@@ -69,6 +75,12 @@ type RepositoryRef interface {
 
 	// GetCloneURL gets the clone URL for the specified transport type.
 	GetCloneURL(transport TransportType) string
+}
+
+// Slugger is an interface that can be used to get a unique slug for an object.
+type Slugger interface {
+	// Slug returns the unique slug for this object.
+	Slug() string
 }
 
 // UserRef represents a user account in a Git provider.
@@ -133,6 +145,11 @@ type OrganizationRef struct {
 	// +required
 	Organization string `json:"organization"`
 
+	// key specifies the URL-friendly, lowercase key of the organization,
+	// e.g. "fluxcd" or "kubernetes-sigs".
+	// +optional
+	key string
+
 	// SubOrganizations point to optional sub-organizations (or sub-groups) of the given top-level organization
 	// in the Organization field. E.g. "gitlab.com/fluxcd/engineering/frontend" would yield ["engineering", "frontend"]
 	// +optional
@@ -148,6 +165,16 @@ func (o OrganizationRef) GetDomain() string {
 func (o OrganizationRef) GetIdentity() string {
 	orgParts := append([]string{o.Organization}, o.SubOrganizations...)
 	return strings.Join(orgParts, "/")
+}
+
+// Key returns the unique key for this OrganizationRef.
+func (o OrganizationRef) Key() string {
+	return o.key
+}
+
+// SetKey sets the unique key for this OrganizationRef.
+func (o *OrganizationRef) SetKey(key string) {
+	o.key = key
 }
 
 // GetType marks this UserRef as being a IdentityTypeUser.
@@ -184,6 +211,11 @@ type OrgRepositoryRef struct {
 	// e.g. "kubernetes" or "cluster-api-provider-aws".
 	// +required
 	RepositoryName string `json:"repositoryName"`
+
+	// slug specifies the Git repository slug. This field is URL-friendly,
+	// e.g. "kubernetes" or "cluster-api-provider-aws".
+	// +optional
+	slug string
 }
 
 // String returns the HTTPS URL to access the repository.
@@ -194,6 +226,16 @@ func (r OrgRepositoryRef) String() string {
 // GetRepository returns the repository name for this repo.
 func (r OrgRepositoryRef) GetRepository() string {
 	return r.RepositoryName
+}
+
+// Slug returns the unique slug for this object.
+func (r OrgRepositoryRef) Slug() string {
+	return r.slug
+}
+
+// SetSlug sets the unique slug for this object.
+func (r *OrgRepositoryRef) SetSlug(slug string) {
+	r.slug = slug
 }
 
 // ValidateFields validates its own fields for a given validator.
@@ -220,6 +262,11 @@ type UserRepositoryRef struct {
 	// e.g. "kubernetes" or "cluster-api-provider-aws".
 	// +required
 	RepositoryName string `json:"repositoryName"`
+
+	// slug specifies the Git repository slug. This field is URL-friendly,
+	// e.g. "kubernetes" or "cluster-api-provider-aws".
+	// +optional
+	slug string
 }
 
 // String returns the URL to access the repository.
@@ -230,6 +277,16 @@ func (r UserRepositoryRef) String() string {
 // GetRepository returns the repository name for this repo.
 func (r UserRepositoryRef) GetRepository() string {
 	return r.RepositoryName
+}
+
+// Slug returns the unique slug for this object.
+func (r UserRepositoryRef) Slug() string {
+	return r.slug
+}
+
+// SetSlug sets the unique slug for this object.
+func (r *UserRepositoryRef) SetSlug(slug string) {
+	r.slug = slug
 }
 
 // ValidateFields validates its own fields for a given validator.
@@ -252,16 +309,31 @@ func (r UserRepositoryRef) GetCloneURL(transport TransportType) string {
 func GetCloneURL(rs RepositoryRef, transport TransportType) string {
 	switch transport {
 	case TransportTypeHTTPS:
-		return fmt.Sprintf("%s.git", rs.String())
+		return ParseTypeHTTPS(rs.String())
 	case TransportTypeGit:
-		return fmt.Sprintf("git@%s:%s/%s.git", rs.GetDomain(), rs.GetIdentity(), rs.GetRepository())
+		return ParseTypeGit(rs.GetDomain(), rs.GetIdentity(), rs.GetRepository())
 	case TransportTypeSSH:
-		trimmedDomain := rs.GetDomain()
-		trimmedDomain = strings.Replace(trimmedDomain, "https://", "", -1)
-		trimmedDomain = strings.Replace(trimmedDomain, "http://", "", -1)
-		return fmt.Sprintf("ssh://git@%s/%s/%s", trimmedDomain, rs.GetIdentity(), rs.GetRepository())
+		return ParseTypeSSH(rs.GetDomain(), rs.GetIdentity(), rs.GetRepository())
 	}
 	return ""
+}
+
+// ParseTypeHTTPS returns the HTTPS URL to clone a repository.
+func ParseTypeHTTPS(url string) string {
+	return fmt.Sprintf("%s.git", url)
+}
+
+// ParseTypeGit returns the URL to clone a repository using the Git protocol.
+func ParseTypeGit(domain, identity, repository string) string {
+	return fmt.Sprintf("git@%s:%s/%s.git", domain, identity, repository)
+}
+
+// ParseTypeSSH returns the URL to clone a repository using the SSH protocol.
+func ParseTypeSSH(domain, identity, repository string) string {
+	trimmedDomain := domain
+	trimmedDomain = strings.Replace(trimmedDomain, "https://", "", -1)
+	trimmedDomain = strings.Replace(trimmedDomain, "http://", "", -1)
+	return fmt.Sprintf("ssh://git@%s/%s/%s", trimmedDomain, identity, repository)
 }
 
 // ParseOrganizationURL parses an URL to an organization into a OrganizationRef object.

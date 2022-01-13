@@ -1,4 +1,6 @@
-VER?=0.0.1
+TEST_VERBOSE?=
+TEST_PATTERN?=./...
+TEST_STOP_ON_ERROR?=
 
 all: test
 
@@ -12,10 +14,4 @@ vet:
 	go vet ./...
 
 test: tidy fmt vet
-	go test -race -coverprofile=coverage.txt -covermode=atomic ./...
-
-release:
-	git checkout main
-	git pull
-	git tag "v$(VER)"
-	git push origin "v$(VER)"
+	go test ${TEST_VERBOSE} ${TEST_STOP_ON_ERROR} -race -coverprofile=coverage.txt -covermode=atomic ${TEST_PATTERN}

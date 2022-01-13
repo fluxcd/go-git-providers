@@ -19,8 +19,9 @@ package github
 import (
 	"context"
 	"fmt"
+
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/google/go-github/v32/github"
+	"github.com/google/go-github/v41/github"
 )
 
 var githubNewFileMode = "100644"

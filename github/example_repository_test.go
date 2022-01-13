@@ -6,7 +6,7 @@ import (
 
 	"github.com/fluxcd/go-git-providers/github"
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	gogithub "github.com/google/go-github/v32/github"
+	gogithub "github.com/google/go-github/v41/github"
 )
 
 func ExampleOrgRepositoriesClient_Get() {
@@ -16,7 +16,7 @@ func ExampleOrgRepositoriesClient_Get() {
 	checkErr(err)
 
 	// Parse the URL into an OrgRepositoryRef
-	ref, err := gitprovider.ParseOrgRepositoryURL("https://github.com/fluxcd/flux")
+	ref, err := gitprovider.ParseOrgRepositoryURL("https://github.com/fluxcd/flux2")
 	checkErr(err)
 
 	// Get public information about the flux repository.
@@ -29,5 +29,5 @@ func ExampleOrgRepositoriesClient_Get() {
 	internalRepo := repo.APIObject().(*gogithub.Repository)
 
 	fmt.Printf("Description: %s. Homepage: %s", *repoInfo.Description, internalRepo.GetHomepage())
-	// Output: Description: The GitOps Kubernetes operator. Homepage: https://docs.fluxcd.io
+	// Output: Description: Open and extensible continuous delivery solution for Kubernetes. Powered by GitOps Toolkit.. Homepage: https://fluxcd.io
 }

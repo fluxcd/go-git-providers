@@ -18,7 +18,7 @@ package stash
 
 import (
 	"context"
-	"errors"
+	"fmt"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
@@ -32,6 +32,7 @@ type FileClient struct {
 	ref gitprovider.RepositoryRef
 }
 
-func (c *FileClient) Get(ctx context.Context, path, branch string) ([]*gitprovider.CommitFile, error) {
-	return nil, errors.New("getting files not implemented in stash yet")
+// Get fetches and returns the contents of a file from a given branch and path
+func (c *FileClient) Get(_ context.Context, path, branch string) ([]*gitprovider.CommitFile, error) {
+	return nil, fmt.Errorf("error getting file %s@%s. not implemented in stash yet", path, branch)
 }

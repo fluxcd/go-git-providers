@@ -34,6 +34,7 @@ type FileClient struct {
 	ref gitprovider.RepositoryRef
 }
 
+// Get fetches and returns the contents of a file from a given branch and path
 func (c *FileClient) Get(ctx context.Context, path, branch string) ([]*gitprovider.CommitFile, error) {
 
 	opts := &github.RepositoryContentGetOptions{

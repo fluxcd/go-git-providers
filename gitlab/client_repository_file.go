@@ -35,7 +35,8 @@ type FileClient struct {
 	ref gitprovider.RepositoryRef
 }
 
-func (c *FileClient) Get(ctx context.Context, path, branch string) ([]*gitprovider.CommitFile, error) {
+// Get fetches and returns the contents of a file from a given branch and path
+func (c *FileClient) Get(_ context.Context, path, branch string) ([]*gitprovider.CommitFile, error) {
 
 	opts := &gitlab.ListTreeOptions{
 		Path: &path,

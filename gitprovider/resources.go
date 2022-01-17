@@ -76,6 +76,9 @@ type UserRepository interface {
 
 	// PullRequests gives access to this specific repository pull requests
 	PullRequests() PullRequestClient
+
+	// Files gives access to this specific repository pull requests
+	Files() FileClient
 }
 
 // OrgRepository describes a repository owned by an organization.

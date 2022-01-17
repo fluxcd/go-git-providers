@@ -492,7 +492,7 @@ var _ = Describe("GitHub Provider", func() {
 		path = "setup/config2.txt"
 		content = "yaml content"
 		files = []gitprovider.CommitFile{
-			gitprovider.CommitFile{
+			{
 				Path:    &path,
 				Content: &content,
 			},
@@ -513,6 +513,53 @@ var _ = Describe("GitHub Provider", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(getPR.Get().Merged).To(BeTrue())
+	})
+
+	It("should be possible to download files from path and branch specified", func() {
+
+		userRepoRef := newUserRepoRef(testUser, testUserRepoName)
+
+		userRepo, err := c.UserRepositories().Get(ctx, userRepoRef)
+		Expect(err).ToNot(HaveOccurred())
+
+		defaultBranch := userRepo.Get().DefaultBranch
+
+		path0 := "cluster/machine1.yaml"
+		content0 := "machine1 yaml content"
+		path1 := "cluster/machine2.yaml"
+		content1 := "machine2 yaml content"
+
+		files := []gitprovider.CommitFile{
+			{
+				Path:    &path0,
+				Content: &content0,
+			},
+			{
+				Path:    &path1,
+				Content: &content1,
+			},
+		}
+
+		commitFiles := make([]gitprovider.CommitFile, 0)
+		for _, file := range files {
+			path := file.Path
+			content := file.Content
+			commitFiles = append(commitFiles, gitprovider.CommitFile{
+				Path:    path,
+				Content: content,
+			})
+		}
+
+		_, err = userRepo.Commits().Create(ctx, *defaultBranch, "added config files", commitFiles)
+		Expect(err).ToNot(HaveOccurred())
+
+		downloadedFiles, err := userRepo.Files().Get(ctx, "cluster", *defaultBranch)
+		Expect(err).ToNot(HaveOccurred())
+
+		for ind, downloadedFile := range downloadedFiles {
+			Expect(*downloadedFile).To(Equal(files[ind]))
+		}
+
 	})
 
 	AfterSuite(func() {

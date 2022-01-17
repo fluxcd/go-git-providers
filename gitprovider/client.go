@@ -236,3 +236,10 @@ type PullRequestClient interface {
 	// Merge merges a pull request with via either the "Squash" or "Merge" method
 	Merge(ctx context.Context, number int, mergeMethod MergeMethod, message string) error
 }
+
+// FileClient operates on the branches for a specific repository.
+// This client can be accessed through Repository.Branches().
+type FileClient interface {
+	// GetFiles fetch files content from specific path and branch
+	Get(ctx context.Context, path, branch string) ([]*CommitFile, error)
+}

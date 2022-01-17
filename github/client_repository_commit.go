@@ -102,7 +102,7 @@ func (c *CommitClient) Create(ctx context.Context, branch string, message string
 		Message: &message,
 		Tree:    tree,
 		Parents: []*github.Commit{
-			&github.Commit{
+			{
 				SHA: &latestCommitSHA,
 			},
 		},

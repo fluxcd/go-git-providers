@@ -168,6 +168,10 @@ func (s *ProjectsService) Get(ctx context.Context, projectName string) (*Project
 		return nil, fmt.Errorf("get project failed, unable to unmarshal repository list json: %w", err)
 	}
 
+	if len(p.Projects) == 0 {
+		return nil, ErrNotFound
+	}
+
 	p.Projects[0].Session.set(resp)
 	return p.Projects[0], nil
 

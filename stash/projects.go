@@ -172,8 +172,16 @@ func (s *ProjectsService) Get(ctx context.Context, projectName string) (*Project
 		return nil, ErrNotFound
 	}
 
-	p.Projects[0].Session.set(resp)
-	return p.Projects[0], nil
+	// find the project
+	for i := range p.Projects {
+		if p.Projects[i].Name == projectName {
+			// Found!
+			p.Projects[i].Session.set(resp)
+			return p.Projects[i], nil
+		}
+	}
+
+	return nil, ErrNotFound
 
 }
 

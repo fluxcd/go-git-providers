@@ -28,9 +28,6 @@ import (
 const (
 	// DefaultDomain specifies the default domain used as the backend.
 	DefaultDomain = "gitea.com"
-	// TokenVariable is the common name for the environment variable
-	// containing a Gitea authentication token.
-	TokenVariable = "GITEA_TOKEN" // #nosec G101
 )
 
 // NewClient creates a new gitprovider.Client instance for Gitea API endpoints.
@@ -56,7 +53,7 @@ func NewClient(optFns ...gitprovider.ClientOption) (gitprovider.Client, error) {
 	var domain string
 
 	// Gitea is primarily self-hosted
-	// using test domain if domain not provided
+	// using default domain if domain not provided
 	domain = *opts.Domain
 	if opts.Domain == nil || *opts.Domain == DefaultDomain {
 		// No domain set or the default gitea.com used

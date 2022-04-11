@@ -129,19 +129,20 @@ func handleHTTPError(res *gitea.Response, err error) error {
 // // allPages expects that the data is saved in fn to an outer variable.
 // // allPages calls fn as many times as needed to get all pages, and modifies opts for each call.
 // // There is no need to wrap the resulting error in handleHTTPError(err), as that's already done.
-// func allPages(opts *gitea.ListOptions, fn func() (*gitea.Response, error)) error {
-// 	for {
+func allPages(opts *gitea.ListOptions, fn func() (*gitea.Response, error)) error {
+	opts.Page = 1
+	for {
 
-// 		resp, err := fn()
-// 		if err != nil {
-// 			return handleHTTPError(resp, err)
-// 		}
-// 		if resp. == 0 {
-// 			return nil
-// 		}
-// 		opts.Page = resp.NextPage
-// 	}
-// }
+		resp, err := fn()
+		if err != nil {
+			return handleHTTPError(resp, err)
+		}
+		if resp == nil {
+			return nil
+		}
+		opts.Page += 1
+	}
+}
 
 // validateAPIObject creates a Validatior with the specified name, gives it to fn, and
 // depending on if any error was registered with it; either returns nil, or a MultiError

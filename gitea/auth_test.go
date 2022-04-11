@@ -34,16 +34,16 @@ func Test_DomainVariations(t *testing.T) {
 			opts: gitprovider.WithDomain("gitea.com"),
 			want: "gitea.com",
 		},
-		// {
-		// 	name: "custom domain without protocol",
-		// 	opts: gitprovider.WithDomain("my-gitea.dev.com"),
-		// 	want: "https://my-gitea.dev.com",
-		// },
-		// {
-		// 	name: "custom domain with https protocol",
-		// 	opts: gitprovider.WithDomain("https://my-gitea.dev.com"),
-		// 	want: "https://my-gitea.dev.com",
-		// },
+		{
+			name: "custom domain without protocol",
+			opts: gitprovider.WithDomain("my-gitea.dev.com"),
+			want: "https://my-gitea.dev.com",
+		},
+		{
+			name: "custom domain with https protocol",
+			opts: gitprovider.WithDomain("https://my-gitea.dev.com"),
+			want: "https://my-gitea.dev.com",
+		},
 		{
 			name: "custom domain with http protocol",
 			opts: gitprovider.WithDomain("http://my-gitea.dev.com"),

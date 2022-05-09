@@ -7,7 +7,7 @@
 ## How to run the test suite
 
 Prerequisites:
-* go >= 1.17
+* go >= 1.18
 
 To run `make test` for your fork/branch you need to supply the following environment variables:
 

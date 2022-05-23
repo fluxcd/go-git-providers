@@ -22,7 +22,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.17.x
+          go-version: 1.18.x
       - name: Run vet
         run: make tidy fmt vet
       - name: Check if working tree is dirty

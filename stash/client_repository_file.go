@@ -33,6 +33,6 @@ type FileClient struct {
 }
 
 // Get fetches and returns the contents of a file from a given branch and path
-func (c *FileClient) Get(_ context.Context, path, branch string) ([]*gitprovider.CommitFile, error) {
+func (c *FileClient) Get(_ context.Context, path, branch string, optFns ...gitprovider.FilesGetOption) ([]*gitprovider.CommitFile, error) {
 	return nil, fmt.Errorf("error getting file %s@%s. not implemented in stash yet", path, branch)
 }

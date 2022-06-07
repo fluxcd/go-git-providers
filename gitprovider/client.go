@@ -241,5 +241,5 @@ type PullRequestClient interface {
 // This client can be accessed through Repository.Branches().
 type FileClient interface {
 	// GetFiles fetch files content from specific path and branch
-	Get(ctx context.Context, path, branch string) ([]*CommitFile, error)
+	Get(ctx context.Context, path, branch string, optFns ...FilesGetOption) ([]*CommitFile, error)
 }

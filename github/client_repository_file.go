@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"strings"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/google/go-github/v45/github"
@@ -35,10 +36,15 @@ type FileClient struct {
 }
 
 // Get fetches and returns the contents of a file from a given branch and path
-func (c *FileClient) Get(ctx context.Context, path, branch string) ([]*gitprovider.CommitFile, error) {
+func (c *FileClient) Get(ctx context.Context, path, branch string, optFns ...gitprovider.FilesGetOption) ([]*gitprovider.CommitFile, error) {
 
 	opts := &github.RepositoryContentGetOptions{
 		Ref: branch,
+	}
+
+	recursive := false
+	for _, opt := range optFns {
+		recursive = opt.ApplyFilesGetOptions(&gitprovider.FilesGetOptions{}).Recursive
 	}
 
 	_, directoryContent, _, err := c.c.Client().Repositories.GetContents(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), path, opts)
@@ -54,6 +60,22 @@ func (c *FileClient) Get(ctx context.Context, path, branch string) ([]*gitprovid
 
 	for _, file := range directoryContent {
 		filePath := file.Path
+		if *file.Type == "dir" {
+			if recursive == true {
+				if !strings.HasSuffix(path, "/") {
+					path = path + "/"
+				}
+				subdirectoryPath := fmt.Sprintf("%v%v/", path, *file.Name)
+				// recursive call for child directories to get their content
+				childFiles, err := c.Get(ctx, subdirectoryPath, branch, optFns...)
+				if err != nil {
+					return nil, err
+				}
+				files = append(files, childFiles...)
+			}
+			continue
+
+		}
 		output, _, err := c.c.Client().Repositories.DownloadContents(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), *filePath, opts)
 		if err != nil {
 			return nil, err

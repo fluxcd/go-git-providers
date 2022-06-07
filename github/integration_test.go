@@ -562,6 +562,59 @@ var _ = Describe("GitHub Provider", func() {
 
 	})
 
+	It("should be possible to download files from path and branch specified with nested directory", func() {
+
+		userRepoRef := newUserRepoRef(testUser, testUserRepoName)
+
+		userRepo, err := c.UserRepositories().Get(ctx, userRepoRef)
+		Expect(err).ToNot(HaveOccurred())
+
+		defaultBranch := userRepo.Get().DefaultBranch
+
+		path0 := "clustersDir/cluster/machine.yaml"
+		content0 := "machine yaml content"
+		path1 := "clustersDir/cluster/machine1.yaml"
+		content1 := "machine1 yaml content"
+		path2 := "clustersDir/cluster2/clusterSubDir/machine2.yaml"
+		content2 := "machine2 yaml content"
+
+		files := []gitprovider.CommitFile{
+			{
+				Path:    &path0,
+				Content: &content0,
+			},
+			{
+				Path:    &path1,
+				Content: &content1,
+			},
+			{
+				Path:    &path2,
+				Content: &content2,
+			},
+		}
+
+		commitFiles := make([]gitprovider.CommitFile, 0)
+		for _, file := range files {
+			path := file.Path
+			content := file.Content
+			commitFiles = append(commitFiles, gitprovider.CommitFile{
+				Path:    path,
+				Content: content,
+			})
+		}
+
+		_, err = userRepo.Commits().Create(ctx, *defaultBranch, "added config files", commitFiles)
+		Expect(err).ToNot(HaveOccurred())
+
+		options := gitprovider.FilesGetOptions{Recursive: *gitprovider.BoolVar(true)}
+		downloadedFiles, err := userRepo.Files().Get(ctx, "clustersDir", *defaultBranch, &options)
+		Expect(err).ToNot(HaveOccurred())
+		for ind, downloadedFile := range downloadedFiles {
+			Expect(*downloadedFile).To(Equal(files[ind]))
+		}
+
+	})
+
 	AfterSuite(func() {
 		if os.Getenv("SKIP_CLEANUP") == "1" {
 			return

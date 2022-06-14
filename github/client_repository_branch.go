@@ -20,7 +20,7 @@ import (
 	"context"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/google/go-github/v42/github"
+	"github.com/google/go-github/v45/github"
 )
 
 // BranchClient implements the gitprovider.BranchClient interface.

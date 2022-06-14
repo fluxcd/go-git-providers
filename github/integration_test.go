@@ -28,7 +28,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-github/v42/github"
+	"github.com/google/go-github/v45/github"
 	"github.com/gregjones/httpcache"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

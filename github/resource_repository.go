@@ -21,11 +21,37 @@ import (
 	"errors"
 	"reflect"
 
-	"github.com/google/go-github/v42/github"
+	"github.com/google/go-github/v45/github"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/fluxcd/go-git-providers/validation"
 )
+
+var githubRepositoryKnownFields = map[string]struct{}{
+	"Name":        {},
+	"Description": {},
+	"Homepage":    {},
+	"Private":     {},
+	"Visibility":  {},
+	"HasIssues":   {},
+	"HasProjects": {},
+	"HasWiki":     {},
+	"IsTemplate":  {},
+	// Update-specific parameters
+	// See: https://docs.github.com/en/rest/reference/repos#update-a-repository
+	"DefaultBranch": {},
+	// Create-specific parameters
+	// See: https://docs.github.com/en/rest/reference/repos#create-an-organization-repository
+	"TeamID":            {},
+	"AutoInit":          {},
+	"GitignoreTemplate": {},
+	"LicenseTemplate":   {},
+	// Generic
+	"AllowSquashMerge":    {},
+	"AllowMergeCommit":    {},
+	"AllowRebaseMerge":    {},
+	"DeleteBranchOnMerge": {},
+}
 
 func newUserRepository(ctx *clientContext, apiObj *github.Repository, ref gitprovider.RepositoryRef) *userRepository {
 	return &userRepository{
@@ -60,8 +86,9 @@ var _ gitprovider.UserRepository = &userRepository{}
 type userRepository struct {
 	*clientContext
 
-	r   github.Repository // go-github
-	ref gitprovider.RepositoryRef
+	r         github.Repository // go-github
+	topUpdate *github.Repository
+	ref       gitprovider.RepositoryRef
 
 	deployKeys   *DeployKeyClient
 	commits      *CommitClient
@@ -121,7 +148,7 @@ func (r *userRepository) Files() gitprovider.FileClient {
 // The internal API object will be overridden with the received server data.
 func (r *userRepository) Update(ctx context.Context) error {
 	// PATCH /repos/{owner}/{repo}
-	apiObj, err := r.c.UpdateRepo(ctx, r.ref.GetIdentity(), r.ref.GetRepository(), &r.r)
+	apiObj, err := r.c.UpdateRepo(ctx, r.ref.GetIdentity(), r.ref.GetRepository(), r.topUpdate)
 	if err != nil {
 		return err
 	}
@@ -166,6 +193,9 @@ func (r *userRepository) Reconcile(ctx context.Context) (bool, error) {
 		return false, nil
 	}
 	// Otherwise, make the desired state the actual state
+	// create the update repository
+	r.topUpdate = updateGithubRepository(desiredSpec.Repository, actualSpec.Repository)
+
 	return true, r.Update(ctx)
 }
 
@@ -256,37 +286,24 @@ func applyRepoCreateOptions(apiObj *github.Repository, opts gitprovider.Reposito
 // i.e. the desired spec of the repository. This allows us to separate "spec" from "status" fields.
 // See also: https://github.com/google/go-github/blob/master/github/repos.go#L340-L358
 func newGithubRepositorySpec(repo *github.Repository) *githubRepositorySpec {
-	return &githubRepositorySpec{
-		&github.Repository{
-			// Generic
-			Name:        repo.Name,
-			Description: repo.Description,
-			Homepage:    repo.Homepage,
-			Private:     repo.Private,
-			Visibility:  repo.Visibility,
-			HasIssues:   repo.HasIssues,
-			HasProjects: repo.HasProjects,
-			HasWiki:     repo.HasWiki,
-			IsTemplate:  repo.IsTemplate,
-
-			// Update-specific parameters
-			// See: https://docs.github.com/en/rest/reference/repos#update-a-repository
-			DefaultBranch: repo.DefaultBranch,
-
-			// Create-specific parameters
-			// See: https://docs.github.com/en/rest/reference/repos#create-an-organization-repository
-			TeamID:            repo.TeamID,
-			AutoInit:          repo.AutoInit,
-			GitignoreTemplate: repo.GitignoreTemplate,
-			LicenseTemplate:   repo.LicenseTemplate,
-
-			// Generic
-			AllowSquashMerge:    repo.AllowSquashMerge,
-			AllowMergeCommit:    repo.AllowMergeCommit,
-			AllowRebaseMerge:    repo.AllowRebaseMerge,
-			DeleteBranchOnMerge: repo.DeleteBranchOnMerge,
-		},
+	rep := &github.Repository{}
+	v := reflect.ValueOf(rep).Elem()
+	t := reflect.TypeOf(rep).Elem()
+	// loop over all fields in the struct
+	// set the value of the field in the struct to the value of the field in the repo obj
+	// if the field is a known field
+	for i := 0; i < v.NumField(); i++ {
+		f := t.Field(i)
+		_, ok := githubRepositoryKnownFields[f.Name]
+		if ok {
+			val := reflect.ValueOf(repo).Elem().FieldByName(f.Name)
+			if v.Field(i).CanSet() {
+				v.Field(i).Set(val)
+			}
+		}
 	}
+
+	return &githubRepositorySpec{rep}
 }
 
 type githubRepositorySpec struct {
@@ -295,4 +312,29 @@ type githubRepositorySpec struct {
 
 func (s *githubRepositorySpec) Equals(other *githubRepositorySpec) bool {
 	return reflect.DeepEqual(s, other)
+}
+
+func updateGithubRepository(desired, actual *github.Repository) *github.Repository {
+	// create the updated repository
+	u := &github.Repository{
+		Name: desired.Name,
+	}
+
+	uVal := reflect.ValueOf(u).Elem()
+	desiredVal := reflect.ValueOf(desired).Elem()
+	actualVal := reflect.ValueOf(actual).Elem()
+	t := reflect.TypeOf(actual).Elem()
+	// loop over all fields in the struct
+	// and set the fields in the update repository if they are set in the desired state
+	// and not the actual state
+	for i := 0; i < desiredVal.NumField(); i++ {
+		f := t.Field(i)
+		if f.Name != "Name" && (desiredVal.FieldByName(f.Name) != actualVal.FieldByName(f.Name)) {
+			if uVal.FieldByName(f.Name).CanSet() {
+				uVal.FieldByName(f.Name).Set(desiredVal.FieldByName(f.Name))
+			}
+		}
+	}
+
+	return u
 }

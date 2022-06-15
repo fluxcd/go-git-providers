@@ -35,16 +35,29 @@ type FileClient struct {
 	ref gitprovider.RepositoryRef
 }
 
-// Get fetches and returns the contents of a file from a given branch and path
+// if number of files retrieved exceed the max number of files, return only until the number of maxFiles
+func limitSliceSize(s []*gitprovider.CommitFile, maxLength int) []*gitprovider.CommitFile {
+	if maxLength != 0 && len(s) > maxLength {
+		return s[:maxLength]
+	}
+	return s
+}
+
+// Get fetches and returns the contents of a file or directory from a given branch and path with possible options of FilesGetOption
+// If recursive option is provided, the files are retrieved recursively from subdirectories of the base path.
+// If recursive and MaxDepth options are provided, the files rare etrieved recursively from subdirectories until reaching the max depth of levels
+// If maxFiles option is provided, the number of files are maximized to the number provided
+
+// Uses https://docs.github.com/en/rest/repos/contents#get-repository-content
 func (c *FileClient) Get(ctx context.Context, path, branch string, optFns ...gitprovider.FilesGetOption) ([]*gitprovider.CommitFile, error) {
 
 	opts := &github.RepositoryContentGetOptions{
 		Ref: branch,
 	}
 
-	recursive := false
+	fileOpts := gitprovider.FilesGetOptions{}
 	for _, opt := range optFns {
-		recursive = opt.ApplyFilesGetOptions(&gitprovider.FilesGetOptions{}).Recursive
+		opt.ApplyFilesGetOptions(&fileOpts)
 	}
 
 	_, directoryContent, _, err := c.c.Client().Repositories.GetContents(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), path, opts)
@@ -61,17 +74,26 @@ func (c *FileClient) Get(ctx context.Context, path, branch string, optFns ...git
 	for _, file := range directoryContent {
 		filePath := file.Path
 		if *file.Type == "dir" {
-			if recursive == true {
+			if fileOpts.Recursive == true {
+				// stop recursive calls when level is the max level reached
+				if fileOpts.MaxDepth == 1 {
+					break
+				}
+
 				if !strings.HasSuffix(path, "/") {
 					path = path + "/"
 				}
-				subdirectoryPath := fmt.Sprintf("%v%v/", path, *file.Name)
+				subdirectoryPath := fmt.Sprintf("%s%s/", path, *file.Name)
+
 				// recursive call for child directories to get their content
-				childFiles, err := c.Get(ctx, subdirectoryPath, branch, optFns...)
+				childOptFns := gitprovider.FilesGetOptions{Recursive: fileOpts.Recursive, MaxFiles: fileOpts.MaxFiles, MaxDepth: fileOpts.MaxDepth - 1}
+				childFiles, err := c.Get(ctx, subdirectoryPath, branch, &childOptFns)
+
 				if err != nil {
 					return nil, err
 				}
 				files = append(files, childFiles...)
+				files = limitSliceSize(files, fileOpts.MaxFiles)
 			}
 			continue
 
@@ -93,7 +115,8 @@ func (c *FileClient) Get(ctx context.Context, path, branch string, optFns ...git
 			Path:    filePath,
 			Content: &contentStr,
 		})
+
 	}
 
-	return files, nil
+	return limitSliceSize(files, fileOpts.MaxFiles), nil
 }

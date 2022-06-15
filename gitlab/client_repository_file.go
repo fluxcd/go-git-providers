@@ -38,15 +38,16 @@ type FileClient struct {
 // Get fetches and returns the contents of a file from a given branch and path
 func (c *FileClient) Get(ctx context.Context, path, branch string, optFns ...gitprovider.FilesGetOption) ([]*gitprovider.CommitFile, error) {
 
-	recursive := false
+	filesGetOpts := gitprovider.FilesGetOptions{}
+
 	for _, opt := range optFns {
-		recursive = opt.ApplyFilesGetOptions(&gitprovider.FilesGetOptions{}).Recursive
+		opt.ApplyFilesGetOptions(&filesGetOpts)
 	}
 
 	opts := &gitlab.ListTreeOptions{
 		Path:      &path,
 		Ref:       &branch,
-		Recursive: &recursive,
+		Recursive: &filesGetOpts.Recursive,
 	}
 
 	listFiles, _, err := c.c.Client().Repositories.ListTree(getRepoPath(c.ref), opts)

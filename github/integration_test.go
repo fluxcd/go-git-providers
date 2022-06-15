@@ -562,7 +562,7 @@ var _ = Describe("GitHub Provider", func() {
 
 	})
 
-	It("should be possible to download files from path and branch specified with nested directory", func() {
+	It("should be possible to download files from path and branch specified with nested directory and max options", func() {
 
 		userRepoRef := newUserRepoRef(testUser, testUserRepoName)
 
@@ -606,12 +606,34 @@ var _ = Describe("GitHub Provider", func() {
 		_, err = userRepo.Commits().Create(ctx, *defaultBranch, "added config files", commitFiles)
 		Expect(err).ToNot(HaveOccurred())
 
+		//Recursive option check
 		options := gitprovider.FilesGetOptions{Recursive: *gitprovider.BoolVar(true)}
 		downloadedFiles, err := userRepo.Files().Get(ctx, "clustersDir", *defaultBranch, &options)
 		Expect(err).ToNot(HaveOccurred())
 		for ind, downloadedFile := range downloadedFiles {
 			Expect(*downloadedFile).To(Equal(files[ind]))
 		}
+
+		//Max depth option check
+		//should be files in 2 levels: machine.yaml and machine1.yaml in level 2 (level 1 has cluster and cluster2 dirs)
+		options = gitprovider.FilesGetOptions{Recursive: *gitprovider.BoolVar(true), MaxDepth: 2}
+		downloadedFiles, err = userRepo.Files().Get(ctx, "clustersDir", *defaultBranch, &options)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(downloadedFiles).To(HaveLen(2))
+
+		// Max files option check with recursion
+		// should be 1 file :machine.yaml
+		options = gitprovider.FilesGetOptions{Recursive: *gitprovider.BoolVar(true), MaxFiles: 1}
+		downloadedFiles, err = userRepo.Files().Get(ctx, "clustersDir", *defaultBranch, &options)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(downloadedFiles).To(HaveLen(1))
+
+		// Max files option check with no recursion (base level)
+		// should be 0
+		options = gitprovider.FilesGetOptions{MaxFiles: 2}
+		downloadedFiles, err = userRepo.Files().Get(ctx, "clustersDir", *defaultBranch, &options)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(downloadedFiles).To(HaveLen(0))
 
 	})
 

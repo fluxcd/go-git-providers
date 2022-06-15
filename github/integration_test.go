@@ -623,7 +623,7 @@ var _ = Describe("GitHub Provider", func() {
 
 		// Max files option check with recursion
 		// should be 1 file :machine.yaml
-		options = gitprovider.FilesGetOptions{Recursive: *gitprovider.BoolVar(true), MaxFiles: 1}
+		options = gitprovider.FilesGetOptions{Recursive: *gitprovider.BoolVar(true), MaxDepth: 2, MaxFiles: 1}
 		downloadedFiles, err = userRepo.Files().Get(ctx, "clustersDir", *defaultBranch, &options)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(downloadedFiles).To(HaveLen(1))

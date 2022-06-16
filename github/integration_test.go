@@ -635,6 +635,27 @@ var _ = Describe("GitHub Provider", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(downloadedFiles).To(HaveLen(0))
 
+		// Recursive option ,MaxDepth 3, all files check
+		// should be 3
+		options = gitprovider.FilesGetOptions{Recursive: *gitprovider.BoolVar(true), MaxDepth: 3}
+		downloadedFiles, err = userRepo.Files().Get(ctx, "clustersDir", *defaultBranch, &options)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(downloadedFiles).To(HaveLen(3))
+
+		// Recursive option,MaxDepth 2,and MaxFiles 2
+		// should be 2
+		options = gitprovider.FilesGetOptions{Recursive: *gitprovider.BoolVar(true), MaxDepth: 2, MaxFiles: 2}
+		downloadedFiles, err = userRepo.Files().Get(ctx, "clustersDir", *defaultBranch, &options)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(downloadedFiles).To(HaveLen(2))
+
+		// Recursive option,MaxDepth 3,and MaxFiles 2
+		// should be 2
+		options = gitprovider.FilesGetOptions{Recursive: *gitprovider.BoolVar(true), MaxDepth: 3, MaxFiles: 2}
+		downloadedFiles, err = userRepo.Files().Get(ctx, "clustersDir", *defaultBranch, &options)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(downloadedFiles).To(HaveLen(2))
+
 	})
 
 	AfterSuite(func() {

@@ -37,10 +37,32 @@ type FileClient struct {
 
 // if number of files retrieved exceed the max number of files, return slice only until the number of maxFiles with bool true for limiting succeeded
 func limitSliceSize(s []*gitprovider.CommitFile, size int) ([]*gitprovider.CommitFile, bool) {
-	if size != 0 && len(s) > size {
+	if size != 0 && len(s) >= size {
 		return s[:size], true
 	}
 	return s, false
+}
+
+// getDirectoryFiles will make the recursive call to get files in sub directory of a dir type
+func (c *FileClient) getDirectoryFiles(ctx context.Context, path string, branch string, dir *github.RepositoryContent, files []*gitprovider.CommitFile, fileOpts gitprovider.FilesGetOptions) ([]*gitprovider.CommitFile, error) {
+
+	// stop recursive calls when level is the max level reached
+	if fileOpts.MaxDepth <= 1 {
+		return nil, nil
+	}
+
+	if !strings.HasSuffix(path, "/") {
+		path = path + "/"
+	}
+	subdirectoryPath := fmt.Sprintf("%s%s/", path, *dir.Name)
+
+	// recursive call for child directories to get their content
+	childMaxFiles := fileOpts.MaxFiles - len(files)
+	childOptFns := gitprovider.FilesGetOptions{Recursive: fileOpts.Recursive, MaxFiles: childMaxFiles, MaxDepth: fileOpts.MaxDepth - 1}
+	childFiles, err := c.Get(ctx, subdirectoryPath, branch, &childOptFns)
+
+	return childFiles, err
+
 }
 
 // Get fetches and returns the contents of a file or directory from a given branch and path with possible options of FilesGetOption
@@ -76,27 +98,18 @@ func (c *FileClient) Get(ctx context.Context, path, branch string, optFns ...git
 		filePath := file.Path
 		if *file.Type == "dir" {
 			if fileOpts.Recursive {
-				// stop recursive calls when level is the max level reached
-				if fileOpts.MaxDepth <= 1 {
-					continue
-				}
-
-				if !strings.HasSuffix(path, "/") {
-					path = path + "/"
-				}
-				subdirectoryPath := fmt.Sprintf("%s%s/", path, *file.Name)
-
-				// recursive call for child directories to get their content
-				childMaxFiles := fileOpts.MaxFiles - len(files)
-				childOptFns := gitprovider.FilesGetOptions{Recursive: fileOpts.Recursive, MaxFiles: childMaxFiles, MaxDepth: fileOpts.MaxDepth - 1}
-				childFiles, err := c.Get(ctx, subdirectoryPath, branch, &childOptFns)
+				childFiles, err := c.getDirectoryFiles(ctx, path, branch, file, files, fileOpts)
 
 				if err != nil {
 					return nil, err
 				}
+				if childFiles == nil {
+					continue
+				}
+
 				files = append(files, childFiles...)
-				files, limitSuccess := limitSliceSize(files, fileOpts.MaxFiles)
-				if limitSuccess {
+				files, maxFilesReached := limitSliceSize(files, fileOpts.MaxFiles)
+				if maxFilesReached {
 					return files, nil
 				}
 			}

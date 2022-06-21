@@ -138,7 +138,7 @@ func (c *DeployKeyClient) Reconcile(ctx context.Context, req gitprovider.DeployK
 	return actual, true, actual.Update(ctx)
 }
 
-func createDeployKey(c gitlabClient, ref gitprovider.RepositoryRef, req gitprovider.DeployKeyInfo) (*gitlab.DeployKey, error) {
+func createDeployKey(c gitlabClient, ref gitprovider.RepositoryRef, req gitprovider.DeployKeyInfo) (*gitlab.ProjectDeployKey, error) {
 	// First thing, validate and default the request to ensure a valid and fully-populated object
 	// (to minimize any possible diffs between desired and actual state)
 	if err := gitprovider.ValidateAndDefaultInfo(&req); err != nil {

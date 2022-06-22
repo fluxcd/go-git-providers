@@ -38,7 +38,7 @@ func allGroupPages(opts *gitlab.ListGroupsOptions, fn func() (*gitlab.Response, 
 	}
 }
 
-func allSubgroupPages(opts *gitlab.ListSubgroupsOptions, fn func() (*gitlab.Response, error)) error {
+func allSubgroupPages(opts *gitlab.ListSubGroupsOptions, fn func() (*gitlab.Response, error)) error {
 	for {
 		resp, err := fn()
 		if err != nil {

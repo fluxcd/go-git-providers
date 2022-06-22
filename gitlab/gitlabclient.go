@@ -80,10 +80,10 @@ type gitlabClient interface {
 
 	// ListKeys is a wrapper for "GET /projects/{project}/deploy_keys".
 	// This function handles pagination, HTTP error wrapping, and validates the server result.
-	ListKeys(projectName string) ([]*gitlab.DeployKey, error)
+	ListKeys(projectName string) ([]*gitlab.ProjectDeployKey, error)
 	// CreateProjectKey is a wrapper for "POST /projects/{project}/deploy_keys".
 	// This function handles HTTP error wrapping, and validates the server result.
-	CreateKey(projectName string, req *gitlab.DeployKey) (*gitlab.DeployKey, error)
+	CreateKey(projectName string, req *gitlab.ProjectDeployKey) (*gitlab.ProjectDeployKey, error)
 	// DeleteKey is a wrapper for "DELETE /projects/{project}/deploy_keys/{key_id}".
 	// This function handles HTTP error wrapping.
 	DeleteKey(projectName string, keyID int) error
@@ -155,10 +155,10 @@ func (c *gitlabClientImpl) ListGroups(ctx context.Context) ([]*gitlab.Group, err
 
 func (c *gitlabClientImpl) ListSubgroups(ctx context.Context, groupName string) ([]*gitlab.Group, error) {
 	var apiObjs []*gitlab.Group
-	opts := &gitlab.ListSubgroupsOptions{}
+	opts := &gitlab.ListSubGroupsOptions{}
 	err := allSubgroupPages(opts, func() (*gitlab.Response, error) {
 		// GET /groups
-		pageObjs, resp, listErr := c.c.Groups.ListSubgroups(groupName, opts, gitlab.WithContext(ctx))
+		pageObjs, resp, listErr := c.c.Groups.ListSubGroups(groupName, opts, gitlab.WithContext(ctx))
 		apiObjs = append(apiObjs, pageObjs...)
 		return resp, listErr
 	})
@@ -329,8 +329,8 @@ func (c *gitlabClientImpl) DeleteProject(ctx context.Context, projectName string
 	return err
 }
 
-func (c *gitlabClientImpl) ListKeys(projectName string) ([]*gitlab.DeployKey, error) {
-	apiObjs := []*gitlab.DeployKey{}
+func (c *gitlabClientImpl) ListKeys(projectName string) ([]*gitlab.ProjectDeployKey, error) {
+	apiObjs := []*gitlab.ProjectDeployKey{}
 	opts := &gitlab.ListProjectDeployKeysOptions{}
 	err := allDeployKeyPages(opts, func() (*gitlab.Response, error) {
 		// GET /projects/{project}/deploy_keys
@@ -350,11 +350,11 @@ func (c *gitlabClientImpl) ListKeys(projectName string) ([]*gitlab.DeployKey, er
 	return apiObjs, nil
 }
 
-func (c *gitlabClientImpl) CreateKey(projectName string, req *gitlab.DeployKey) (*gitlab.DeployKey, error) {
+func (c *gitlabClientImpl) CreateKey(projectName string, req *gitlab.ProjectDeployKey) (*gitlab.ProjectDeployKey, error) {
 	opts := &gitlab.AddDeployKeyOptions{
 		Title:   &req.Title,
 		Key:     &req.Key,
-		CanPush: req.CanPush,
+		CanPush: &req.CanPush,
 	}
 	// POST /projects/{project}/deploy_keys
 	apiObj, _, err := c.c.DeployKeys.AddDeployKey(projectName, opts)

@@ -28,7 +28,7 @@ import (
 	"github.com/fluxcd/go-git-providers/validation"
 )
 
-func newDeployKey(c *DeployKeyClient, key *gitlab.DeployKey) *deployKey {
+func newDeployKey(c *DeployKeyClient, key *gitlab.ProjectDeployKey) *deployKey {
 	return &deployKey{
 		k:       *key,
 		c:       c,
@@ -39,9 +39,9 @@ func newDeployKey(c *DeployKeyClient, key *gitlab.DeployKey) *deployKey {
 var _ gitprovider.DeployKey = &deployKey{}
 
 type deployKey struct {
-	k       gitlab.DeployKey
+	k       gitlab.ProjectDeployKey
 	c       *DeployKeyClient
-	canpush *bool
+	canpush bool
 }
 
 func (dk *deployKey) Get() gitprovider.DeployKeyInfo {
@@ -136,7 +136,7 @@ func (dk *deployKey) createIntoSelf() error {
 	return nil
 }
 
-func validateDeployKeyAPI(apiObj *gitlab.DeployKey) error {
+func validateDeployKeyAPI(apiObj *gitlab.ProjectDeployKey) error {
 	return validateAPIObject("GitLab.Key", func(validator validation.Validator) {
 		if apiObj.Title == "" {
 			validator.Required("Title")
@@ -147,20 +147,20 @@ func validateDeployKeyAPI(apiObj *gitlab.DeployKey) error {
 	})
 }
 
-func deployKeyFromAPI(apiObj *gitlab.DeployKey) gitprovider.DeployKeyInfo {
+func deployKeyFromAPI(apiObj *gitlab.ProjectDeployKey) gitprovider.DeployKeyInfo {
 	return gitprovider.DeployKeyInfo{
 		Name: apiObj.Title,
 		Key:  []byte(apiObj.Key),
 	}
 }
 
-func deployKeyToAPI(info *gitprovider.DeployKeyInfo) *gitlab.DeployKey {
-	k := &gitlab.DeployKey{}
+func deployKeyToAPI(info *gitprovider.DeployKeyInfo) *gitlab.ProjectDeployKey {
+	k := &gitlab.ProjectDeployKey{}
 	deployKeyInfoToAPIObj(info, k)
 	return k
 }
 
-func deployKeyInfoToAPIObj(info *gitprovider.DeployKeyInfo, apiObj *gitlab.DeployKey) {
+func deployKeyInfoToAPIObj(info *gitprovider.DeployKeyInfo, apiObj *gitlab.ProjectDeployKey) {
 	// Required fields, we assume info is validated, and hence these are set
 	apiObj.Title = info.Name
 	apiObj.Key = string(info.Key)
@@ -168,19 +168,19 @@ func deployKeyInfoToAPIObj(info *gitprovider.DeployKeyInfo, apiObj *gitlab.Deplo
 	derefedBool := false
 	if info.ReadOnly != nil {
 		if *info.ReadOnly {
-			apiObj.CanPush = &derefedBool
+			apiObj.CanPush = derefedBool
 		} else {
 			derefedBool = true
-			apiObj.CanPush = &derefedBool
+			apiObj.CanPush = derefedBool
 		}
 	}
 }
 
 // This function copies over the fields that are part of create request of a deploy
 // i.e. the desired spec of the deploy key. This allows us to separate "spec" from "status" fields.
-func newGitlabKeySpec(key *gitlab.DeployKey) *gitlabKeySpec {
+func newGitlabKeySpec(key *gitlab.ProjectDeployKey) *gitlabKeySpec {
 	return &gitlabKeySpec{
-		&gitlab.DeployKey{
+		&gitlab.ProjectDeployKey{
 			// Create-specific parameters
 			Title:   key.Title,
 			Key:     key.Key,
@@ -190,7 +190,7 @@ func newGitlabKeySpec(key *gitlab.DeployKey) *gitlabKeySpec {
 }
 
 type gitlabKeySpec struct {
-	*gitlab.DeployKey
+	*gitlab.ProjectDeployKey
 }
 
 func (s *gitlabKeySpec) Equals(other *gitlabKeySpec) bool {

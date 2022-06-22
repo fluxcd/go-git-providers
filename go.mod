@@ -4,6 +4,7 @@ go 1.17
 
 require (
 	github.com/ProtonMail/go-crypto v0.0.0-20220517143526-88bb52951d5b
+	github.com/gmlewis/go-httpdebug v0.0.7
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/go-logr/logr v1.2.3

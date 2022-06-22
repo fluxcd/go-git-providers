@@ -22,6 +22,8 @@ import (
 	"github.com/google/go-github/v42/github"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
+
+	dbg "github.com/gmlewis/go-httpdebug/httpdebug"
 )
 
 const (
@@ -59,6 +61,9 @@ func NewClient(optFns ...gitprovider.ClientOption) (gitprovider.Client, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	ct := dbg.New(dbg.WithTransport(httpClient.Transport))
+	httpClient = ct.Client()
 
 	// Create the GitHub client either for the default github.com domain, or
 	// a custom enterprise domain if opts.Domain is set to something other than

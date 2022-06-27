@@ -227,11 +227,9 @@ var _ = Describe("Stash Provider", func() {
 			return
 		}
 
-		if len(os.Getenv("CLEANUP_ALL")) > 0 {
-			defer cleanupOrgRepos(ctx, "test-org-repo")
-			defer cleanupOrgRepos(ctx, "test-shared-org-repo")
-			defer cleanupUserRepos(ctx, "test-user-repo")
-		}
+		defer cleanupOrgRepos(ctx, "test-org-repo")
+		defer cleanupOrgRepos(ctx, "test-shared-org-repo")
+		defer cleanupUserRepos(ctx, "test-user-repo")
 	})
 })
 

@@ -81,8 +81,6 @@ func (opts *RepositoryCreateOptions) ValidateOptions() error {
 // FilesGetOptions specifies optional options when fetcing files.
 type FilesGetOptions struct {
 	Recursive bool
-	MaxFiles  int
-	MaxDepth  int
 }
 
 type FilesGetOption interface {
@@ -93,11 +91,5 @@ func (opts *FilesGetOptions) ApplyFilesGetOptions(target *FilesGetOptions) {
 	// Go through each field in opts, and apply it to target if set
 	if opts.Recursive == true {
 		target.Recursive = opts.Recursive
-	}
-	if opts.MaxFiles > 0 {
-		target.MaxFiles = opts.MaxFiles
-	}
-	if opts.MaxDepth > 0 {
-		target.MaxDepth = opts.MaxDepth
 	}
 }

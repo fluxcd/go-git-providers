@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"strings"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/google/go-github/v45/github"
@@ -35,43 +34,7 @@ type FileClient struct {
 	ref gitprovider.RepositoryRef
 }
 
-// if number of files retrieved exceed the max number of files, return slice only until the number of maxFiles with bool true for limiting succeeded
-func limitSliceSize(s []*gitprovider.CommitFile, size int) ([]*gitprovider.CommitFile, bool) {
-	if size != 0 && len(s) >= size {
-		return s[:size], true
-	}
-	return s, false
-}
-
-// getDirectoryFiles will make the recursive call to get files in sub directory of a dir type
-func (c *FileClient) getDirectoryFiles(ctx context.Context, path string, branch string, dir *github.RepositoryContent, files []*gitprovider.CommitFile, fileOpts gitprovider.FilesGetOptions) ([]*gitprovider.CommitFile, error) {
-
-	// stop recursive calls when level is the max level reached
-	if fileOpts.MaxDepth <= 1 {
-		return nil, nil
-	}
-
-	if !strings.HasSuffix(path, "/") {
-		path = path + "/"
-	}
-	subdirectoryPath := fmt.Sprintf("%s%s/", path, *dir.Name)
-
-	// recursive call for child directories to get their content
-	childMaxFiles := fileOpts.MaxFiles - len(files)
-	childOptFns := gitprovider.FilesGetOptions{Recursive: fileOpts.Recursive, MaxFiles: childMaxFiles, MaxDepth: fileOpts.MaxDepth - 1}
-	childFiles, err := c.Get(ctx, subdirectoryPath, branch, &childOptFns)
-
-	return childFiles, err
-
-}
-
 // Get fetches and returns the contents of a file or directory from a given branch and path with possible options of FilesGetOption
-// If recursive option is provided, the files are retrieved recursively from subdirectories of the base path.
-// If recursive and MaxDepth options are provided, the files are retrieved recursively from subdirectories until reaching the max depth of levels
-// Recursive and MaxDepth should be provided together, default MaxDepth : 0
-// If maxFiles option is provided, the number of files are maximized to the number provided
-
-// Uses https://docs.github.com/en/rest/repos/contents#get-repository-content
 func (c *FileClient) Get(ctx context.Context, path, branch string, optFns ...gitprovider.FilesGetOption) ([]*gitprovider.CommitFile, error) {
 
 	opts := &github.RepositoryContentGetOptions{
@@ -96,26 +59,6 @@ func (c *FileClient) Get(ctx context.Context, path, branch string, optFns ...git
 
 	for _, file := range directoryContent {
 		filePath := file.Path
-		if *file.Type == "dir" {
-			if fileOpts.Recursive {
-				childFiles, err := c.getDirectoryFiles(ctx, path, branch, file, files, fileOpts)
-
-				if err != nil {
-					return nil, err
-				}
-				if childFiles == nil {
-					continue
-				}
-
-				files = append(files, childFiles...)
-				files, maxFilesReached := limitSliceSize(files, fileOpts.MaxFiles)
-				if maxFilesReached {
-					return files, nil
-				}
-			}
-			continue
-
-		}
 		output, _, err := c.c.Client().Repositories.DownloadContents(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), *filePath, opts)
 		if err != nil {
 			return nil, err
@@ -133,10 +76,6 @@ func (c *FileClient) Get(ctx context.Context, path, branch string, optFns ...git
 			Path:    filePath,
 			Content: &contentStr,
 		})
-		files, limitSuccess := limitSliceSize(files, fileOpts.MaxFiles)
-		if limitSuccess {
-			return files, nil
-		}
 
 	}
 

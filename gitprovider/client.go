@@ -243,3 +243,12 @@ type FileClient interface {
 	// GetFiles fetch files content from specific path and branch
 	Get(ctx context.Context, path, branch string, optFns ...FilesGetOption) ([]*CommitFile, error)
 }
+
+type TreeClient interface {
+	// Create allows for creating or editing tree
+	Create(ctx context.Context, tree *TreeInfo) (*TreeInfo, error)
+	// Get retrieves tree information and items
+	Get(ctx context.Context, sha string, recursive bool) (*TreeInfo, error)
+	// List retrieves list of tree files (files/blob)
+	List(ctx context.Context, sha string, recursive bool) ([]*TreeEntry, error)
+}

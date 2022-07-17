@@ -225,3 +225,17 @@ type PullRequestInfo struct {
 	// +required
 	WebURL string `json:"web_url"`
 }
+
+type TreeEntry struct {
+	Path string `json:"path"`
+	Mode string `json:"mode"`
+	Type string `json:"type"`
+	Size int    `json:"size"`
+	SHA  string `json:"sha"`
+	URL  string `json:"url"`
+}
+type TreeInfo struct {
+	SHA       string       `json:"sha"`
+	Tree      []*TreeEntry `json:"tree"`
+	Truncated bool         `json:"truncated"`
+}

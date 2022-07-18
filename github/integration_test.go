@@ -611,7 +611,7 @@ var _ = Describe("GitHub Provider", func() {
 		tree, err := userRepo.Trees().Get(ctx, commitSha, true)
 		Expect(err).ToNot(HaveOccurred())
 
-		// Tree should have length 9 for : LISENCE, README.md, 3 blob (files), 4 tree (directories)
+		// Tree should have length 9 for : LICENSE, README.md, 3 blob (files), 4 tree (directories)
 		Expect(tree.Tree).To(HaveLen(9))
 
 		// itemsToBeIgnored initially with 2 for LICENSE and README.md, and will also include tree types
@@ -632,7 +632,7 @@ var _ = Describe("GitHub Provider", func() {
 		treeEntries, err := userRepo.Trees().List(ctx, commitSha, true)
 		Expect(err).ToNot(HaveOccurred())
 
-		// Tree Entries should have length 5 for : LISENCE, README.md, 3 blob (files)
+		// Tree Entries should have length 5 for : LICENSE, README.md, 3 blob (files)
 		Expect(treeEntries).To(HaveLen(5))
 		for ind, treeEntry := range treeEntries {
 			if treeEntry.Path == "LICENSE" || treeEntry.Path == "README.md" {

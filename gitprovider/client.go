@@ -244,6 +244,8 @@ type FileClient interface {
 	Get(ctx context.Context, path, branch string, optFns ...FilesGetOption) ([]*CommitFile, error)
 }
 
+// TreeClient operates on the trees for a Git repository which describe the hierarchy between files in the repository
+// This client can be accessed through Repository.Trees()
 type TreeClient interface {
 	// Create allows for creating or editing tree
 	Create(ctx context.Context, tree *TreeInfo) (*TreeInfo, error)

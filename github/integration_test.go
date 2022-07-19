@@ -621,7 +621,7 @@ var _ = Describe("GitHub Provider", func() {
 				if treeEntry.Path == "LICENSE" || treeEntry.Path == "README.md" {
 					continue
 				}
-				Expect(*&treeEntry.Path).To(Equal(*files[ind-itemsToBeIgnored].Path))
+				Expect(treeEntry.Path).To(Equal(*files[ind-itemsToBeIgnored].Path))
 				continue
 
 			}
@@ -638,7 +638,7 @@ var _ = Describe("GitHub Provider", func() {
 			if treeEntry.Path == "LICENSE" || treeEntry.Path == "README.md" {
 				continue
 			}
-			Expect(*&treeEntry.Path).To(Equal(*files[ind-2].Path))
+			Expect(treeEntry.Path).To(Equal(*files[ind-2].Path))
 		}
 
 	})

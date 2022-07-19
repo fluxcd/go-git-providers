@@ -83,13 +83,14 @@ type FilesGetOptions struct {
 	Recursive bool
 }
 
+// FilesGetOption is an interface for applying options when fetching/getting files
 type FilesGetOption interface {
 	ApplyFilesGetOptions(target *FilesGetOptions)
 }
 
+// ApplyFilesGetOptions applies target options onto the invoked opts
 func (opts *FilesGetOptions) ApplyFilesGetOptions(target *FilesGetOptions) {
 	// Go through each field in opts, and apply it to target if set
-	if opts.Recursive == true {
-		target.Recursive = opts.Recursive
-	}
+	target.Recursive = opts.Recursive
+
 }

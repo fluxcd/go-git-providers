@@ -78,30 +78,30 @@ func (c *TreeClient) Create(ctx context.Context, tree *gitprovider.TreeInfo) (*g
 	return &responseTreeInfo, nil
 }
 
-// Get returns a tree
+// Get returns a single tree using the SHA1 value for that tree.
 func (c *TreeClient) Get(ctx context.Context, sha string, recursive bool) (*gitprovider.TreeInfo, error) {
 	// GET /repos/{owner}/{repo}/git/trees
 	repoName := c.ref.GetRepository()
 	repoOwner := c.ref.GetIdentity()
-	githubTree, _, err := c.c.Client().Git.GetTree(ctx, repoOwner, repoName, sha, true)
+	githubTree, _, err := c.c.Client().Git.GetTree(ctx, repoOwner, repoName, sha, recursive)
 	if err != nil {
 		return nil, err
 	}
 
-	treeEntries := make([]*gitprovider.TreeEntry, 0)
-	for _, treeEntry := range githubTree.Entries {
+	treeEntries := make([]*gitprovider.TreeEntry, len(githubTree.Entries))
+	for ind, treeEntry := range githubTree.Entries {
 		size := 0
 		if *treeEntry.Type != "tree" {
 			size = *treeEntry.Size
 		}
-		treeEntries = append(treeEntries, &gitprovider.TreeEntry{
+		treeEntries[ind] = &gitprovider.TreeEntry{
 			Path: *treeEntry.Path,
 			Mode: *treeEntry.Mode,
 			Type: *treeEntry.Type,
 			Size: size,
 			SHA:  *treeEntry.SHA,
 			URL:  *treeEntry.URL,
-		})
+		}
 	}
 
 	treeInfo := gitprovider.TreeInfo{
@@ -135,16 +135,4 @@ func (c *TreeClient) List(ctx context.Context, sha string, recursive bool) ([]*g
 	}
 
 	return treeEntries, nil
-}
-
-func createTreeEntry(githubTreeEntry github.TreeEntry) *gitprovider.TreeEntry {
-	newTreeEntry := gitprovider.TreeEntry{
-		Path: *githubTreeEntry.Path,
-		Mode: *githubTreeEntry.Mode,
-		Type: *githubTreeEntry.Type,
-		Size: *githubTreeEntry.Size,
-		SHA:  *githubTreeEntry.SHA,
-		URL:  *githubTreeEntry.URL,
-	}
-	return &newTreeEntry
 }

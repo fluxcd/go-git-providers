@@ -160,6 +160,7 @@ type PullRequest interface {
 	Get() PullRequestInfo
 }
 
+// Tree represents a git tree which represents the hierarchy between files in a Git repository
 type Tree interface {
 	// Object implements the Object interface,
 	// allowing access to the underlying object returned from the API.

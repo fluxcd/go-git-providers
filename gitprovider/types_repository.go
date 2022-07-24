@@ -239,6 +239,8 @@ type TreeEntry struct {
 	Size int `json:"size"`
 	// SHA is the SHA1 checksum ID of the object in the tree
 	SHA string `json:"sha"`
+	// Content is the content of a blob file, either content aor sha are set. If both are using Github will return an error
+	Content string `json:"content"`
 	// URL is the url that can be used to retrieve the details of the blob, tree of commit
 	URL string `json:"url"`
 }

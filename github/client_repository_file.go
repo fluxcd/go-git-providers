@@ -34,7 +34,9 @@ type FileClient struct {
 	ref gitprovider.RepositoryRef
 }
 
-// Get fetches and returns the contents of a file or directory from a given branch and path with possible options of FilesGetOption
+// Get fetches and returns the contents of a file or multiple files in a directory from a given branch and path with possible options of FilesGetOption
+// If a file path is given, the contents of the file are returned
+// If a directory path is given, the contents of the files in the path's root are returned
 func (c *FileClient) Get(ctx context.Context, path, branch string, optFns ...gitprovider.FilesGetOption) ([]*gitprovider.CommitFile, error) {
 
 	opts := &github.RepositoryContentGetOptions{
@@ -67,10 +69,8 @@ func (c *FileClient) Get(ctx context.Context, path, branch string, optFns ...git
 		if err != nil {
 			return nil, err
 		}
-		err = output.Close()
-		if err != nil {
-			return nil, err
-		}
+		defer output.Close()
+
 		contentStr := string(content)
 		files = append(files, &gitprovider.CommitFile{
 			Path:    filePath,

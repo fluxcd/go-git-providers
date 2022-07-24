@@ -79,6 +79,7 @@ func (c *TreeClient) Create(ctx context.Context, tree *gitprovider.TreeInfo) (*g
 }
 
 // Get returns a single tree using the SHA1 value for that tree.
+// uses https://docs.github.com/en/rest/git/trees#get-a-tree
 func (c *TreeClient) Get(ctx context.Context, sha string, recursive bool) (*gitprovider.TreeInfo, error) {
 	// GET /repos/{owner}/{repo}/git/trees
 	repoName := c.ref.GetRepository()

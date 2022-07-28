@@ -1,9 +1,9 @@
 module github.com/fluxcd/go-git-providers
 
-go 1.17
+go 1.18
 
 require (
-	github.com/ProtonMail/go-crypto v0.0.0-20220517143526-88bb52951d5b
+	github.com/ProtonMail/go-crypto v0.0.0-20220714114130-e85cedf506cd
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/go-logr/logr v1.2.3
@@ -14,14 +14,14 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-retryablehttp v0.7.1
-	github.com/ktrysmt/go-bitbucket v0.9.46
+	github.com/ktrysmt/go-bitbucket v0.9.48
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.19.0
-	github.com/xanzy/go-gitlab v0.68.0
+	github.com/onsi/gomega v1.20.0
+	github.com/xanzy/go-gitlab v0.69.0
 	go.uber.org/zap v1.21.0
-	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e
-	golang.org/x/oauth2 v0.0.0-20220524215830-622c5d57e401
-	golang.org/x/time v0.0.0-20220411224347-583f2d630306
+	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
+	golang.org/x/oauth2 v0.0.0-20220722155238-128564f6959c
+	golang.org/x/time v0.0.0-20220722155302-e5dcc9cfc0b9
 )
 
 // Fix CVE-2022-28948
@@ -47,12 +47,13 @@ require (
 	github.com/xanzy/ssh-agent v0.3.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
-	golang.org/x/net v0.0.0-20220520000938-2e3eb7b945c2 // indirect
-	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e // indirect
+	golang.org/x/net v0.0.0-20220624214902-1bab6f366d9e // indirect
+	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

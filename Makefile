@@ -5,7 +5,7 @@ TEST_STOP_ON_ERROR?=
 all: test
 
 tidy:
-	go mod tidy
+	go mod tidy -compat=1.18
 
 fmt:
 	go fmt ./...

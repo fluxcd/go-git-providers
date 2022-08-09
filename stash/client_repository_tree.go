@@ -45,6 +45,6 @@ func (c *TreeClient) Get(ctx context.Context, sha string, recursive bool) (*gitp
 }
 
 // List files (blob) in a tree
-func (c *TreeClient) List(ctx context.Context, sha string, recursive bool) ([]*gitprovider.TreeEntry, error) {
+func (c *TreeClient) List(ctx context.Context, sha string, path string, recursive bool) ([]*gitprovider.TreeEntry, error) {
 	return nil, fmt.Errorf("error listing tree items %s. not implemented in stash yet", sha)
 }

@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
+	"github.com/xanzy/go-gitlab"
 )
 
 // TreeClient implements the gitprovider.TreeClient interface.
@@ -44,7 +45,32 @@ func (c *TreeClient) Get(ctx context.Context, sha string, recursive bool) (*gitp
 
 }
 
-// List files (blob) in a tree
-func (c *TreeClient) List(ctx context.Context, sha string, recursive bool) ([]*gitprovider.TreeEntry, error) {
-	return nil, fmt.Errorf("error listing tree items %s. not implemented in gitlab yet", sha)
+// List files (blob) in a tree, sha is represented by the branch name
+func (c *TreeClient) List(ctx context.Context, sha string, path string, recursive bool) ([]*gitprovider.TreeEntry, error) {
+	opts := &gitlab.ListTreeOptions{
+		Path:      &path,
+		Ref:       &sha,
+		Recursive: &recursive,
+	}
+
+	treeFiles, _, err := c.c.Client().Repositories.ListTree(getRepoPath(c.ref), opts)
+	if err != nil {
+		return nil, err
+	}
+
+	treeEntries := make([]*gitprovider.TreeEntry, 0)
+	for _, treeEntry := range treeFiles {
+		if treeEntry.Type == "blob" {
+			size := 0
+			treeEntries = append(treeEntries, &gitprovider.TreeEntry{
+				Path: treeEntry.Path,
+				Mode: treeEntry.Mode,
+				Type: treeEntry.Type,
+				Size: size,
+				ID:   treeEntry.ID,
+			})
+		}
+	}
+
+	return treeEntries, nil
 }

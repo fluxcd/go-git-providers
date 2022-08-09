@@ -18,6 +18,7 @@ package github
 
 import (
 	"context"
+	"strings"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/google/go-github/v42/github"
@@ -115,8 +116,8 @@ func (c *TreeClient) Get(ctx context.Context, sha string, recursive bool) (*gitp
 
 }
 
-// List files (blob) in a tree
-func (c *TreeClient) List(ctx context.Context, sha string, recursive bool) ([]*gitprovider.TreeEntry, error) {
+// List files (blob) in a tree givent the tree sha (path is not used with Github Tree client)
+func (c *TreeClient) List(ctx context.Context, sha string, path string, recursive bool) ([]*gitprovider.TreeEntry, error) {
 	treeInfo, err := c.Get(ctx, sha, recursive)
 	if err != nil {
 		return nil, err
@@ -124,14 +125,16 @@ func (c *TreeClient) List(ctx context.Context, sha string, recursive bool) ([]*g
 	treeEntries := make([]*gitprovider.TreeEntry, 0)
 	for _, treeEntry := range treeInfo.Tree {
 		if treeEntry.Type == "blob" {
-			treeEntries = append(treeEntries, &gitprovider.TreeEntry{
-				Path: treeEntry.Path,
-				Mode: treeEntry.Mode,
-				Type: treeEntry.Type,
-				Size: treeEntry.Size,
-				SHA:  treeEntry.SHA,
-				URL:  treeEntry.URL,
-			})
+			if path == "" || (path != "" && strings.HasPrefix(treeEntry.Path, path)) {
+				treeEntries = append(treeEntries, &gitprovider.TreeEntry{
+					Path: treeEntry.Path,
+					Mode: treeEntry.Mode,
+					Type: treeEntry.Type,
+					Size: treeEntry.Size,
+					SHA:  treeEntry.SHA,
+					URL:  treeEntry.URL,
+				})
+			}
 		}
 	}
 

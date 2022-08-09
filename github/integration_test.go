@@ -628,8 +628,8 @@ var _ = Describe("GitHub Provider", func() {
 			itemsToBeIgnored += 1
 		}
 
-		// List tree items
-		treeEntries, err := userRepo.Trees().List(ctx, commitSha, true)
+		// List tree items with no path provided
+		treeEntries, err := userRepo.Trees().List(ctx, commitSha, "", true)
 		Expect(err).ToNot(HaveOccurred())
 
 		// Tree Entries should have length 5 for : LICENSE, README.md, 3 blob (files)
@@ -639,6 +639,16 @@ var _ = Describe("GitHub Provider", func() {
 				continue
 			}
 			Expect(treeEntry.Path).To(Equal(*files[ind-2].Path))
+		}
+
+		//List tree items with path provided to filter on
+		treeEntries, err = userRepo.Trees().List(ctx, commitSha, "clustersDir/", true)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Tree Entries should have length 3 for :3 blob (files)
+		Expect(treeEntries).To(HaveLen(3))
+		for ind, treeEntry := range treeEntries {
+			Expect(treeEntry.Path).To(Equal(*files[ind].Path))
 		}
 
 	})

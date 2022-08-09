@@ -243,6 +243,8 @@ type TreeEntry struct {
 	Content string `json:"content"`
 	// URL is the url that can be used to retrieve the details of the blob, tree of commit
 	URL string `json:"url"`
+	// Id is the id of the tree entry retrieved from Gitlab (Optional)
+	ID string `json:"id"`
 }
 
 // TreeInfo contains high-level information about a git Tree representing the hierarchy between files in a Git repository

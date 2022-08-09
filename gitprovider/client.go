@@ -251,6 +251,6 @@ type TreeClient interface {
 	Create(ctx context.Context, tree *TreeInfo) (*TreeInfo, error)
 	// Get retrieves tree information and items
 	Get(ctx context.Context, sha string, recursive bool) (*TreeInfo, error)
-	// List retrieves list of tree files (files/blob)
-	List(ctx context.Context, sha string, recursive bool) ([]*TreeEntry, error)
+	// List retrieves list of tree files (files/blob) from given tree sha/id or path+branch
+	List(ctx context.Context, sha string, path string, recursive bool) ([]*TreeEntry, error)
 }

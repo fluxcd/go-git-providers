@@ -166,8 +166,6 @@ type Tree interface {
 	// allowing access to the underlying object returned from the API.
 	Object
 
-	// Create allows for creating or editing tree
-	Create() TreeInfo
 	// Get returns high-level information about this tree.
 	Get() TreeInfo
 	// List files (blob) in a tree

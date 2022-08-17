@@ -32,12 +32,6 @@ type TreeClient struct {
 	ref gitprovider.RepositoryRef
 }
 
-// Create creates,updates,deletes a tree
-func (c *TreeClient) Create(ctx context.Context, tree *gitprovider.TreeInfo) (*gitprovider.TreeInfo, error) {
-	return nil, fmt.Errorf("error creaing tree %s. not implemented in stash yet", tree.SHA)
-
-}
-
 // Get returns a tree
 func (c *TreeClient) Get(ctx context.Context, sha string, recursive bool) (*gitprovider.TreeInfo, error) {
 	return nil, fmt.Errorf("error getting tree %s. not implemented in stash yet", sha)

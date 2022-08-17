@@ -247,8 +247,6 @@ type FileClient interface {
 // TreeClient operates on the trees for a Git repository which describe the hierarchy between files in the repository
 // This client can be accessed through Repository.Trees()
 type TreeClient interface {
-	// Create allows for creating or editing tree
-	Create(ctx context.Context, tree *TreeInfo) (*TreeInfo, error)
 	// Get retrieves tree information and items
 	Get(ctx context.Context, sha string, recursive bool) (*TreeInfo, error)
 	// List retrieves list of tree files (files/blob) from given tree sha/id or path+branch

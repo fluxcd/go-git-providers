@@ -21,7 +21,6 @@ import (
 	"strings"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/google/go-github/v45/github"
 )
 
 // TreeClient implements the gitprovider.TreeClient interface.
@@ -31,52 +30,6 @@ var _ gitprovider.TreeClient = &TreeClient{}
 type TreeClient struct {
 	*clientContext
 	ref gitprovider.RepositoryRef
-}
-
-// Create creates,updates,deletes a tree
-func (c *TreeClient) Create(ctx context.Context, tree *gitprovider.TreeInfo) (*gitprovider.TreeInfo, error) {
-	repoName := c.ref.GetRepository()
-	repoOwner := c.ref.GetIdentity()
-
-	treeEntries := make([]*github.TreeEntry, 0)
-	for _, treeEntry := range tree.Tree {
-		treeEntries = append(treeEntries, &github.TreeEntry{
-			Path: &treeEntry.Path,
-			Mode: &treeEntry.Mode,
-			Type: &treeEntry.Type,
-			Size: &treeEntry.Size,
-			SHA:  &treeEntry.SHA,
-			URL:  &treeEntry.URL,
-		})
-	}
-	githubTree, _, err := c.c.Client().Git.CreateTree(ctx, repoOwner, repoName, tree.SHA, treeEntries)
-	if err != nil {
-		return nil, err
-	}
-
-	responseTreeEntries := make([]*gitprovider.TreeEntry, 0)
-	for _, responseTreeEntry := range githubTree.Entries {
-		size := 0
-		if *responseTreeEntry.Type != "tree" {
-			size = *responseTreeEntry.Size
-		}
-		responseTreeEntries = append(responseTreeEntries, &gitprovider.TreeEntry{
-			Path: *responseTreeEntry.Path,
-			Mode: *responseTreeEntry.Mode,
-			Type: *responseTreeEntry.Type,
-			Size: size,
-			SHA:  *responseTreeEntry.SHA,
-			URL:  *responseTreeEntry.URL,
-		})
-	}
-
-	responseTreeInfo := gitprovider.TreeInfo{
-		SHA:       *githubTree.SHA,
-		Tree:      responseTreeEntries,
-		Truncated: *githubTree.Truncated,
-	}
-
-	return &responseTreeInfo, nil
 }
 
 // Get returns a single tree using the SHA1 value for that tree.

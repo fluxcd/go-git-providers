@@ -562,6 +562,97 @@ var _ = Describe("GitHub Provider", func() {
 
 	})
 
+	It("should be possible to get and list repo tree", func() {
+
+		userRepoRef := newUserRepoRef(testUser, testUserRepoName)
+
+		userRepo, err := c.UserRepositories().Get(ctx, userRepoRef)
+		Expect(err).ToNot(HaveOccurred())
+
+		defaultBranch := userRepo.Get().DefaultBranch
+
+		path0 := "clustersDir/cluster/machine.yaml"
+		content0 := "machine yaml content"
+		path1 := "clustersDir/cluster/machine1.yaml"
+		content1 := "machine1 yaml content"
+		path2 := "clustersDir/cluster2/clusterSubDir/machine2.yaml"
+		content2 := "machine2 yaml content"
+
+		files := []gitprovider.CommitFile{
+			{
+				Path:    &path0,
+				Content: &content0,
+			},
+			{
+				Path:    &path1,
+				Content: &content1,
+			},
+			{
+				Path:    &path2,
+				Content: &content2,
+			},
+		}
+
+		commitFiles := make([]gitprovider.CommitFile, 0)
+		for _, file := range files {
+			path := file.Path
+			content := file.Content
+			commitFiles = append(commitFiles, gitprovider.CommitFile{
+				Path:    path,
+				Content: content,
+			})
+		}
+
+		commit, err := userRepo.Commits().Create(ctx, *defaultBranch, "added files", commitFiles)
+		Expect(err).ToNot(HaveOccurred())
+		commitSha := commit.Get().Sha
+
+		// get tree
+		tree, err := userRepo.Trees().Get(ctx, commitSha, true)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Tree should have length 9 for : LICENSE, README.md, 3 blob (files), 4 tree (directories)
+		Expect(tree.Tree).To(HaveLen(9))
+
+		// itemsToBeIgnored initially with 2 for LICENSE and README.md, and will also include tree types
+		itemsToBeIgnored := 2
+		for ind, treeEntry := range tree.Tree {
+			if treeEntry.Type == "blob" {
+				if treeEntry.Path == "LICENSE" || treeEntry.Path == "README.md" {
+					continue
+				}
+				Expect(treeEntry.Path).To(Equal(*files[ind-itemsToBeIgnored].Path))
+				continue
+
+			}
+			itemsToBeIgnored += 1
+		}
+
+		// List tree items with no path provided
+		treeEntries, err := userRepo.Trees().List(ctx, commitSha, "", true)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Tree Entries should have length 5 for : LICENSE, README.md, 3 blob (files)
+		Expect(treeEntries).To(HaveLen(5))
+		for ind, treeEntry := range treeEntries {
+			if treeEntry.Path == "LICENSE" || treeEntry.Path == "README.md" {
+				continue
+			}
+			Expect(treeEntry.Path).To(Equal(*files[ind-2].Path))
+		}
+
+		//List tree items with path provided to filter on
+		treeEntries, err = userRepo.Trees().List(ctx, commitSha, "clustersDir/", true)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Tree Entries should have length 3 for :3 blob (files)
+		Expect(treeEntries).To(HaveLen(3))
+		for ind, treeEntry := range treeEntries {
+			Expect(treeEntry.Path).To(Equal(*files[ind].Path))
+		}
+
+	})
+
 	AfterSuite(func() {
 		if os.Getenv("SKIP_CLEANUP") == "1" {
 			return

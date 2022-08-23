@@ -225,3 +225,35 @@ type PullRequestInfo struct {
 	// +required
 	WebURL string `json:"web_url"`
 }
+
+// TreeEntry contains info about each tree object's structure in TreeInfo whether it is a file or tree
+type TreeEntry struct {
+	// Path is the path of the file/blob or sub tree in a tree
+	Path string `json:"path"`
+	// Mode of the file/tree.
+	// (100644:file (blob), 100755:executable (blob), 040000:subdirectory(tree),160000:submodule(commit),120000:blob that specifies the path of a symlink)
+	Mode string `json:"mode"`
+	// Type is the item type, It is either blob, tree, or commit.
+	Type string `json:"type"`
+	// Size is the size of the file/blob if the type is a blob, it is not populated if the type is a tree
+	Size int `json:"size"`
+	// SHA is the SHA1 checksum ID of the object in the tree
+	SHA string `json:"sha"`
+	// Content is the content of a blob file, either content aor sha are set. If both are using Github will return an error
+	Content string `json:"content"`
+	// URL is the url that can be used to retrieve the details of the blob, tree of commit
+	URL string `json:"url"`
+	// Id is the id of the tree entry retrieved from Gitlab (Optional)
+	ID string `json:"id"`
+}
+
+// TreeInfo contains high-level information about a git Tree representing the hierarchy between files in a Git repository
+type TreeInfo struct {
+	// SHA is the SHA1 checksum ID of the tree, or the branch name
+	SHA string `json:"sha"`
+	// Tree is the list of TreeEntry objects describing the structure of the tree
+	Tree []*TreeEntry `json:"tree"`
+	// Truncated represents whether a tree is truncated when fetching a tree
+	// If truncated is true in the response when fetching a tree, then the number of items in the tree array exceeded the maximum limit
+	Truncated bool `json:"truncated"`
+}

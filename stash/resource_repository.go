@@ -52,6 +52,10 @@ func newUserRepository(ctx *clientContext, apiObj *Repository, ref gitprovider.R
 			clientContext: ctx,
 			ref:           ref,
 		},
+		trees: &TreeClient{
+			clientContext: ctx,
+			ref:           ref,
+		},
 	}
 }
 
@@ -66,6 +70,7 @@ type userRepository struct {
 	pullRequests *PullRequestClient
 	commits      *CommitClient
 	files        *FileClient
+	trees        *TreeClient
 }
 
 func (r *userRepository) Branches() gitprovider.BranchClient {
@@ -82,6 +87,10 @@ func (r *userRepository) PullRequests() gitprovider.PullRequestClient {
 
 func (r *userRepository) Files() gitprovider.FileClient {
 	return r.files
+}
+
+func (r *userRepository) Trees() gitprovider.TreeClient {
+	return r.trees
 }
 
 func (r *userRepository) Get() gitprovider.RepositoryInfo {

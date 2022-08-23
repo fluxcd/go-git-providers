@@ -241,5 +241,14 @@ type PullRequestClient interface {
 // This client can be accessed through Repository.Branches().
 type FileClient interface {
 	// GetFiles fetch files content from specific path and branch
-	Get(ctx context.Context, path, branch string) ([]*CommitFile, error)
+	Get(ctx context.Context, path, branch string, optFns ...FilesGetOption) ([]*CommitFile, error)
+}
+
+// TreeClient operates on the trees for a Git repository which describe the hierarchy between files in the repository
+// This client can be accessed through Repository.Trees()
+type TreeClient interface {
+	// Get retrieves tree information and items
+	Get(ctx context.Context, sha string, recursive bool) (*TreeInfo, error)
+	// List retrieves list of tree files (files/blob) from given tree sha/id or path+branch
+	List(ctx context.Context, sha string, path string, recursive bool) ([]*TreeEntry, error)
 }

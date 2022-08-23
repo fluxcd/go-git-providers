@@ -77,8 +77,11 @@ type UserRepository interface {
 	// PullRequests gives access to this specific repository pull requests
 	PullRequests() PullRequestClient
 
-	// Files gives access to this specific repository pull requests
+	// Files gives access to this specific repository files
 	Files() FileClient
+
+	// Trees gives access to this specific repository trees.
+	Trees() TreeClient
 }
 
 // OrgRepository describes a repository owned by an organization.
@@ -155,4 +158,16 @@ type PullRequest interface {
 
 	// Get returns high-level information about this pull request.
 	Get() PullRequestInfo
+}
+
+// Tree represents a git tree which is the hierarchical structure of your git data.
+type Tree interface {
+	// Object implements the Object interface,
+	// allowing access to the underlying object returned from the API.
+	Object
+
+	// Get returns high-level information about this tree.
+	Get() TreeInfo
+	// List files (blob) in a tree
+	List() TreeEntry
 }

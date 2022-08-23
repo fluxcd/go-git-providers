@@ -51,6 +51,10 @@ func newUserProject(ctx *clientContext, apiObj *gogitlab.Project, ref gitprovide
 			clientContext: ctx,
 			ref:           ref,
 		},
+		trees: &TreeClient{
+			clientContext: ctx,
+			ref:           ref,
+		},
 	}
 }
 
@@ -67,6 +71,7 @@ type userProject struct {
 	branches     *BranchClient
 	pullRequests *PullRequestClient
 	files        *FileClient
+	trees        *TreeClient
 }
 
 func (p *userProject) Get() gitprovider.RepositoryInfo {
@@ -107,6 +112,10 @@ func (p *userProject) PullRequests() gitprovider.PullRequestClient {
 
 func (p *userProject) Files() gitprovider.FileClient {
 	return p.files
+}
+
+func (p *userProject) Trees() gitprovider.TreeClient {
+	return p.trees
 }
 
 // The internal API object will be overridden with the received server data.

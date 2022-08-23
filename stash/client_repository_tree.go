@@ -23,16 +23,22 @@ import (
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
-// FileClient implements the gitprovider.FileClient interface.
-var _ gitprovider.FileClient = &FileClient{}
+// TreeClient implements the gitprovider.TreeClient interface.
+var _ gitprovider.TreeClient = &TreeClient{}
 
-// FileClient operates on the branch for a specific repository.
-type FileClient struct {
+// TreeClient operates on the trees in a specific repository.
+type TreeClient struct {
 	*clientContext
 	ref gitprovider.RepositoryRef
 }
 
-// Get fetches and returns the contents of a file from a given branch and path
-func (c *FileClient) Get(_ context.Context, path, branch string, optFns ...gitprovider.FilesGetOption) ([]*gitprovider.CommitFile, error) {
-	return nil, fmt.Errorf("error getting file %s@%s. not implemented in stash yet", path, branch)
+// Get returns a tree
+func (c *TreeClient) Get(ctx context.Context, sha string, recursive bool) (*gitprovider.TreeInfo, error) {
+	return nil, fmt.Errorf("error getting tree %s. not implemented in stash yet", sha)
+
+}
+
+// List files (blob) in a tree
+func (c *TreeClient) List(ctx context.Context, sha string, path string, recursive bool) ([]*gitprovider.TreeEntry, error) {
+	return nil, fmt.Errorf("error listing tree items %s. not implemented in stash yet", sha)
 }

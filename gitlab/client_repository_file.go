@@ -35,12 +35,21 @@ type FileClient struct {
 	ref gitprovider.RepositoryRef
 }
 
-// Get fetches and returns the contents of a file from a given branch and path
-func (c *FileClient) Get(_ context.Context, path, branch string) ([]*gitprovider.CommitFile, error) {
+// Get fetches and returns the contents of a file or multiple files in a directory from a given branch and path with possible options of FilesGetOption
+// If a file path is given, the contents of the file are returned
+// If a directory path is given, the contents of the files in the path's root are returned
+func (c *FileClient) Get(ctx context.Context, path, branch string, optFns ...gitprovider.FilesGetOption) ([]*gitprovider.CommitFile, error) {
+
+	filesGetOpts := gitprovider.FilesGetOptions{}
+
+	for _, opt := range optFns {
+		opt.ApplyFilesGetOptions(&filesGetOpts)
+	}
 
 	opts := &gitlab.ListTreeOptions{
-		Path: &path,
-		Ref:  &branch,
+		Path:      &path,
+		Ref:       &branch,
+		Recursive: &filesGetOpts.Recursive,
 	}
 
 	listFiles, _, err := c.c.Client().Repositories.ListTree(getRepoPath(c.ref), opts)
@@ -54,6 +63,9 @@ func (c *FileClient) Get(_ context.Context, path, branch string) ([]*gitprovider
 
 	files := make([]*gitprovider.CommitFile, 0)
 	for _, file := range listFiles {
+		if file.Type == "tree" {
+			continue
+		}
 		fileDownloaded, _, err := c.c.Client().RepositoryFiles.GetFile(getRepoPath(c.ref), file.Path, fileOpts)
 		if err != nil {
 			return nil, err

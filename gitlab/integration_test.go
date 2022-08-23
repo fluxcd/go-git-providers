@@ -666,7 +666,7 @@ var _ = Describe("GitLab Provider", func() {
 
 		gitlabClient := c.Raw().(*gitlab.Client)
 		f, _, err := gitlabClient.RepositoryFiles.GetFile(testUserName+"/"+testRepoName, "README.md", &gitlab.GetFileOptions{
-			Ref: gitlab.String(defaultBranchName),
+			Ref: &db,
 		})
 		Expect(err).ToNot(HaveOccurred())
 		fileContents, err := base64.StdEncoding.DecodeString(f.Content)
@@ -750,6 +750,8 @@ var _ = Describe("GitLab Provider", func() {
 
 		var commits []gitprovider.Commit = []gitprovider.Commit{}
 		retryOp := testutils.NewRetry()
+		retryOp.SetInterval(time.Second * 3)
+		retryOp.SetTimeout(time.Second * 120)
 		Eventually(func() bool {
 			var err error
 			commits, err = userRepo.Commits().ListPage(ctx, defaultBranch, 1, 0)

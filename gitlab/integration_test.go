@@ -666,7 +666,7 @@ var _ = Describe("GitLab Provider", func() {
 
 		gitlabClient := c.Raw().(*gitlab.Client)
 		f, _, err := gitlabClient.RepositoryFiles.GetFile(testUserName+"/"+testRepoName, "README.md", &gitlab.GetFileOptions{
-			Ref: gitlab.String(defaultBranchName),
+			Ref: &db,
 		})
 		Expect(err).ToNot(HaveOccurred())
 		fileContents, err := base64.StdEncoding.DecodeString(f.Content)

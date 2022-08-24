@@ -19,6 +19,7 @@ package gitlab
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/xanzy/go-gitlab"
@@ -47,9 +48,12 @@ func (c *CommitClient) ListPage(_ context.Context, branch string, perPage, page 
 	return commits, nil
 }
 
+// Get a list of repository commits in a project.
 func (c *CommitClient) listPage(branch string, perPage, page int) ([]*commitType, error) {
-	// GET /repos/{owner}/{repo}/commits
-	apiObjs, err := c.c.ListCommitsPage(getRepoPath(c.ref), branch, perPage, page)
+	// GET /projects/{id}/repository/commits
+	p := getRepoPath(c.ref)
+	p = strings.ReplaceAll(p, "/", "%2F")
+	apiObjs, err := c.c.ListCommitsPage(p, branch, perPage, page)
 	if err != nil {
 		return nil, err
 	}

@@ -20,6 +20,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/go-logr/logr"
 	"github.com/google/go-github/v45/github"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
@@ -28,8 +29,8 @@ import (
 // ProviderID is the provider ID for GitHub.
 const ProviderID = gitprovider.ProviderID("github")
 
-func newClient(c *github.Client, domain string, destructiveActions bool) *Client {
-	ghClient := &githubClientImpl{c, destructiveActions}
+func newClient(c *github.Client, domain string, destructiveActions bool, logger *logr.Logger) *Client {
+	ghClient := &githubClientImpl{c, destructiveActions, logger}
 	ctx := &clientContext{ghClient, domain, destructiveActions}
 	return &Client{
 		clientContext: ctx,

@@ -201,6 +201,10 @@ func (r *userRepository) Reconcile(ctx context.Context) (bool, error) {
 	if desiredSpec.Equals(actualSpec) {
 		return false, nil
 	}
+
+	// log the diff
+	client, _ := r.c.(*githubClientImpl)
+	client.Logger.V(1).Info("repository spec differs from actual state, updating", "desired", desiredSpec.String(), "actual", actualSpec.String())
 	// Otherwise, make the desired state the actual state
 	// create the update repository
 	r.topUpdate = updateGithubRepository(desiredSpec.Repository, actualSpec.Repository)

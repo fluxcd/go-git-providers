@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
+	"github.com/go-logr/logr"
 	"github.com/google/go-github/v45/github"
 )
 
@@ -101,6 +102,7 @@ type githubClient interface {
 type githubClientImpl struct {
 	c                  *github.Client
 	destructiveActions bool
+	Logger             *logr.Logger
 }
 
 // githubClientImpl implements githubClient.

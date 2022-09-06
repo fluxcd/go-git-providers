@@ -19,9 +19,11 @@ package github
 import (
 	"fmt"
 
+	"github.com/go-logr/logr"
 	"github.com/google/go-github/v45/github"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
+	dbg "github.com/gmlewis/go-httpdebug/httpdebug"
 )
 
 const (
@@ -54,11 +56,20 @@ func NewClient(optFns ...gitprovider.ClientOption) (gitprovider.Client, error) {
 		return nil, err
 	}
 
+	if opts.Logger == nil {
+		logger := logr.Discard()
+		opts.Logger = &logger
+	}
+
 	// Create a *http.Client using the transport chain
 	httpClient, err := gitprovider.BuildClientFromTransportChain(opts.GetTransportChain())
 	if err != nil {
 		return nil, err
 	}
+
+	// add debug
+	ct := dbg.New(dbg.WithTransport(httpClient.Transport))
+	httpClient = ct.Client()
 
 	// Create the GitHub client either for the default github.com domain, or
 	// a custom enterprise domain if opts.Domain is set to something other than
@@ -86,5 +97,5 @@ func NewClient(optFns ...gitprovider.ClientOption) (gitprovider.Client, error) {
 		destructiveActions = *opts.EnableDestructiveAPICalls
 	}
 
-	return newClient(gh, domain, destructiveActions), nil
+	return newClient(gh, domain, destructiveActions, opts.Logger), nil
 }

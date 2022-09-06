@@ -180,9 +180,10 @@ var _ = Describe("GitLab Provider", func() {
 		testUserName     string = "fluxcd-gitprovider-bot"
 
 		// placeholders, will be randomized and created.
-		testSharedOrgRepoName string = "testsharedorgrepo"
-		testOrgRepoName       string = "testorgrepo"
-		testRepoName          string = "testrepo"
+		testSharedOrgRepoName string = "test-shared-org-repo"
+		testOrgRepoName       string = "test-org-repo"
+		testRepoName          string = "test-repo"
+		testTreeRepoName      string = "test-repo-tree"
 	)
 
 	BeforeSuite(func() {
@@ -643,18 +644,27 @@ var _ = Describe("GitLab Provider", func() {
 		Expect(errors.Is(err, gitprovider.ErrNotFound)).To(BeTrue())
 		db := defaultBranchName
 
-		// Create a new repo
-		repo, err := c.UserRepositories().Create(ctx, repoRef, gitprovider.RepositoryInfo{
-			DefaultBranch: &db,
-			Description:   gitprovider.StringVar(defaultDescription),
-			// Default visibility is private, no need to set this at least now
-			//Visibility:     gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
-		}, &gitprovider.RepositoryCreateOptions{
-			AutoInit:        gitprovider.BoolVar(true),
-			LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateApache2),
-		})
-		Expect(err).ToNot(HaveOccurred())
+		var (
+			repo        gitprovider.UserRepository
+			actionTaken bool
+		)
+		retryOp := testutils.NewRetry()
+		Eventually(func() bool {
+			var err error
+			// Reconcile and create
+			repo, actionTaken, err = c.UserRepositories().Reconcile(ctx, repoRef, gitprovider.RepositoryInfo{
+				DefaultBranch: &db,
+				Description:   gitprovider.StringVar(defaultDescription),
+				Visibility:    gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
+			}, &gitprovider.RepositoryCreateOptions{
+				AutoInit:        gitprovider.BoolVar(true),
+				LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateApache2),
+			})
+			return retryOp.IsRetryable(err, fmt.Sprintf("new user repository: %s", repoRef.RepositoryName))
+		}, retryOp.Timeout(), retryOp.Interval()).Should(BeTrue())
 
+		// Expect the create to succeed, and have modified the state. Also validate the newRepo data
+		Expect(actionTaken).To(BeTrue())
 		validateUserRepo(repo, repoRef)
 
 		getRepo, err := c.UserRepositories().Get(ctx, repoRef)
@@ -664,10 +674,29 @@ var _ = Describe("GitLab Provider", func() {
 		postSpec := newGitlabProjectSpec(repo.APIObject().(*gitlab.Project))
 		Expect(getSpec.Equals(postSpec)).To(BeTrue())
 
+		// Commit a readme file to cope with the auto-init issue
+		// see https://gitlab.com/gitlab-org/gitlab/-/issues/372092
+		readme := "README.md"
+		readmeContent := fmt.Sprintf("# %s\n\n#Description %s", testRepoName, defaultDescription)
+		commitFiles := []gitprovider.CommitFile{
+			{
+				Path:    &readme,
+				Content: &readmeContent,
+			},
+		}
+		_, err = repo.Commits().Create(ctx, db, "added files", commitFiles)
+		Expect(err).ToNot(HaveOccurred())
+
+		var f *gitlab.File
 		gitlabClient := c.Raw().(*gitlab.Client)
-		f, _, err := gitlabClient.RepositoryFiles.GetFile(testUserName+"/"+testRepoName, "README.md", &gitlab.GetFileOptions{
-			Ref: gitlab.String(defaultBranchName),
-		})
+		Eventually(func() bool {
+			var err error
+			f, _, err = gitlabClient.RepositoryFiles.GetFile(testUserName+"/"+testRepoName, "README.md", &gitlab.GetFileOptions{
+				Ref: &db,
+			})
+			return retryOp.IsRetryable(err, fmt.Sprintf("get readme file, repository: %s", repoRef.RepositoryName))
+		}, retryOp.Timeout(), retryOp.Interval()).Should(BeTrue())
+
 		Expect(err).ToNot(HaveOccurred())
 		fileContents, err := base64.StdEncoding.DecodeString(f.Content)
 		Expect(err).ToNot(HaveOccurred())
@@ -735,21 +764,44 @@ var _ = Describe("GitLab Provider", func() {
 		repoRef := newUserRepoRef(testUserName, testRepoName)
 
 		defaultBranch := defaultBranchName
-		description := "test description"
-		// Create a new repo
-		userRepo, err := c.UserRepositories().Create(ctx, repoRef,
-			gitprovider.RepositoryInfo{
+
+		var (
+			userRepo    gitprovider.UserRepository
+			actionTaken bool
+		)
+		retryOp := testutils.NewRetry()
+		Eventually(func() bool {
+			var err error
+			// Reconcile and create
+			userRepo, actionTaken, err = c.UserRepositories().Reconcile(ctx, repoRef, gitprovider.RepositoryInfo{
 				DefaultBranch: &defaultBranch,
-				Description:   &description,
+				Description:   gitprovider.StringVar(defaultDescription),
 				Visibility:    gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
-			},
-			&gitprovider.RepositoryCreateOptions{
-				AutoInit: gitprovider.BoolVar(true),
+			}, &gitprovider.RepositoryCreateOptions{
+				AutoInit:        gitprovider.BoolVar(true),
+				LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateMIT),
 			})
+			return retryOp.IsRetryable(err, fmt.Sprintf("new user repository: %s", repoRef.RepositoryName))
+		}, retryOp.Timeout(), retryOp.Interval()).Should(BeTrue())
+
+		// Expect the create to succeed, and have modified the state. Also validate the newRepo data
+		Expect(actionTaken).To(BeTrue())
+		validateUserRepo(userRepo, repoRef)
+
+		// Commit a readme file to cope with the auto-init issue
+		// see https://gitlab.com/gitlab-org/gitlab/-/issues/372092
+		readme := "README.md"
+		readmeContent := fmt.Sprintf("# %s\n\n#Description %s", testRepoName, defaultDescription)
+		commitFiles := []gitprovider.CommitFile{
+			{
+				Path:    &readme,
+				Content: &readmeContent,
+			},
+		}
+		_, err := userRepo.Commits().Create(ctx, defaultBranch, "added files", commitFiles)
 		Expect(err).ToNot(HaveOccurred())
 
 		var commits []gitprovider.Commit = []gitprovider.Commit{}
-		retryOp := testutils.NewRetry()
 		Eventually(func() bool {
 			var err error
 			commits, err = userRepo.Commits().ListPage(ctx, defaultBranch, 1, 0)
@@ -840,8 +892,21 @@ var _ = Describe("GitLab Provider", func() {
 	})
 
 	It("should be possible to download files from path and branch specified", func() {
+		testTreeRepoName = fmt.Sprintf("test-repo-tree-%03d", rand.Intn(1000))
+		userRepoRef := newUserRepoRef(testUserName, testTreeRepoName)
+		// Create a new repo
+		db := defaultBranchName
+		repo, err := c.UserRepositories().Create(ctx, userRepoRef, gitprovider.RepositoryInfo{
+			DefaultBranch: &db,
+			Description:   gitprovider.StringVar(defaultDescription),
+			// Default visibility is private, no need to set this at least now
+			//Visibility:     gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
+		}, &gitprovider.RepositoryCreateOptions{
+			AutoInit: gitprovider.BoolVar(false),
+		})
+		Expect(err).ToNot(HaveOccurred())
 
-		userRepoRef := newUserRepoRef(testUserName, testRepoName)
+		validateUserRepo(repo, userRepoRef)
 
 		userRepo, err := c.UserRepositories().Get(ctx, userRepoRef)
 		Expect(err).ToNot(HaveOccurred())
@@ -887,8 +952,7 @@ var _ = Describe("GitLab Provider", func() {
 	})
 
 	It("should be possible to download files from path and branch specified with nested directory", func() {
-
-		userRepoRef := newUserRepoRef(testUserName, testRepoName)
+		userRepoRef := newUserRepoRef(testUserName, testTreeRepoName)
 
 		userRepo, err := c.UserRepositories().Get(ctx, userRepoRef)
 		Expect(err).ToNot(HaveOccurred())
@@ -939,7 +1003,7 @@ var _ = Describe("GitLab Provider", func() {
 
 	})
 	It("should be possible list repo tree files", func() {
-		userRepoRef := newUserRepoRef(testUserName, testRepoName)
+		userRepoRef := newUserRepoRef(testUserName, testTreeRepoName)
 
 		userRepo, err := c.UserRepositories().Get(ctx, userRepoRef)
 		Expect(err).ToNot(HaveOccurred())

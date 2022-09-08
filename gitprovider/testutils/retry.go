@@ -33,6 +33,7 @@ type RetryI interface {
 	Interval() time.Duration
 	Backoff() time.Duration
 	Retries() int
+	Counter() int
 }
 
 // RetryOp is a retry operation
@@ -63,6 +64,11 @@ func (r RetryOp) Backoff() time.Duration {
 // Retries returns the number of retries for the retry operation
 func (r RetryOp) Retries() int {
 	return r.retries
+}
+
+// Counter returns the number of times the operation has been retried
+func (r RetryOp) Counter() int {
+	return r.counter
 }
 
 // SetTimeout sets the timeout for the retry operation

@@ -106,11 +106,14 @@ func (r *userRepository) Get() gitprovider.RepositoryInfo {
 	return repositoryFromAPI(&r.r)
 }
 
+// Set sets the desired state of this object.
+// User have to call Update() to apply the changes to the server.
+// The changes will then be reflected in the internal API object.
 func (r *userRepository) Set(info gitprovider.RepositoryInfo) error {
 	if err := info.ValidateInfo(); err != nil {
 		return err
 	}
-	repositoryInfoToAPIObj(&info, &r.r)
+	r.topUpdate = updateApiObjWithRepositoryInfo(&info, &r.r)
 	return nil
 }
 
@@ -282,6 +285,24 @@ func repositoryInfoToAPIObj(repo *gitprovider.RepositoryInfo, apiObj *github.Rep
 	if repo.Visibility != nil {
 		apiObj.Visibility = gitprovider.StringVar(string(*repo.Visibility))
 	}
+}
+
+func updateApiObjWithRepositoryInfo(repo *gitprovider.RepositoryInfo, apiObj *github.Repository) *github.Repository {
+	actual := newGithubRepositorySpec(apiObj).Repository
+	desired := newGithubRepositorySpec(apiObj).Repository
+
+	if repo.Description != nil {
+		desired.Description = repo.Description
+	}
+	if repo.DefaultBranch != nil {
+		desired.DefaultBranch = repo.DefaultBranch
+	}
+	if repo.Visibility != nil {
+		desired.Visibility = gitprovider.StringVar(string(*repo.Visibility))
+	}
+
+	// create the update repository
+	return updateGithubRepository(desired, actual)
 }
 
 func applyRepoCreateOptions(apiObj *github.Repository, opts gitprovider.RepositoryCreateOptions) {

@@ -366,10 +366,12 @@ var _ = Describe("GitHub Provider", func() {
 
 		// Update reconcile
 		newDesc := "New description"
-		req := resp.Get()
-		req.Description = gitprovider.StringVar(newDesc)
-		Expect(resp.Set(req)).ToNot(HaveOccurred())
-		actionTaken, err = resp.Reconcile(ctx)
+		resp, actionTaken, err = c.OrgRepositories().Reconcile(ctx, repoRef, gitprovider.RepositoryInfo{
+			Description:   gitprovider.StringVar(newDesc),
+			DefaultBranch: gitprovider.StringVar(defaultBranch),
+			Visibility:    gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
+		})
+
 		// Expect the update to succeed, and modify the state
 		Expect(err).ToNot(HaveOccurred())
 		Expect(actionTaken).To(BeTrue())

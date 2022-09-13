@@ -674,28 +674,22 @@ var _ = Describe("GitLab Provider", func() {
 		postSpec := newGitlabProjectSpec(repo.APIObject().(*gitlab.Project))
 		Expect(getSpec.Equals(postSpec)).To(BeTrue())
 
-		// Commit a readme file to cope with the auto-init issue
-		// see https://gitlab.com/gitlab-org/gitlab/-/issues/372092
-		readme := "README.md"
-		readmeContent := fmt.Sprintf("# %s\n\n#Description %s", testRepoName, defaultDescription)
-		commitFiles := []gitprovider.CommitFile{
-			{
-				Path:    &readme,
-				Content: &readmeContent,
-			},
-		}
-		_, err = repo.Commits().Create(ctx, db, "added files", commitFiles)
-		Expect(err).ToNot(HaveOccurred())
-
-		var f *gitlab.File
 		gitlabClient := c.Raw().(*gitlab.Client)
-		Eventually(func() bool {
-			var err error
+		f, resp, err := gitlabClient.RepositoryFiles.GetFile(testUserName+"/"+testRepoName, "README.md", &gitlab.GetFileOptions{
+			Ref: &db,
+		})
+
+		if err != nil {
+			if resp.StatusCode == http.StatusNotFound {
+				// This is a known issue with gitlab, see https://gitlab.com/gitlab-org/gitlab/-/issues/372092
+				// Commit a readme file to cope with the auto-init issue
+				err = addReadme(ctx, testRepoName, db, repo)
+				Expect(err).ToNot(HaveOccurred())
+			}
 			f, _, err = gitlabClient.RepositoryFiles.GetFile(testUserName+"/"+testRepoName, "README.md", &gitlab.GetFileOptions{
 				Ref: &db,
 			})
-			return retryOp.IsRetryable(err, fmt.Sprintf("get readme file, repository: %s", repoRef.RepositoryName))
-		}, retryOp.Timeout(), retryOp.Interval()).Should(BeTrue())
+		}
 
 		Expect(err).ToNot(HaveOccurred())
 		fileContents, err := base64.StdEncoding.DecodeString(f.Content)
@@ -788,24 +782,17 @@ var _ = Describe("GitLab Provider", func() {
 		Expect(actionTaken).To(BeTrue())
 		validateUserRepo(userRepo, repoRef)
 
-		// Commit a readme file to cope with the auto-init issue
-		// see https://gitlab.com/gitlab-org/gitlab/-/issues/372092
-		readme := "README.md"
-		readmeContent := fmt.Sprintf("# %s\n\n#Description %s", testRepoName, defaultDescription)
-		commitFiles := []gitprovider.CommitFile{
-			{
-				Path:    &readme,
-				Content: &readmeContent,
-			},
-		}
-		_, err := userRepo.Commits().Create(ctx, defaultBranch, "added files", commitFiles)
-		Expect(err).ToNot(HaveOccurred())
-
 		var commits []gitprovider.Commit = []gitprovider.Commit{}
 		Eventually(func() bool {
 			var err error
 			commits, err = userRepo.Commits().ListPage(ctx, defaultBranch, 1, 0)
 			if err == nil && len(commits) == 0 {
+				if retryOp.Counter() == 0 {
+					// This is a known issue with gitlab, see https://gitlab.com/gitlab-org/gitlab/-/issues/372092
+					// Commit a readme file to cope with the auto-init issue
+					err = addReadme(ctx, testRepoName, defaultBranch, userRepo)
+					Expect(err).ToNot(HaveOccurred())
+				}
 				err = errors.New("empty commits list")
 			}
 			return retryOp.IsRetryable(err, fmt.Sprintf("get commits, repository: %s", userRepo.Repository().GetRepository()))
@@ -816,7 +803,7 @@ var _ = Describe("GitLab Provider", func() {
 		branchName := fmt.Sprintf("test-branch-%03d", rand.Intn(1000))
 		branchName2 := fmt.Sprintf("test-branch-%03d", rand.Intn(1000))
 
-		err = userRepo.Branches().Create(ctx, branchName2, "wrong-sha")
+		err := userRepo.Branches().Create(ctx, branchName2, "wrong-sha")
 		Expect(err).To(HaveOccurred())
 
 		err = userRepo.Branches().Create(ctx, branchName, latestCommit.Get().Sha)
@@ -1149,4 +1136,19 @@ func findUserRepo(repos []gitprovider.UserRepository, name string) gitprovider.U
 		}
 	}
 	return nil
+}
+
+func addReadme(ctx context.Context, testRepoName, branch string, repo gitprovider.UserRepository) error {
+	// This is a known issue with gitlab, see https://gitlab.com/gitlab-org/gitlab/-/issues/372092
+	// Commit a readme file to cope with the auto-init issue
+	readme := "README.md"
+	readmeContent := fmt.Sprintf("# %s\n\n#Description %s", testRepoName, defaultDescription)
+	commitFiles := []gitprovider.CommitFile{
+		{
+			Path:    &readme,
+			Content: &readmeContent,
+		},
+	}
+	_, err := repo.Commits().Create(ctx, branch, "added files", commitFiles)
+	return err
 }

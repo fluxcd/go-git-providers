@@ -22,7 +22,7 @@ import (
 	"io/ioutil"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/google/go-github/v45/github"
+	"github.com/google/go-github/v47/github"
 )
 
 // FileClient implements the gitprovider.FileClient interface.

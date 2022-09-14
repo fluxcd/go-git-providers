@@ -6,7 +6,7 @@ import (
 
 	"github.com/fluxcd/go-git-providers/github"
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	gogithub "github.com/google/go-github/v45/github"
+	gogithub "github.com/google/go-github/v47/github"
 )
 
 func ExampleOrgRepositoriesClient_Get() {

@@ -155,18 +155,19 @@ func WithAuth(username string, token string) ClientOptionsFunc {
 // If the http.Header is nil, a default http.Header is used.
 // ClientOptionsFunc is an optional function and can be used to configure the client.
 // Example:
-//  c, err := NewClient(
-//  	&http.Client {
-//  		Transport: defaultTransport,
-//  		Timeout:   defaultTimeout,
-//  		}, "https://github.com",
-//  		&http.Header {
-//  			"Content-Type": []string{"application/json"},
-//  		},
-//  		logr.Logger{},
-//  		func(c *Client) {
-//  			c.DisableRetries = true
-//  	})
+//
+//	c, err := NewClient(
+//		&http.Client {
+//			Transport: defaultTransport,
+//			Timeout:   defaultTimeout,
+//			}, "https://github.com",
+//			&http.Header {
+//				"Content-Type": []string{"application/json"},
+//			},
+//			logr.Logger{},
+//			func(c *Client) {
+//				c.DisableRetries = true
+//		})
 func NewClient(httpClient *http.Client, host string, header *http.Header, logger logr.Logger, opts ...ClientOptionsFunc) (*Client, error) {
 	if host == "" {
 		return nil, errors.New("host is required")

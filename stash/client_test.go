@@ -346,7 +346,7 @@ func (f RoundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 	return f(req)
 }
 
-//NewTestClient returns a Client with Transport replaced to avoid making real calls
+// NewTestClient returns a Client with Transport replaced to avoid making real calls
 func NewTestClient(t *testing.T, fn RoundTripFunc, opts ...ClientOptionsFunc) *Client {
 	c, err := NewClient(nil, defaultHost, nil, initLogger(t))
 	if err != nil {

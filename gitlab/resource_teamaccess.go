@@ -119,7 +119,7 @@ func (ta *teamAccess) Reconcile(ctx context.Context) (bool, error) {
 	return true, ta.Update(ctx)
 }
 
-//nolint
+// nolint
 var permissionPriority = map[int]gitprovider.RepositoryPermission{
 	10: gitprovider.RepositoryPermissionPull,
 	20: gitprovider.RepositoryPermissionTriage,

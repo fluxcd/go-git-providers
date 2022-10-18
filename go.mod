@@ -22,6 +22,7 @@ require (
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
 	golang.org/x/oauth2 v0.0.0-20220722155238-128564f6959c
 	golang.org/x/time v0.0.0-20220722155302-e5dcc9cfc0b9
+	k8s.io/utils v0.0.0-20221012122500-cfd413dd9e85
 )
 
 // Fix CVE-2022-28948

@@ -219,7 +219,6 @@ func (s *DeployKeysService) Delete(ctx context.Context, projectKey, repositorySl
 
 // UpdateKeyPermission updates the given access key permission
 // UpdateKeyPermission uses the endpoint "PUT /rest/keys/1.0/projects/{projectKey}/ssh/{keyId}/permission/{permission}".
-//
 func (s *DeployKeysService) UpdateKeyPermission(ctx context.Context, projectKey, repositorySlug string, keyID int, permission string) (*DeployKey, error) {
 	req, err := s.Client.NewRequest(ctx, http.MethodPut, newKeysURI(projectsURI, projectKey, RepositoriesURI, repositorySlug, deployKeysURI, strconv.Itoa(keyID),
 		keyPermisionsURI, permission))

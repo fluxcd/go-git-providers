@@ -19,7 +19,7 @@ package github
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/google/go-github/v47/github"
@@ -65,7 +65,7 @@ func (c *FileClient) Get(ctx context.Context, path, branch string, optFns ...git
 		if err != nil {
 			return nil, err
 		}
-		content, err := ioutil.ReadAll(output)
+		content, err := io.ReadAll(output)
 		if err != nil {
 			return nil, err
 		}

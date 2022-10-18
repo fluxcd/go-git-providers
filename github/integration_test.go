@@ -23,6 +23,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -32,6 +33,7 @@ import (
 	"github.com/gregjones/httpcache"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"k8s.io/utils/pointer"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/fluxcd/go-git-providers/gitprovider/testutils"
@@ -427,7 +429,7 @@ var _ = Describe("GitHub Provider", func() {
 		Expect(hasPermission).To(Equal(true))
 	})
 
-	It("should be possible to create a pr for a user repository", func() {
+	It("should be possible to create and edit a pr for a user repository", func() {
 
 		userRepoRef := newUserRepoRef(testUser, testUserRepoName)
 
@@ -480,6 +482,7 @@ var _ = Describe("GitHub Provider", func() {
 		Expect(pr.Get().Merged).To(BeFalse())
 
 		prs, err := userRepo.PullRequests().List(ctx)
+		Expect(err).NotTo(HaveOccurred())
 		Expect(len(prs)).To(Equal(1))
 		Expect(prs[0].Get().WebURL).To(Equal(pr.Get().WebURL))
 
@@ -508,13 +511,23 @@ var _ = Describe("GitHub Provider", func() {
 		Expect(pr.Get().WebURL).ToNot(BeEmpty())
 		Expect(pr.Get().Merged).To(BeFalse())
 
-		err = userRepo.PullRequests().Merge(ctx, pr.Get().Number, gitprovider.MergeMethodMerge, "merged")
+		editedPR, err := userRepo.PullRequests().Edit(ctx, pr.Get().Number, gitprovider.EditOptions{
+			Title: pointer.String("a new title"),
+		})
 		Expect(err).ToNot(HaveOccurred())
 
-		getPR, err = userRepo.PullRequests().Get(ctx, pr.Get().Number)
+		err = userRepo.PullRequests().Merge(ctx, editedPR.Get().Number, gitprovider.MergeMethodMerge, "merged")
+		Expect(err).ToNot(HaveOccurred())
+
+		getPR, err = userRepo.PullRequests().Get(ctx, editedPR.Get().Number)
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(getPR.Get().Merged).To(BeTrue())
+		apiObject := getPR.APIObject()
+		githubPR, ok := apiObject.(*github.PullRequest)
+		Expect(ok).To(BeTrue(), "API object of PullRequest has unexpected type %q", reflect.TypeOf(apiObject))
+		Expect(githubPR.Title).ToNot(BeNil())
+		Expect(*githubPR.Title).To(Equal("a new title"))
 	})
 
 	It("should be possible to download files from path and branch specified", func() {

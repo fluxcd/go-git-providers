@@ -21,11 +21,13 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"reflect"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/fluxcd/go-git-providers/gitprovider/testutils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"k8s.io/utils/pointer"
 )
 
 var _ = Describe("Stash Provider", func() {
@@ -219,6 +221,15 @@ var _ = Describe("Stash Provider", func() {
 		pr, err := userRepo.PullRequests().Create(ctx, "Added config file", branchName, defaultBranch, "added config file")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(pr.Get().WebURL).ToNot(BeEmpty())
+
+		// Edit PR
+		pr, err = userRepo.PullRequests().Edit(ctx, pr.Get().Number, gitprovider.EditOptions{
+			Title: pointer.String("new title"),
+		})
+		Expect(err).ToNot(HaveOccurred())
+		stashPR, ok := pr.APIObject().(*PullRequest)
+		Expect(ok).To(BeTrue(), "PR has unexpected type %s", reflect.TypeOf(pr.APIObject()))
+		Expect(stashPR.Title).To(Equal("new title"))
 
 		// List PRs
 		prs, err := userRepo.PullRequests().List(ctx)

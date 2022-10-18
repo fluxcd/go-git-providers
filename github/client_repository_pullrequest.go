@@ -66,6 +66,16 @@ func (c *PullRequestClient) Create(ctx context.Context, title, branch, baseBranc
 	return newPullRequest(c.clientContext, pr), nil
 }
 
+func (c *PullRequestClient) Edit(ctx context.Context, number int, opts gitprovider.EditOptions) (gitprovider.PullRequest, error) {
+	editPR := &github.PullRequest{}
+	editPR.Title = opts.Title
+	editedPR, _, err := c.c.Client().PullRequests.Edit(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), number, editPR)
+	if err != nil {
+		return nil, err
+	}
+	return newPullRequest(c.clientContext, editedPR), nil
+}
+
 // Get retrieves an existing pull request by number
 func (c *PullRequestClient) Get(ctx context.Context, number int) (gitprovider.PullRequest, error) {
 

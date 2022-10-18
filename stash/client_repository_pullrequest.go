@@ -143,6 +143,26 @@ func (c *PullRequestClient) Create(ctx context.Context, title, branch, baseBranc
 	return newPullRequest(created), nil
 }
 
+func (c *PullRequestClient) Edit(ctx context.Context, number int, opts gitprovider.EditOptions) (gitprovider.PullRequest, error) {
+	projectKey, repoSlug := getStashRefs(c.ref)
+
+	// check if it is a user repository
+	// if yes, we need to add a tilde to the user login and use it as the project key
+	if r, ok := c.ref.(gitprovider.UserRepositoryRef); ok {
+		projectKey = addTilde(r.UserLogin)
+	}
+	pr := PullRequest{}
+	if opts.Title != nil {
+		pr.Title = *opts.Title
+	}
+	edited, err := c.client.PullRequests.Update(ctx, projectKey, repoSlug, &pr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to edit pull request: %w", err)
+	}
+
+	return newPullRequest(edited), nil
+}
+
 func validatePullRequestsAPI(apiObj *PullRequest) error {
 	return validateAPIObject("Stash.PullRequest", func(validator validation.Validator) {
 		// Make sure there is a version and a title

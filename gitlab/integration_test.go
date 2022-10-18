@@ -26,6 +26,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -35,6 +36,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/xanzy/go-gitlab"
+	"k8s.io/utils/pointer"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	testutils "github.com/fluxcd/go-git-providers/gitprovider/testutils"
@@ -548,7 +550,7 @@ var _ = Describe("GitLab Provider", func() {
 			Permission: &pushPermission,
 		}
 
-		ta, actionTaken, err = repo.TeamAccess().Reconcile(ctx, teamInfo)
+		_, actionTaken, err = repo.TeamAccess().Reconcile(ctx, teamInfo)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(actionTaken).To(Equal(false))
 	})
@@ -752,7 +754,7 @@ var _ = Describe("GitLab Provider", func() {
 		validateUserRepo(newRepo, repoRef)
 	})
 
-	It("should be possible to create a pr for a user repository", func() {
+	It("should be possible to create and edit a pr for a user repository", func() {
 
 		testRepoName = fmt.Sprintf("test-repo2-%03d", rand.Intn(1000))
 		repoRef := newUserRepoRef(testUserName, testRepoName)
@@ -865,8 +867,21 @@ var _ = Describe("GitLab Provider", func() {
 		Expect(pr.Get().WebURL).ToNot(BeEmpty())
 		Expect(pr.Get().Merged).To(BeFalse())
 
-		err = userRepo.PullRequests().Merge(ctx, pr.Get().Number, gitprovider.MergeMethodMerge, "merged")
+		editedPR, err := userRepo.PullRequests().Edit(ctx, pr.Get().Number, gitprovider.EditOptions{
+			Title: pointer.String("a new title"),
+		})
 		Expect(err).ToNot(HaveOccurred())
+
+		err = userRepo.PullRequests().Merge(ctx, editedPR.Get().Number, gitprovider.MergeMethodMerge, "merged")
+		Expect(err).ToNot(HaveOccurred())
+
+		getPR, err := userRepo.PullRequests().Get(ctx, editedPR.Get().Number)
+		Expect(err).ToNot(HaveOccurred())
+		apiObject := getPR.APIObject()
+		gitlabMR, ok := apiObject.(*gitlab.MergeRequest)
+		Expect(ok).To(BeTrue(), "API object of PullRequest has unexpected type %q", reflect.TypeOf(apiObject))
+		Expect(gitlabMR.Title).ToNot(BeNil())
+		Expect(*gitlabMR).To(Equal("a new title"))
 
 		expectPRToBeMerged(ctx, userRepo, pr.Get().Number)
 

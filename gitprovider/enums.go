@@ -49,6 +49,7 @@ const (
 )
 
 // knownRepositoryVisibilityValues is a map of known RepositoryVisibility values, used for validation.
+//
 //nolint:gochecknoglobals
 var knownRepositoryVisibilityValues = map[RepositoryVisibility]struct{}{
 	RepositoryVisibilityPublic:   {},
@@ -98,6 +99,7 @@ const (
 )
 
 // knownRepositoryVisibilityValues is a map of known RepositoryPermission values, used for validation.
+//
 //nolint:gochecknoglobals
 var knownRepositoryPermissionValues = map[RepositoryPermission]struct{}{
 	RepositoryPermissionPull:     {},
@@ -140,6 +142,7 @@ const (
 )
 
 // knownLicenseTemplateValues is a map of known LicenseTemplate values, used for validation
+//
 //nolint:gochecknoglobals
 var knownLicenseTemplateValues = map[LicenseTemplate]struct{}{
 	LicenseTemplateApache2: {},

@@ -35,26 +35,26 @@ func NewMultiError(errs ...error) *MultiError {
 // In order to check whether an error returned from a function was a
 // *MultiError, you can do:
 //
-// 		multiErr := &MultiError{}
-// 		if errors.Is(err, multiErr) { // do things }
+//	multiErr := &MultiError{}
+//	if errors.Is(err, multiErr) { // do things }
 //
 // In order to get the value of the *MultiError (embedded somewhere
 // in the chain, in order to access the sub-errors), you can do:
 //
-// 		multiErr := &MultiError{}
-// 		if errors.As(err, &multiErr) { // multiErr contains sub-errors, do things }
+//	multiErr := &MultiError{}
+//	if errors.As(err, &multiErr) { // multiErr contains sub-errors, do things }
 //
 // It is also possible to access sub-errors from a MultiError directly, using
 // errors.As and errors.Is. Example:
 //
-// 		multiErr := &MultiError{Errors: []error{ErrFieldRequired, ErrFieldInvalid}}
-//		if errors.Is(multiErr, ErrFieldInvalid) { // will return true, as ErrFieldInvalid is contained }
+//	multiErr := &MultiError{Errors: []error{ErrFieldRequired, ErrFieldInvalid}}
+//	if errors.Is(multiErr, ErrFieldInvalid) { // will return true, as ErrFieldInvalid is contained }
 //
-//		type customError struct { data string }
-//		func (e *customError) Error() string { return "custom" + data }
-// 		multiErr := &MultiError{Errors: []error{ErrFieldRequired, &customError{"my-value"}}}
-//		target := &customError{}
-//		if errors.As(multiErr, &target) { // target.data will now be "my-value" }
+//	type customError struct { data string }
+//	func (e *customError) Error() string { return "custom" + data }
+//	multiErr := &MultiError{Errors: []error{ErrFieldRequired, &customError{"my-value"}}}
+//	target := &customError{}
+//	if errors.As(multiErr, &target) { // target.data will now be "my-value" }
 type MultiError struct {
 	Errors []error
 }
@@ -104,6 +104,7 @@ func (e *MultiError) As(target interface{}) bool {
 
 // disallowedCompareAsErrorNames contains a list of which errors should NOT be compared for equality
 // using errors.As, as they could be very different errors although being the same type
+//
 //nolint:gochecknoglobals
 var disallowedCompareAsErrorNames = map[string]struct{}{
 	"*errors.errorString": {},

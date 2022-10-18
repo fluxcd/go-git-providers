@@ -231,10 +231,19 @@ type PullRequestClient interface {
 	List(ctx context.Context) ([]PullRequest, error)
 	// Create creates a pull request with the given specifications.
 	Create(ctx context.Context, title, branch, baseBranch, description string) (PullRequest, error)
+	// Edit allows for changing an existing pull request using the given options. Please refer to "EditOptions" for details on which data can be
+	// edited.
+	Edit(ctx context.Context, number int, opts EditOptions) (PullRequest, error)
 	// Get retrieves an existing pull request by number
 	Get(ctx context.Context, number int) (PullRequest, error)
 	// Merge merges a pull request with via either the "Squash" or "Merge" method
 	Merge(ctx context.Context, number int, mergeMethod MergeMethod, message string) error
+}
+
+// EditOptions is provided to a PullRequestClient's "Edit" method for updating an existing pull request.
+type EditOptions struct {
+	// Title is set to a non-nil value to request a pull request's title to be changed.
+	Title *string
 }
 
 // FileClient operates on the branches for a specific repository.

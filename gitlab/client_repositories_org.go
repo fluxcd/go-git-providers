@@ -118,7 +118,7 @@ func (c *OrgRepositoriesClient) Reconcile(ctx context.Context, ref gitprovider.O
 	return actual, actionTaken, err
 }
 
-//nolint
+// nolint
 func createProject(ctx context.Context, c gitlabClient, ref gitprovider.RepositoryRef, groupName string, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryCreateOption) (*gitlab.Project, error) {
 	// First thing, validate and default the request to ensure a valid and fully-populated object
 	// (to minimize any possible diffs between desired and actual state)

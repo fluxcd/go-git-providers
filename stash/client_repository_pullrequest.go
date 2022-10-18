@@ -143,6 +143,40 @@ func (c *PullRequestClient) Create(ctx context.Context, title, branch, baseBranc
 	return newPullRequest(created), nil
 }
 
+// Edit modifies an existing PR. Please refer to "EditOptions" for details on which data can be edited.
+func (c *PullRequestClient) Edit(ctx context.Context, number int, opts gitprovider.EditOptions) (gitprovider.PullRequest, error) {
+	projectKey, repoSlug := getStashRefs(c.ref)
+
+	// check if it is a user repository
+	// if yes, we need to add a tilde to the user login and use it as the project key
+	if r, ok := c.ref.(gitprovider.UserRepositoryRef); ok {
+		projectKey = addTilde(r.UserLogin)
+	}
+
+	// need to fetch the PR first to get the right version number
+	pr, err := c.Get(ctx, number)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get PR %d: %w", number, err)
+	}
+	apiObject, ok := pr.APIObject().(*PullRequest)
+	if !ok {
+		return nil, fmt.Errorf("API object is of unexpected type") // this should never happen!
+	}
+
+	if opts.Title != nil {
+		apiObject.Title = *opts.Title
+	}
+	// the REST API doesn't accept the following fields to be set for update requests
+	apiObject.Author = nil
+	apiObject.Participants = nil
+	edited, err := c.client.PullRequests.Update(ctx, projectKey, repoSlug, apiObject)
+	if err != nil {
+		return nil, fmt.Errorf("failed to edit pull request: %w", err)
+	}
+
+	return newPullRequest(edited), nil
+}
+
 func validatePullRequestsAPI(apiObj *PullRequest) error {
 	return validateAPIObject("Stash.PullRequest", func(validator validation.Validator) {
 		// Make sure there is a version and a title

@@ -71,6 +71,18 @@ func (c *PullRequestClient) Create(_ context.Context, title, branch, baseBranch,
 	return newPullRequest(c.clientContext, mr), nil
 }
 
+// Edit modifies an existing MR. Please refer to "EditOptions" for details on which data can be edited.
+func (c *PullRequestClient) Edit(ctx context.Context, number int, opts gitprovider.EditOptions) (gitprovider.PullRequest, error) {
+	mrUpdate := &gitlab.UpdateMergeRequestOptions{
+		Title: opts.Title,
+	}
+	editedMR, _, err := c.c.Client().MergeRequests.UpdateMergeRequest(getRepoPath(c.ref), number, mrUpdate)
+	if err != nil {
+		return nil, err
+	}
+	return newPullRequest(c.clientContext, editedMR), nil
+}
+
 // Get retrieves an existing pull request by number
 func (c *PullRequestClient) Get(_ context.Context, number int) (gitprovider.PullRequest, error) {
 

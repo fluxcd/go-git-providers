@@ -20,6 +20,9 @@ import (
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
+// The value of the "State" field of a Stash pull request after it has been merged"
+const mergedState = "MERGED"
+
 func newPullRequest(apiObj *PullRequest) *pullrequest {
 	return &pullrequest{
 		pr: *apiObj,
@@ -43,6 +46,8 @@ func (pr *pullrequest) APIObject() interface{} {
 func pullrequestFromAPI(apiObj *PullRequest) gitprovider.PullRequestInfo {
 	return gitprovider.PullRequestInfo{
 		WebURL: getSelfref(apiObj.Self),
+		Number: apiObj.ID,
+		Merged: apiObj.State == mergedState,
 	}
 }
 

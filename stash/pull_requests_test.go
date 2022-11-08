@@ -60,7 +60,7 @@ func TestGetPR(t *testing.T) {
 							IDVersion: IDVersion{
 								ID: 101,
 							},
-							Author: Participant{
+							Author: &Participant{
 								User: User{
 									Name: "test",
 								},
@@ -278,7 +278,7 @@ func TestCreatePR(t *testing.T) {
 					FromRef:     req.FromRef,
 					ToRef:       req.ToRef,
 					Locked:      req.Locked,
-					Author: Participant{
+					Author: &Participant{
 						User: User{
 							Name: "Rob",
 						},
@@ -394,7 +394,7 @@ func TestUpdatePR(t *testing.T) {
 					},
 				},
 				ToRef: req.ToRef,
-				Author: Participant{
+				Author: &Participant{
 					User: User{
 						Name: "Rob",
 					},

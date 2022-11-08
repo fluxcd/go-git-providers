@@ -45,7 +45,7 @@ func (o *Organization) Organization() gitprovider.OrganizationRef {
 	return o.ref
 }
 
-//Teams gives access to the TeamsClient for this specific organization
+// Teams gives access to the TeamsClient for this specific organization
 func (o *Organization) Teams() gitprovider.TeamsClient {
 	return o.teams
 }

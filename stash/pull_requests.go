@@ -108,7 +108,7 @@ type PullRequest struct {
 	// Session is the session of the pull request
 	Session `json:"sessionInfo,omitempty"`
 	// Author is the author of the pull request
-	Author Participant `json:"author,omitempty"`
+	Author *Participant `json:"author,omitempty"`
 	// Closed indicates if the pull request is closed
 	Closed bool `json:"closed,omitempty"`
 	// CreatedDate is the creation date of the pull request
@@ -285,6 +285,7 @@ func (s *PullRequestsService) Update(ctx context.Context, projectKey, repository
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshall pull request: %v", err)
 	}
+
 	req, err := s.Client.NewRequest(ctx, http.MethodPut, newURI(projectsURI, projectKey, RepositoriesURI, repositorySlug, pullRequestsURI, strconv.Itoa(pr.ID)), WithBody(body), WithHeader(header))
 	if err != nil {
 		return nil, fmt.Errorf("update pull request creation failed: %w", err)
@@ -294,8 +295,11 @@ func (s *PullRequestsService) Update(ctx context.Context, projectKey, repository
 		return nil, fmt.Errorf("update pull failed: %w", err)
 	}
 
-	if resp != nil && resp.StatusCode == http.StatusNotFound {
-		return nil, ErrNotFound
+	if resp != nil && resp.StatusCode != http.StatusOK {
+		if resp.StatusCode == http.StatusNotFound {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("update failed with status code %d, error: %s", resp.StatusCode, res)
 	}
 
 	p := &PullRequest{}
@@ -350,10 +354,11 @@ func (s *PullRequestsService) Merge(ctx context.Context, projectKey, repositoryS
 // - be the pull request author, if the system is configured to allow authors to delete their own pull requests (this is the default) OR
 // - have repository administrator permission for the repository the pull request is targeting
 // A body containing the ID and version of the pull request must be provided with this request.
-// {
-//   "id": 1,
-//   "version": 1
-// }
+//
+//	{
+//	  "id": 1,
+//	  "version": 1
+//	}
 func (s *PullRequestsService) Delete(ctx context.Context, projectKey, repositorySlug string, IDVersion IDVersion) error {
 	header := http.Header{"Content-Type": []string{"application/json"}}
 	body, err := marshallBody(IDVersion.Version)

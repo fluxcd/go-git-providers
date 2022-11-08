@@ -19,7 +19,7 @@ package gitlab
 import (
 	"context"
 	"encoding/base64"
-	"io/ioutil"
+	"io"
 	"strings"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
@@ -72,7 +72,7 @@ func (c *FileClient) Get(ctx context.Context, path, branch string, optFns ...git
 		}
 		filePath := fileDownloaded.FilePath
 		fileContentDecoded := base64.NewDecoder(base64.RawStdEncoding, strings.NewReader(fileDownloaded.Content))
-		fileBytes, err := ioutil.ReadAll(fileContentDecoded)
+		fileBytes, err := io.ReadAll(fileContentDecoded)
 		if err != nil {
 			return nil, err
 		}

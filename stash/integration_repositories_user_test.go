@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"reflect"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/fluxcd/go-git-providers/gitprovider/testutils"
@@ -220,10 +221,29 @@ var _ = Describe("Stash Provider", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(pr.Get().WebURL).ToNot(BeEmpty())
 
+		editedPR, err := userRepo.PullRequests().Edit(ctx, pr.Get().Number, gitprovider.EditOptions{
+			Title: gitprovider.StringVar("a new title"),
+		})
+		Expect(err).ToNot(HaveOccurred(), "error editing PR")
+		Expect(editedPR).ToNot(BeNil(), "returned PR should never be nil if no error was returned")
+
+		// edit one more time to make sure the version number is taken into account
+
+		editedPR, err = userRepo.PullRequests().Edit(ctx, pr.Get().Number, gitprovider.EditOptions{
+			Title: gitprovider.StringVar("another new title"),
+		})
+		Expect(err).ToNot(HaveOccurred(), "error editing PR a second time")
+		Expect(editedPR).ToNot(BeNil(), "returned PR should never be nil if no error was returned")
+
 		// List PRs
 		prs, err := userRepo.PullRequests().List(ctx)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(len(prs)).To(Equal(1))
+
+		apiObject := prs[0].APIObject()
+		stashPR, ok := apiObject.(*PullRequest)
+		Expect(ok).To(BeTrue(), "API object of PullRequest has unexpected type %q", reflect.TypeOf(apiObject))
+		Expect(stashPR.Title).To(Equal("another new title"))
 
 		// Merge PR
 		id := pr.APIObject().(*PullRequest).ID

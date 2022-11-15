@@ -45,9 +45,17 @@ func (pr *pullrequest) APIObject() interface{} {
 }
 
 func pullrequestFromAPI(apiObj *github.PullRequest) gitprovider.PullRequestInfo {
+	var sourceBranch string
+	head := apiObj.Head
+	if head != nil {
+		if head.Ref != nil {
+			sourceBranch = *head.Ref
+		}
+	}
 	return gitprovider.PullRequestInfo{
-		Merged: apiObj.GetMerged(),
-		Number: apiObj.GetNumber(),
-		WebURL: apiObj.GetHTMLURL(),
+		Merged:       apiObj.GetMerged(),
+		Number:       apiObj.GetNumber(),
+		WebURL:       apiObj.GetHTMLURL(),
+		SourceBranch: sourceBranch,
 	}
 }

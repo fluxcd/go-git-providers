@@ -220,6 +220,7 @@ var _ = Describe("Stash Provider", func() {
 		pr, err := userRepo.PullRequests().Create(ctx, "Added config file", branchName, defaultBranch, "added config file")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(pr.Get().WebURL).ToNot(BeEmpty())
+		Expect(pr.Get().SourceBranch).To(Equal(branchName))
 
 		editedPR, err := userRepo.PullRequests().Edit(ctx, pr.Get().Number, gitprovider.EditOptions{
 			Title: gitprovider.StringVar("a new title"),

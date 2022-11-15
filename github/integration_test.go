@@ -479,6 +479,7 @@ var _ = Describe("GitHub Provider", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(pr.Get().WebURL).ToNot(BeEmpty())
 		Expect(pr.Get().Merged).To(BeFalse())
+		Expect(pr.Get().SourceBranch).To(Equal(branchName))
 
 		prs, err := userRepo.PullRequests().List(ctx)
 		Expect(err).NotTo(HaveOccurred())

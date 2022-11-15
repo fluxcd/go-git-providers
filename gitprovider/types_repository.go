@@ -224,6 +224,9 @@ type PullRequestInfo struct {
 	// WebURL is the URL of the pull request in the git provider web interface.
 	// +required
 	WebURL string `json:"web_url"`
+
+	// SourceBranch is the branch from which the pull request has been created.
+	SourceBranch string `json:"source_branch"`
 }
 
 // TreeEntry contains info about each tree object's structure in TreeInfo whether it is a file or tree

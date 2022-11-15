@@ -829,9 +829,11 @@ var _ = Describe("GitLab Provider", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(len(prs)).To(Equal(1))
 		Expect(prs[0].Get().WebURL).To(Equal(pr.Get().WebURL))
+		Expect(prs[0].Get().SourceBranch).To(Equal(branchName))
 
 		Expect(pr.Get().WebURL).ToNot(BeEmpty())
 		Expect(pr.Get().Merged).To(BeFalse())
+		Expect(pr.Get().SourceBranch).To(Equal(branchName))
 		err = userRepo.PullRequests().Merge(ctx, pr.Get().Number, gitprovider.MergeMethodSquash, "squash merged")
 		Expect(err).ToNot(HaveOccurred())
 
@@ -865,6 +867,7 @@ var _ = Describe("GitLab Provider", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(pr.Get().WebURL).ToNot(BeEmpty())
 		Expect(pr.Get().Merged).To(BeFalse())
+		Expect(pr.Get().SourceBranch).To(Equal(branchName2))
 
 		editedPR, err := userRepo.PullRequests().Edit(ctx, pr.Get().Number, gitprovider.EditOptions{
 			Title: gitprovider.StringVar("a new title"),

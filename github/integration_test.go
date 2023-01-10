@@ -475,11 +475,14 @@ var _ = Describe("GitHub Provider", func() {
 		_, err = userRepo.Commits().Create(ctx, branchName, "added config file", files)
 		Expect(err).ToNot(HaveOccurred())
 
-		pr, err := userRepo.PullRequests().Create(ctx, "Added config file", branchName, *defaultBranch, "added config file")
+		prTitleAndDesc := "Added config file"
+		pr, err := userRepo.PullRequests().Create(ctx, prTitleAndDesc, branchName, *defaultBranch, prTitleAndDesc)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(pr.Get().WebURL).ToNot(BeEmpty())
 		Expect(pr.Get().Merged).To(BeFalse())
 		Expect(pr.Get().SourceBranch).To(Equal(branchName))
+		Expect(pr.Get().Title).To(Equal(prTitleAndDesc))
+		Expect(pr.Get().Description).To(Equal(prTitleAndDesc))
 
 		prs, err := userRepo.PullRequests().List(ctx)
 		Expect(err).NotTo(HaveOccurred())

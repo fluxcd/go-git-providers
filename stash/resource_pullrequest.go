@@ -45,6 +45,8 @@ func (pr *pullrequest) APIObject() interface{} {
 
 func pullrequestFromAPI(apiObj *PullRequest) gitprovider.PullRequestInfo {
 	return gitprovider.PullRequestInfo{
+		Title:        apiObj.Title,
+		Description:  apiObj.Description,
 		WebURL:       getSelfref(apiObj.Self),
 		Number:       apiObj.ID,
 		Merged:       apiObj.State == mergedState,

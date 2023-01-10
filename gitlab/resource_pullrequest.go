@@ -49,6 +49,8 @@ func (pr *pullrequest) APIObject() interface{} {
 
 func pullrequestFromAPI(apiObj *gitlab.MergeRequest) gitprovider.PullRequestInfo {
 	return gitprovider.PullRequestInfo{
+		Title:        apiObj.Title,
+		Description:  apiObj.Description,
 		Merged:       apiObj.State == mergedState,
 		Number:       apiObj.IID,
 		WebURL:       apiObj.WebURL,

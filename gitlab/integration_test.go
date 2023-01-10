@@ -822,7 +822,8 @@ var _ = Describe("GitLab Provider", func() {
 		_, err = userRepo.Commits().Create(ctx, branchName, "added config file", files)
 		Expect(err).ToNot(HaveOccurred())
 
-		pr, err := userRepo.PullRequests().Create(ctx, "Added config file", branchName, defaultBranch, "added config file")
+		prTitleAndDesc := "Added config file"
+		pr, err := userRepo.PullRequests().Create(ctx, prTitleAndDesc, branchName, defaultBranch, prTitleAndDesc)
 		Expect(err).ToNot(HaveOccurred())
 
 		prs, err := userRepo.PullRequests().List(ctx)
@@ -830,6 +831,8 @@ var _ = Describe("GitLab Provider", func() {
 		Expect(len(prs)).To(Equal(1))
 		Expect(prs[0].Get().WebURL).To(Equal(pr.Get().WebURL))
 		Expect(prs[0].Get().SourceBranch).To(Equal(branchName))
+		Expect(prs[0].Get().Title).To(Equal(prTitleAndDesc))
+		Expect(prs[0].Get().Description).To(Equal(prTitleAndDesc))
 
 		Expect(pr.Get().WebURL).ToNot(BeEmpty())
 		Expect(pr.Get().Merged).To(BeFalse())

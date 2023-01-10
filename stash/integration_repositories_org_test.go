@@ -425,10 +425,13 @@ var _ = Describe("Stash Provider", func() {
 		_, err = orgRepo.Commits().Create(ctx, branchName, "added config file", files)
 		Expect(err).ToNot(HaveOccurred())
 
-		pr, err := orgRepo.PullRequests().Create(ctx, "Added config file", branchName, defaultBranch, "added config file")
+		prTitleAndDesc := "Added config file"
+		pr, err := orgRepo.PullRequests().Create(ctx, prTitleAndDesc, branchName, defaultBranch, prTitleAndDesc)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(pr.Get().WebURL).ToNot(BeEmpty())
 		Expect(pr.Get().SourceBranch).To(Equal(branchName))
+		Expect(pr.Get().Title).To(Equal(prTitleAndDesc))
+		Expect(pr.Get().Description).To(Equal(prTitleAndDesc))
 	})
 })
 

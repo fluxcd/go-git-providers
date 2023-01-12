@@ -215,6 +215,12 @@ type CommitFile struct {
 
 // PullRequestInfo contains high-level information about a pull request.
 type PullRequestInfo struct {
+	// Title is the title of the pull request.
+	Title string `json:"title"`
+
+	// Description is the description of the pull request.
+	Description string `json:"description"`
+
 	// Merged specifes whether or not this pull request has been merged
 	Merged bool `json:"merged"`
 

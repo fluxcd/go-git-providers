@@ -53,6 +53,8 @@ func pullrequestFromAPI(apiObj *github.PullRequest) gitprovider.PullRequestInfo 
 		}
 	}
 	return gitprovider.PullRequestInfo{
+		Title:        apiObj.GetTitle(),
+		Description:  apiObj.GetBody(),
 		Merged:       apiObj.GetMerged(),
 		Number:       apiObj.GetNumber(),
 		WebURL:       apiObj.GetHTMLURL(),

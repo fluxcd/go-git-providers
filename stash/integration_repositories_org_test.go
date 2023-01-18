@@ -296,7 +296,7 @@ var _ = Describe("Stash Provider", func() {
 		// Get the test organization
 		orgRef := newOrgRef(testOrgName)
 		testOrg, err := client.Organizations().Get(ctx, orgRef)
-		//Expect(err).ToNot(HaveOccurred())
+		Expect(err).ToNot(HaveOccurred())
 		//
 		testDeployKeyName := "test-deploy-key"
 		SharedRepoRef := newOrgRepoRef(testOrg.Organization(), testSharedOrgRepoName)
@@ -309,7 +309,7 @@ var _ = Describe("Stash Provider", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(len(keys)).To(Equal(0))
 
-		rsaGen := testutils.NewRSAGenerator(256)
+		rsaGen := testutils.NewRSAGenerator(2154)
 		keyPair1, err := rsaGen.Generate()
 		Expect(err).ToNot(HaveOccurred())
 		pubKey := keyPair1.PublicKey

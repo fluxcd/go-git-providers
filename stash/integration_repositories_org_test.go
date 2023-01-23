@@ -296,7 +296,7 @@ var _ = Describe("Stash Provider", func() {
 		// Get the test organization
 		orgRef := newOrgRef(testOrgName)
 		testOrg, err := client.Organizations().Get(ctx, orgRef)
-		//Expect(err).ToNot(HaveOccurred())
+		Expect(err).ToNot(HaveOccurred())
 		//
 		testDeployKeyName := "test-deploy-key"
 		SharedRepoRef := newOrgRepoRef(testOrg.Organization(), testSharedOrgRepoName)
@@ -309,7 +309,7 @@ var _ = Describe("Stash Provider", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(len(keys)).To(Equal(0))
 
-		rsaGen := testutils.NewRSAGenerator(256)
+		rsaGen := testutils.NewRSAGenerator(2154)
 		keyPair1, err := rsaGen.Generate()
 		Expect(err).ToNot(HaveOccurred())
 		pubKey := keyPair1.PublicKey
@@ -425,10 +425,14 @@ var _ = Describe("Stash Provider", func() {
 		_, err = orgRepo.Commits().Create(ctx, branchName, "added config file", files)
 		Expect(err).ToNot(HaveOccurred())
 
-		pr, err := orgRepo.PullRequests().Create(ctx, "Added config file", branchName, defaultBranch, "added config file")
+		prTitle := "Added config file"
+		prDesc := "added config file"
+		pr, err := orgRepo.PullRequests().Create(ctx, prTitle, branchName, defaultBranch, prDesc)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(pr.Get().WebURL).ToNot(BeEmpty())
 		Expect(pr.Get().SourceBranch).To(Equal(branchName))
+		Expect(pr.Get().Title).To(Equal(prTitle))
+		Expect(pr.Get().Description).To(Equal(prDesc))
 	})
 })
 

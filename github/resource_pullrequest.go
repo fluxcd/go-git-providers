@@ -18,7 +18,7 @@ package github
 
 import (
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/google/go-github/v48/github"
+	"github.com/google/go-github/v49/github"
 )
 
 func newPullRequest(ctx *clientContext, apiObj *github.PullRequest) *pullrequest {
@@ -53,6 +53,8 @@ func pullrequestFromAPI(apiObj *github.PullRequest) gitprovider.PullRequestInfo 
 		}
 	}
 	return gitprovider.PullRequestInfo{
+		Title:        apiObj.GetTitle(),
+		Description:  apiObj.GetBody(),
 		Merged:       apiObj.GetMerged(),
 		Number:       apiObj.GetNumber(),
 		WebURL:       apiObj.GetHTMLURL(),

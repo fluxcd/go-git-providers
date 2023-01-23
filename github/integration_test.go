@@ -29,7 +29,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-github/v48/github"
+	"github.com/google/go-github/v49/github"
 	"github.com/gregjones/httpcache"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -475,11 +475,15 @@ var _ = Describe("GitHub Provider", func() {
 		_, err = userRepo.Commits().Create(ctx, branchName, "added config file", files)
 		Expect(err).ToNot(HaveOccurred())
 
-		pr, err := userRepo.PullRequests().Create(ctx, "Added config file", branchName, *defaultBranch, "added config file")
+		prTitle := "Added config file"
+		prDesc := "added config file"
+		pr, err := userRepo.PullRequests().Create(ctx, prTitle, branchName, *defaultBranch, prDesc)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(pr.Get().WebURL).ToNot(BeEmpty())
 		Expect(pr.Get().Merged).To(BeFalse())
 		Expect(pr.Get().SourceBranch).To(Equal(branchName))
+		Expect(pr.Get().Title).To(Equal(prTitle))
+		Expect(pr.Get().Description).To(Equal(prDesc))
 
 		prs, err := userRepo.PullRequests().List(ctx)
 		Expect(err).NotTo(HaveOccurred())

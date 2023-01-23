@@ -7,7 +7,7 @@ import (
 
 	"github.com/fluxcd/go-git-providers/github"
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	gogithub "github.com/google/go-github/v48/github"
+	gogithub "github.com/google/go-github/v49/github"
 )
 
 // checkErr is used for examples in this repository.
@@ -35,6 +35,6 @@ func ExampleOrganizationsClient_Get() {
 	// Cast the internal object to a *gogithub.Organization to access custom data
 	internalOrg := org.APIObject().(*gogithub.Organization)
 
-	fmt.Printf("Name: %s. Location: %s.", *orgInfo.Name, internalOrg.GetLocation())
-	// Output: Name: Flux project. Location: CNCF incubation.
+	fmt.Printf("Name: %s. Description: %s.", *orgInfo.Name, internalOrg.GetDescription())
+	// Output: Name: Flux project. Description: Open and extensible continuous delivery solution for Kubernetes.
 }

@@ -21,15 +21,11 @@ import (
 	"github.com/microsoft/azure-devops-go-api/azuredevops/core"
 )
 
-func newOrganization(ctx *clientContext, apiObj core.TeamProjectReference, ref gitprovider.OrganizationRef) *organization {
+func newProject(ctx *clientContext, apiObj *core.TeamProject, ref gitprovider.OrganizationRef) *organization {
 	return &organization{
 		clientContext: ctx,
-		p:             apiObj,
+		p:             *apiObj,
 		ref:           ref,
-		teams: &TeamsClient{
-			clientContext: ctx,
-			ref:           ref,
-		},
 	}
 }
 
@@ -38,14 +34,13 @@ var _ gitprovider.Organization = &organization{}
 type organization struct {
 	*clientContext
 
-	p   core.TeamProjectReference
+	p   core.TeamProject
 	ref gitprovider.OrganizationRef
-
-	teams *TeamsClient
 }
 
 func (o *organization) Teams() gitprovider.TeamsClient {
-	return o.teams
+	//TODO implement me
+	panic("implement me")
 }
 func (o *organization) Get() gitprovider.OrganizationInfo {
 	return organizationFromAPI(&o.p)
@@ -59,7 +54,7 @@ func (o *organization) Organization() gitprovider.OrganizationRef {
 	return o.ref
 }
 
-func organizationFromAPI(apiObj *core.TeamProjectReference) gitprovider.OrganizationInfo {
+func organizationFromAPI(apiObj *core.TeamProject) gitprovider.OrganizationInfo {
 	return gitprovider.OrganizationInfo{
 		Name:        (*apiObj).Name,
 		Description: (*apiObj).Description,

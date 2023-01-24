@@ -101,3 +101,17 @@ func (c *ProviderClient) HasTokenPermission(ctx context.Context, permission gitp
 	//TODO implement me
 	panic("implement me")
 }
+
+func (c *azureDevopsClientImpl) GetProject(ctx context.Context, projectName *string) (*core.TeamProject, error) {
+	opts := core.GetProjectArgs{ProjectId: projectName}
+	apiObj, err := c.c.GetProject(ctx, opts)
+	return apiObj, err
+}
+
+func (c *azureDevopsClientImpl) ListPullRequests(ctx context.Context, repositoryId *string) ([]git.GitPullRequest, error) {
+	apiObj, err := c.g.GetPullRequests(ctx, git.GetPullRequestsArgs{RepositoryId: repositoryId})
+	if err != nil {
+		return nil, err
+	}
+	return *apiObj, nil
+}

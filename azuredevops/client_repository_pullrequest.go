@@ -49,19 +49,3 @@ func (c *PullRequestClient) Merge(ctx context.Context, number int, mergeMethod g
 	//TODO implement me
 	panic("implement me")
 }
-
-// List lists all pull requests in the repository
-//func (c *PullRequestClient) List(ctx context.Context) ([]gitprovider.PullRequest, error) {
-//	prs, err := c.List(ctx)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	requests := make([]gitprovider.PullRequest, len(prs))
-//
-//	for idx, pr := range prs {
-//		requests[idx] = newPullRequest(c.clientContext, pr)
-//	}
-//
-//	return requests, nil
-//}

@@ -33,9 +33,10 @@ type azureDevopsClient interface {
 	// GetProject retrieves a selected project
 	// This is a wrapper for "GET projects/{projectId} "
 	GetProject(ctx context.Context, projectName *string) (*core.TeamProject, error)
-	// GetRepo is a wrapper for "GET /repos/{owner}/{repo}".
+	// GetRepo is a wrapper for "GET /{project}/_apis/git/repositories/{repositoryId}".
+
 	// This function handles HTTP error wrapping, and validates the server result.
-	GetRepo(ctx context.Context, owner, repo string) (git.GitRepository, error)
+	GetRepo(ctx context.Context, project, repo string) (git.GitRepository, error)
 	ListRepos(ctx context.Context, org string) ([]*git.GitRepository, error)
 }
 
@@ -53,10 +54,10 @@ func (c *azureDevopsClientImpl) ListRepos(ctx context.Context, org string) ([]*g
 	panic("implement me")
 }
 
-func (c *azureDevopsClientImpl) GetRepo(ctx context.Context, owner, repo string) (git.GitRepository, error) {
-	//TODO implement me
-
-	panic("implement me")
+func (c *azureDevopsClientImpl) GetRepo(ctx context.Context, project, repo string) (git.GitRepository, error) {
+	opts := git.GetRepositoryArgs{RepositoryId: &repo, Project: &project}
+	apiObj, err := c.g.GetRepository(ctx, opts)
+	return *apiObj, err
 }
 
 func (c *azureDevopsClientImpl) gitClient() git.Client {

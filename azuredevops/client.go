@@ -36,7 +36,7 @@ func newClient(c core.Client, g git.Client, domain string, destructiveActions bo
 		orgs: &OrganizationsClient{
 			clientContext: ctx,
 		},
-		orgRepos: &OrgRepositoriesClient{
+		repos: &RepositoriesClient{
 			clientContext: ctx,
 		},
 	}
@@ -54,21 +54,21 @@ type clientContext struct {
 // Client is an interface that allows talking to a Git provider.
 type Client struct {
 	*clientContext
-	orgs     *OrganizationsClient
-	orgRepos *OrgRepositoriesClient
+	orgs  *OrganizationsClient
+	repos *RepositoriesClient
+}
+
+func (c *Client) UserRepositories() gitprovider.UserRepositoriesClient {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (c *Client) OrgRepositories() gitprovider.OrgRepositoriesClient {
+	return c.repos
 }
 
 func (c *Client) Organizations() gitprovider.OrganizationsClient {
 	return c.orgs
-}
-
-func (c Client) OrgRepositories() gitprovider.OrgRepositoriesClient {
-	return c.orgRepos
-}
-
-func (c Client) UserRepositories() gitprovider.UserRepositoriesClient {
-	//TODO implement me
-	panic("implement me")
 }
 
 // SupportedDomain returns the domain endpoint for this client, e.g. "gitlab.com" or

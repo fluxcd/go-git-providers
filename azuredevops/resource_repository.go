@@ -24,14 +24,43 @@ import (
 
 var _ gitprovider.UserRepository = &userRepository{}
 
+func newUserRepository(ctx *clientContext, apiObj git.GitRepository, ref gitprovider.RepositoryRef) *userRepository {
+	return &userRepository{
+		clientContext: ctx,
+		r:             apiObj,
+		ref:           ref,
+		pullRequests: &PullRequestClient{
+			clientContext: ctx,
+			ref:           ref,
+		},
+	}
+}
+
 type userRepository struct {
 	*clientContext
 	pr  git.GitPullRequest
+	r   git.GitRepository
 	ref gitprovider.RepositoryRef
 
 	pullRequests *PullRequestClient
 }
 
+func (r *userRepository) TeamAccess() gitprovider.TeamAccessClient {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *userRepository) Get() gitprovider.RepositoryInfo {
+	return repositoryFromAPI(&r.r)
+}
+
+func repositoryFromAPI(apiObj *git.GitRepository) gitprovider.RepositoryInfo {
+	repo := gitprovider.RepositoryInfo{
+		Description:   apiObj.Name,
+		DefaultBranch: apiObj.DefaultBranch,
+	}
+	return repo
+}
 func (r userRepository) APIObject() interface{} {
 	//TODO implement me
 	panic("implement me")
@@ -53,11 +82,6 @@ func (r userRepository) Delete(ctx context.Context) error {
 }
 
 func (r userRepository) Repository() gitprovider.RepositoryRef {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (r userRepository) Get() gitprovider.RepositoryInfo {
 	//TODO implement me
 	panic("implement me")
 }

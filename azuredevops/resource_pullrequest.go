@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Flux CD contributors.
+Copyright 2021 The Flux CD contributors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,24 +17,31 @@ limitations under the License.
 package azuredevops
 
 import (
-	"context"
 	"github.com/fluxcd/go-git-providers/gitprovider"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/git"
 )
 
-// TeamsClient implements the gitprovider.TeamsClient interface.
-var _ gitprovider.TeamsClient = &TeamsClient{}
+var _ gitprovider.PullRequest = &pullrequest{}
 
-// TeamsClient handles teams organization-wide.
-type TeamsClient struct {
+type pullrequest struct {
 	*clientContext
-	ref gitprovider.OrganizationRef
+
+	pr git.GitPullRequest
 }
 
-func (c *TeamsClient) List(ctx context.Context) ([]gitprovider.Team, error) {
+func (p pullrequest) APIObject() interface{} {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (c *TeamsClient) Get(ctx context.Context, teamName string) (gitprovider.Team, error) {
+func (p pullrequest) Get() gitprovider.PullRequestInfo {
+	//TODO implement me
 	panic("implement me")
+}
+
+func newPullRequest(ctx *clientContext, apiObj git.GitPullRequest) *pullrequest {
+	return &pullrequest{
+		clientContext: ctx,
+		pr:            apiObj,
+	}
 }

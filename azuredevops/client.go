@@ -18,19 +18,25 @@ package azuredevops
 
 import (
 	"context"
+	"fmt"
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/core"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/git"
+	"net/url"
 )
 
 // ProviderID is the provider ID for AzureDevops.
 const ProviderID = gitprovider.ProviderID("azureDevops")
 
-func newClient(c core.Client, domain string, destructiveActions bool) *Client {
-	azureDevopsClient := &azureDevopsClientImpl{c, destructiveActions}
+func newClient(c core.Client, g git.Client, domain string, destructiveActions bool) *Client {
+	azureDevopsClient := &azureDevopsClientImpl{c, g, destructiveActions}
 	ctx := &clientContext{azureDevopsClient, domain, destructiveActions}
 	return &Client{
 		clientContext: ctx,
 		orgs: &OrganizationsClient{
+			clientContext: ctx,
+		},
+		orgRepos: &OrgRepositoriesClient{
 			clientContext: ctx,
 		},
 	}
@@ -48,7 +54,8 @@ type clientContext struct {
 // Client is an interface that allows talking to a Git provider.
 type Client struct {
 	*clientContext
-	orgs *OrganizationsClient
+	orgs     *OrganizationsClient
+	orgRepos *OrgRepositoriesClient
 }
 
 func (c *Client) Organizations() gitprovider.OrganizationsClient {
@@ -56,8 +63,7 @@ func (c *Client) Organizations() gitprovider.OrganizationsClient {
 }
 
 func (c Client) OrgRepositories() gitprovider.OrgRepositoriesClient {
-	//TODO implement me
-	panic("implement me")
+	return c.orgRepos
 }
 
 func (c Client) UserRepositories() gitprovider.UserRepositoriesClient {
@@ -65,9 +71,16 @@ func (c Client) UserRepositories() gitprovider.UserRepositoriesClient {
 	panic("implement me")
 }
 
-func (c Client) SupportedDomain() string {
-	//TODO implement me
-	panic("implement me")
+// SupportedDomain returns the domain endpoint for this client, e.g. "gitlab.com" or
+// "my-custom-git-server.com:6443". This allows a higher-level user to know what Client to use for
+// what endpoints.
+// This field is set at client creation time, and can't be changed.
+func (c *Client) SupportedDomain() string {
+	u, _ := url.Parse(c.domain)
+	if u.Scheme == "" {
+		c.domain = fmt.Sprintf("https://%s", c.domain)
+	}
+	return c.domain
 }
 
 func (c *Client) ProviderID() gitprovider.ProviderID {

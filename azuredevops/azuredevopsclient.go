@@ -19,11 +19,24 @@ package azuredevops
 import (
 	"context"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/core"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/git"
 )
 
 type azureDevopsClient interface {
+	// Client core.Client provides access to the main core Azure Devops APIS
 	Client() core.Client
+	//  git.Client provides access to the git repository resource for Azure Devops APIS
+	gitClient() git.Client
+	// ListProjects get list of Azure Devops projects in an organization
+	// This is a wrapper for  "Get projects/"
 	ListProjects(ctx context.Context) (*core.GetProjectsResponseValue, error)
+	// GetProject retrieves a selected project
+	// This is a wrapper for "GET projects/{projectId} "
+	GetProject(ctx context.Context, projectName *string) (*core.TeamProject, error)
+	// GetRepo is a wrapper for "GET /repos/{owner}/{repo}".
+	// This function handles HTTP error wrapping, and validates the server result.
+	GetRepo(ctx context.Context, owner, repo string) (git.GitRepository, error)
+	ListRepos(ctx context.Context, org string) ([]*git.GitRepository, error)
 }
 
 // azureDevopsClientImpl is a wrapper around *azureDevops.Client, which implements higher-level methods,
@@ -31,7 +44,23 @@ type azureDevopsClient interface {
 // objects are validated, and HTTP errors are handled/wrapped using handleHTTPError.
 type azureDevopsClientImpl struct {
 	c                  core.Client
+	g                  git.Client
 	destructiveActions bool
+}
+
+func (c *azureDevopsClientImpl) ListRepos(ctx context.Context, org string) ([]*git.GitRepository, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (c *azureDevopsClientImpl) GetRepo(ctx context.Context, owner, repo string) (git.GitRepository, error) {
+	//TODO implement me
+
+	panic("implement me")
+}
+
+func (c *azureDevopsClientImpl) gitClient() git.Client {
+	return c.g
 }
 
 var _ azureDevopsClient = &azureDevopsClientImpl{}
@@ -39,10 +68,27 @@ var _ azureDevopsClient = &azureDevopsClientImpl{}
 func (c *azureDevopsClientImpl) Client() core.Client {
 	return c.c
 }
+
 func (c *azureDevopsClientImpl) ListProjects(ctx context.Context) (*core.GetProjectsResponseValue, error) {
-	apiObj, err := c.c.GetProjects(ctx, core.GetProjectsArgs{})
+	opts := core.GetProjectsArgs{}
+
+	apiObj, err := c.c.GetProjects(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
 	return apiObj, nil
+}
+
+func (c *azureDevopsClientImpl) GetProject(ctx context.Context, projectName *string) (*core.TeamProject, error) {
+	opts := core.GetProjectArgs{ProjectId: projectName}
+	apiObj, err := c.c.GetProject(ctx, opts)
+	return apiObj, err
+}
+
+func (c *azureDevopsClientImpl) ListPullRequests(ctx context.Context, repositoryId *string) ([]git.GitPullRequest, error) {
+	apiObj, err := c.g.GetPullRequests(ctx, git.GetPullRequestsArgs{RepositoryId: repositoryId})
+	if err != nil {
+		return nil, err
+	}
+	return *apiObj, nil
 }

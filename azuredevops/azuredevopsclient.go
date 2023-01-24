@@ -68,9 +68,10 @@ func (c *ProviderClient) Raw() interface{} {
 	panic("implement me")
 }
 
-func (c *ProviderClient) UserRepositories() gitprovider.UserRepositoriesClient {
-	//TODO implement me
-	panic("implement me")
+func (c *azureDevopsClientImpl) GetRepo(ctx context.Context, project, repo string) (git.GitRepository, error) {
+	opts := git.GetRepositoryArgs{RepositoryId: &repo, Project: &project}
+	apiObj, err := c.g.GetRepository(ctx, opts)
+	return *apiObj, err
 }
 
 func (c *ProviderClient) OrgRepositories() gitprovider.OrgRepositoriesClient {

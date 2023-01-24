@@ -55,7 +55,23 @@ type repository struct {
 	branches     *BranchClient
 }
 
-func (r *repository) TeamAccess() gitprovider.TeamAccessClient {
+func (r *userRepository) TeamAccess() gitprovider.TeamAccessClient {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *userRepository) Get() gitprovider.RepositoryInfo {
+	return repositoryFromAPI(&r.r)
+}
+
+func repositoryFromAPI(apiObj *git.GitRepository) gitprovider.RepositoryInfo {
+	repo := gitprovider.RepositoryInfo{
+		Description:   apiObj.Name,
+		DefaultBranch: apiObj.DefaultBranch,
+	}
+	return repo
+}
+func (r userRepository) APIObject() interface{} {
 	//TODO implement me
 	panic("implement me")
 }
@@ -95,30 +111,17 @@ func (r *repository) Delete(ctx context.Context) error {
 	panic("implement me")
 }
 
-func (r *repository) Repository() gitprovider.RepositoryRef {
+func (r userRepository) Set(info gitprovider.RepositoryInfo) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *repository) Set(info gitprovider.RepositoryInfo) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-<<<<<<< HEAD
-func (r *repository) DeployKeys() gitprovider.DeployKeyClient {
-=======
 func (r userRepository) DeployKeys() gitprovider.DeployKeyClient {
->>>>>>> 276b0ac (adding a few tests and apis)
 	//TODO implement me
 	panic("implement me")
 }
 
-<<<<<<< HEAD
-func (r *repository) Commits() gitprovider.CommitClient {
-=======
 func (r userRepository) Commits() gitprovider.CommitClient {
->>>>>>> 276b0ac (adding a few tests and apis)
 	//TODO implement me
 	panic("implement me")
 }

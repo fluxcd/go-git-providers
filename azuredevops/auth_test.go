@@ -51,7 +51,7 @@ func Test_DomainVariations(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c2, _ := NewClient("personalAccessToken", tt.opts)
 			if diff := cmp.Diff(tt.want, c2.SupportedDomain()); diff != "" {
-				t.Errorf("New Stash client returned domain (want -> got): %s", diff)
+				t.Errorf("New Azure client returned domain (want -> got): %s", diff)
 			}
 		})
 	}

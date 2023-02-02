@@ -18,7 +18,7 @@ package azuredevops
 
 import (
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/git"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/git"
 )
 
 var _ gitprovider.PullRequest = &pullrequest{}

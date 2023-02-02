@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Flux CD contributors.
+Copyright 2023 The Flux CD contributors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,78 +18,85 @@ package azuredevops
 
 import (
 	"context"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/core"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/git"
+	"fmt"
+	"github.com/fluxcd/go-git-providers/gitprovider"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/core"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/git"
+	"net/url"
 )
 
-type azureDevopsClient interface {
-	// Client core.Client provides access to the main core Azure Devops APIS
-	Client() core.Client
-	//  git.Client provides access to the git repository resource for Azure Devops APIS
-	gitClient() git.Client
-	// ListProjects get list of Azure Devops projects in an organization
-	// This is a wrapper for  "Get projects/"
-	ListProjects(ctx context.Context) (*core.GetProjectsResponseValue, error)
-	// GetProject retrieves a selected project
-	// This is a wrapper for "GET projects/{projectId} "
-	GetProject(ctx context.Context, projectName *string) (*core.TeamProject, error)
-	// GetRepo is a wrapper for "GET /{project}/_apis/git/repositories/{repositoryId}".
+// ProviderID is the provider ID for AzureDevops.
+const ProviderID = gitprovider.ProviderID("azureDevops")
 
-	// This function handles HTTP error wrapping, and validates the server result.
-	GetRepo(ctx context.Context, project, repo string) (git.GitRepository, error)
-	ListRepos(ctx context.Context, org string) ([]*git.GitRepository, error)
+func newClient(c core.Client, g git.Client, domain string, destructiveActions bool) *ProviderClient {
+	ctx := &clientContext{
+		c,
+		g,
+		domain,
+		destructiveActions}
+	return &ProviderClient{
+		clientContext: ctx,
+		orgs: &OrganizationsClient{
+			clientContext: ctx,
+		},
+		repos: &RepositoriesClient{
+			clientContext: ctx,
+		},
+	}
 }
 
-// azureDevopsClientImpl is a wrapper around *azureDevops.Client, which implements higher-level methods,
-// Pagination is implemented for all List* methods, all returned
-// objects are validated, and HTTP errors are handled/wrapped using handleHTTPError.
-type azureDevopsClientImpl struct {
+// Client implements the gitprovider.Client interface.
+var _ gitprovider.Client = &ProviderClient{}
+
+type clientContext struct {
 	c                  core.Client
 	g                  git.Client
+	domain             string
 	destructiveActions bool
 }
 
-func (c *azureDevopsClientImpl) ListRepos(ctx context.Context, org string) ([]*git.GitRepository, error) {
+type ProviderClient struct {
+	*clientContext
+
+	orgs  *OrganizationsClient
+	repos *RepositoriesClient
+}
+
+func (c *ProviderClient) Raw() interface{} {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (c *azureDevopsClientImpl) GetRepo(ctx context.Context, project, repo string) (git.GitRepository, error) {
-	opts := git.GetRepositoryArgs{RepositoryId: &repo, Project: &project}
-	apiObj, err := c.g.GetRepository(ctx, opts)
-	return *apiObj, err
+func (c *ProviderClient) UserRepositories() gitprovider.UserRepositoriesClient {
+	//TODO implement me
+	panic("implement me")
 }
 
-func (c *azureDevopsClientImpl) gitClient() git.Client {
-	return c.g
+func (c *ProviderClient) OrgRepositories() gitprovider.OrgRepositoriesClient {
+	return c.repos
 }
 
-var _ azureDevopsClient = &azureDevopsClientImpl{}
-
-func (c *azureDevopsClientImpl) Client() core.Client {
-	return c.c
+func (c *ProviderClient) Organizations() gitprovider.OrganizationsClient {
+	return c.orgs
 }
 
-func (c *azureDevopsClientImpl) ListProjects(ctx context.Context) (*core.GetProjectsResponseValue, error) {
-	opts := core.GetProjectsArgs{}
-
-	apiObj, err := c.c.GetProjects(ctx, opts)
-	if err != nil {
-		return nil, err
+// SupportedDomain returns the domain endpoint for this client, e.g. "gitlab.com" or
+// "my-custom-git-server.com:6443". This allows a higher-level user to know what Client to use for
+// what endpoints.
+// This field is set at client creation time, and can't be changed.
+func (c *ProviderClient) SupportedDomain() string {
+	u, _ := url.Parse(c.domain)
+	if u.Scheme == "" {
+		c.domain = fmt.Sprintf("https://%s", c.domain)
 	}
-	return apiObj, nil
+	return c.domain
 }
 
-func (c *azureDevopsClientImpl) GetProject(ctx context.Context, projectName *string) (*core.TeamProject, error) {
-	opts := core.GetProjectArgs{ProjectId: projectName}
-	apiObj, err := c.c.GetProject(ctx, opts)
-	return apiObj, err
+func (c *ProviderClient) ProviderID() gitprovider.ProviderID {
+	return ProviderID
 }
 
-func (c *azureDevopsClientImpl) ListPullRequests(ctx context.Context, repositoryId *string) ([]git.GitPullRequest, error) {
-	apiObj, err := c.g.GetPullRequests(ctx, git.GetPullRequestsArgs{RepositoryId: repositoryId})
-	if err != nil {
-		return nil, err
-	}
-	return *apiObj, nil
+func (c *ProviderClient) HasTokenPermission(ctx context.Context, permission gitprovider.TokenPermission) (bool, error) {
+	//TODO implement me
+	panic("implement me")
 }

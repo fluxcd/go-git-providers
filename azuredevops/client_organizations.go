@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Flux CD contributors.
+Copyright 2023 The Flux CD contributors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ package azuredevops
 import (
 	"context"
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/core"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/core"
 )
 
 // OrganizationsClient implements the gitprovider.OrganizationsClient interface.
@@ -30,40 +30,60 @@ type OrganizationsClient struct {
 	*clientContext
 }
 
+// Get a specific project that a user has access to
 func (c *OrganizationsClient) Get(ctx context.Context, ref gitprovider.OrganizationRef) (gitprovider.Organization, error) {
-	project, err := c.c.GetProject(ctx, &ref.Organization)
+	opts := core.GetProjectArgs{ProjectId: &ref.Organization}
+	project, err := c.c.GetProject(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
 
-	//ref.SetKey(project.Id)
-	return newProject(c.clientContext, project, ref), nil
+	ref.SetKey(project.Id.String())
+	return newProject(c.clientContext, *project, ref), nil
 }
 
 // List all the projects the specific user has access to.
 // List returns all available projects, using multiple paginated requests if needed.
-
 func (c *OrganizationsClient) List(ctx context.Context) ([]gitprovider.Organization, error) {
-	apiObjs, err := c.c.ListProjects(ctx)
+	opts := core.GetProjectsArgs{}
+	apiObjs, err := c.c.GetProjects(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
 
 	projects := make([]gitprovider.Organization, len(apiObjs.Value))
-	for i, apiObj := range apiObjs.Value {
-		ref := gitprovider.OrganizationRef{
-			Domain:       *apiObj.Url,
-			Organization: *apiObj.Name,
+
+	index := 0
+	for apiObjs != nil {
+		for i, apiObj := range apiObjs.Value {
+			ref := gitprovider.OrganizationRef{
+				Domain:       *apiObj.Url,
+				Organization: *apiObj.Name,
+			}
+
+			teamProject := core.TeamProject{
+				Id:   apiObj.Id,
+				Name: apiObj.Name,
+			}
+
+			ref.SetKey(apiObj.Id.String())
+			projects[i] = newProject(c.clientContext, teamProject, ref)
+			index++
 		}
 
-		teamProject := core.TeamProject{
-			Id:   apiObj.Id,
-			Name: apiObj.Name,
+		if apiObjs.ContinuationToken != "" {
+			opts := core.GetProjectsArgs{
+				ContinuationToken: &apiObjs.ContinuationToken,
+			}
+			apiObjs, err = c.c.GetProjects(ctx, opts)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			apiObjs = nil
 		}
-
-		//ref.SetKey(base64.RawURLEncoding.EncodeToString(apiObj.Id))
-		projects[i] = newProject(c.clientContext, &teamProject, ref)
 	}
+
 	return projects, nil
 
 }

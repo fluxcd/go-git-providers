@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Flux CD contributors.
+Copyright 2023 The Flux CD contributors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,45 +21,43 @@ import (
 	"errors"
 	"fmt"
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/microsoft/azure-devops-go-api/azuredevops"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/core"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/git"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v6"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/core"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/git"
+
 	"net/url"
 )
 
-// NewPatConnection creates a new Client instance for Azure Devops API endpoints.
-// The client accepts a domain+token as an argument, which is used to authenticate.
+// NewClient creates a new Client instance for Azure Devops API endpoints.
+// The client accepts a personal token used for which is used to authenticate and context as an argument,
 // Variadic parameters gitprovider.ClientOption are used to pass additional options to the gitprovider.Client.
 
-func NewClient(personalAccessToken string, optFns ...gitprovider.ClientOption) (gitprovider.Client, error) {
-	var connection *azuredevops.Connection
-	// coreClient provides access to https://learn.microsoft.com/en-us/rest/api/azure/devops/core which has details about the projects
-	var coreClient core.Client
-	// gitClient provides access to https://learn.microsoft.com/en-us/rest/api/azure/devops/git which has details about the git repository
-	var gitClient git.Client
-	var domain string
+func NewClient(personalAccessToken string, ctx context.Context, optFns ...gitprovider.ClientOption) (gitprovider.Client, error) {
+
 	// Complete the options struct
 	opts, err := gitprovider.MakeClientOptions(optFns...)
 	if err != nil {
 		return nil, err
 	}
 
-	ctx := context.Background()
-
 	if opts.Domain == nil {
 		return nil, errors.New("please provide the domain url with the project path ")
 	}
-
-	domain = *opts.Domain
-	u, _ := url.Parse(domain)
+	// This is the link to the project/organization
+	domain := *opts.Domain
+	u, err := url.Parse(domain)
+	if err != nil {
+		return nil, fmt.Errorf(" URL parsing failed: %v", err)
+	}
 	if u.Scheme == "" || u.Scheme == "http" {
 		domain = fmt.Sprintf("https://%s%s", u.Host, u.Path)
 	}
-
-	connection = azuredevops.NewPatConnection(domain, personalAccessToken)
-
-	coreClient, err = core.NewClient(ctx, connection)
-	gitClient, err = git.NewClient(ctx, connection)
+	// azuredevops.NewPatConnection uses the project and personalAccessToken to connect to Azure
+	connection := azuredevops.NewPatConnection(domain, personalAccessToken)
+	// coreClient provides access to Azure Devops organization,projects and teams
+	coreClient, err := core.NewClient(ctx, connection)
+	// gitClient provides access to the Azure Devops Git repositories the files,trees,commits and refs
+	gitClient, err := git.NewClient(ctx, connection)
 	if err != nil {
 		return nil, err
 	}

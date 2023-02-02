@@ -126,17 +126,6 @@ func (r userRepository) Commits() gitprovider.CommitClient {
 	panic("implement me")
 }
 
-<<<<<<< HEAD
-func (r *repository) Branches() gitprovider.BranchClient {
-	return r.branches
-}
-
-func (r *repository) PullRequests() gitprovider.PullRequestClient {
-	panic("implement me")
-}
-
-func (r *repository) Files() gitprovider.FileClient {
-=======
 func (r userRepository) Branches() gitprovider.BranchClient {
 	//TODO implement me
 	panic("implement me")
@@ -152,7 +141,6 @@ func (r userRepository) Files() gitprovider.FileClient {
 }
 
 func (r userRepository) Trees() gitprovider.TreeClient {
->>>>>>> 276b0ac (adding a few tests and apis)
 	//TODO implement me
 	panic("implement me")
 }

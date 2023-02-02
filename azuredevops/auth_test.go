@@ -16,6 +16,7 @@ limitations under the License.
 package azuredevops
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -49,7 +50,8 @@ func Test_DomainVariations(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c2, _ := NewClient("personalAccessToken", tt.opts)
+			ctx := context.Background()
+			c2, _ := NewClient("personalAccessToken", ctx, tt.opts)
 			if diff := cmp.Diff(tt.want, c2.SupportedDomain()); diff != "" {
 				t.Errorf("New Azure client returned domain (want -> got): %s", diff)
 			}

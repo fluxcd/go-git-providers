@@ -19,11 +19,10 @@ package azuredevops
 import (
 	"context"
 	"fmt"
-	"net/url"
-
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/core"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/git"
+	"net/url"
 )
 
 // ProviderID is the provider ID for AzureDevops.
@@ -68,10 +67,9 @@ func (c *ProviderClient) Raw() interface{} {
 	panic("implement me")
 }
 
-func (c *azureDevopsClientImpl) GetRepo(ctx context.Context, project, repo string) (git.GitRepository, error) {
-	opts := git.GetRepositoryArgs{RepositoryId: &repo, Project: &project}
-	apiObj, err := c.g.GetRepository(ctx, opts)
-	return *apiObj, err
+func (c *ProviderClient) UserRepositories() gitprovider.UserRepositoriesClient {
+	//TODO implement me
+	panic("implement me")
 }
 
 func (c *ProviderClient) OrgRepositories() gitprovider.OrgRepositoriesClient {
@@ -103,16 +101,11 @@ func (c *ProviderClient) HasTokenPermission(ctx context.Context, permission gitp
 	panic("implement me")
 }
 
-func (c *azureDevopsClientImpl) GetProject(ctx context.Context, projectName *string) (*core.TeamProject, error) {
-	opts := core.GetProjectArgs{ProjectId: projectName}
-	apiObj, err := c.c.GetProject(ctx, opts)
-	return apiObj, err
+func (c *ProviderClient) ProviderID() gitprovider.ProviderID {
+	return ProviderID
 }
 
-func (c *azureDevopsClientImpl) ListPullRequests(ctx context.Context, repositoryId *string) ([]git.GitPullRequest, error) {
-	apiObj, err := c.g.GetPullRequests(ctx, git.GetPullRequestsArgs{RepositoryId: repositoryId})
-	if err != nil {
-		return nil, err
-	}
-	return *apiObj, nil
+func (c *ProviderClient) HasTokenPermission(ctx context.Context, permission gitprovider.TokenPermission) (bool, error) {
+	//TODO implement me
+	panic("implement me")
 }

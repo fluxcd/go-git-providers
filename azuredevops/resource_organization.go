@@ -24,7 +24,7 @@ import (
 func newProject(ctx *clientContext, apiObj core.TeamProject, ref gitprovider.OrganizationRef) *organization {
 	return &organization{
 		clientContext: ctx,
-		p:             *apiObj,
+		p:             apiObj,
 		ref:           ref,
 	}
 }

@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Flux CD contributors.
+Copyright 2023 The Flux CD contributors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,13 +18,13 @@ package azuredevops
 
 import (
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/core"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/core"
 )
 
-func newProject(ctx *clientContext, apiObj *core.TeamProject, ref gitprovider.OrganizationRef) *organization {
+func newProject(ctx *clientContext, apiObj core.TeamProject, ref gitprovider.OrganizationRef) *organization {
 	return &organization{
 		clientContext: ctx,
-		p:             *apiObj,
+		p:             apiObj,
 		ref:           ref,
 	}
 }

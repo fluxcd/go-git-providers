@@ -31,7 +31,6 @@ import (
 // NewClient creates a new Client instance for Azure Devops API endpoints.
 // The client accepts a personal token used for which is used to authenticate and context as an argument,
 // Variadic parameters gitprovider.ClientOption are used to pass additional options to the gitprovider.Client.
-
 func NewClient(personalAccessToken string, ctx context.Context, optFns ...gitprovider.ClientOption) (gitprovider.Client, error) {
 
 	// Complete the options struct

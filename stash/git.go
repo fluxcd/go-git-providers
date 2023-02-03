@@ -256,6 +256,13 @@ func (s *GitService) CreateCommit(rPath string, r *git.Repository, branchName st
 		return nil, err
 	}
 
+	if branchName != "" {
+		err := s.CreateBranch(branchName, r, "")
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	err = s.addCommitFiles(w, rPath, c.Files)
 	if err != nil {
 		return nil, err
@@ -266,13 +273,6 @@ func (s *GitService) CreateCommit(rPath string, r *git.Repository, branchName st
 	c.Author.Date = now
 	if c.Committer != nil {
 		c.Committer.Date = now
-	}
-
-	if branchName != "" {
-		err := s.CreateBranch(branchName, r, "")
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	obj, err := s.commit(w, r, c)

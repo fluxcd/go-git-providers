@@ -55,12 +55,12 @@ type repository struct {
 	branches     *BranchClient
 }
 
-func (r *userRepository) TeamAccess() gitprovider.TeamAccessClient {
+func (r *repository) TeamAccess() gitprovider.TeamAccessClient {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *userRepository) Get() gitprovider.RepositoryInfo {
+func (r *repository) Get() gitprovider.RepositoryInfo {
 	return repositoryFromAPI(&r.r)
 }
 
@@ -71,7 +71,11 @@ func repositoryFromAPI(apiObj *git.GitRepository) gitprovider.RepositoryInfo {
 	}
 	return repo
 }
-func (r userRepository) APIObject() interface{} {
+func (r *repository) Trees() gitprovider.TreeClient {
+	return r.trees
+}
+
+func (r *repository) APIObject() interface{} {
 	//TODO implement me
 	panic("implement me")
 }
@@ -111,36 +115,31 @@ func (r *repository) Delete(ctx context.Context) error {
 	panic("implement me")
 }
 
-func (r userRepository) Set(info gitprovider.RepositoryInfo) error {
+func (r *repository) Set(info gitprovider.RepositoryInfo) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r userRepository) DeployKeys() gitprovider.DeployKeyClient {
+func (r *repository) DeployKeys() gitprovider.DeployKeyClient {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r userRepository) Commits() gitprovider.CommitClient {
+func (r *repository) Commits() gitprovider.CommitClient {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r userRepository) Branches() gitprovider.BranchClient {
+func (r *repository) Branches() gitprovider.BranchClient {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r userRepository) PullRequests() gitprovider.PullRequestClient {
+func (r *repository) PullRequests() gitprovider.PullRequestClient {
 	panic("implement me")
 }
 
-func (r userRepository) Files() gitprovider.FileClient {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (r userRepository) Trees() gitprovider.TreeClient {
+func (r *repository) Files() gitprovider.FileClient {
 	//TODO implement me
 	panic("implement me")
 }

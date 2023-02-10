@@ -131,8 +131,7 @@ func (r *repository) Commits() gitprovider.CommitClient {
 }
 
 func (r *repository) Branches() gitprovider.BranchClient {
-	//TODO implement me
-	panic("implement me")
+	return r.branches
 }
 
 func (r *repository) PullRequests() gitprovider.PullRequestClient {

@@ -37,6 +37,10 @@ func newRepository(ctx *clientContext, apiObj git.GitRepository, ref gitprovider
 			clientContext: ctx,
 			ref:           ref,
 		},
+		branches: &BranchClient{
+			clientContext: ctx,
+			ref:           ref,
+		},
 	}
 }
 
@@ -48,6 +52,7 @@ type repository struct {
 
 	pullRequests *PullRequestClient
 	trees        *TreeClient
+	branches     *BranchClient
 }
 
 func (r *repository) TeamAccess() gitprovider.TeamAccessClient {
@@ -111,8 +116,7 @@ func (r *repository) Commits() gitprovider.CommitClient {
 }
 
 func (r *repository) Branches() gitprovider.BranchClient {
-	//TODO implement me
-	panic("implement me")
+	return r.branches
 }
 
 func (r *repository) PullRequests() gitprovider.PullRequestClient {

@@ -22,10 +22,10 @@ import (
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/git"
 )
 
-var _ gitprovider.UserRepository = &userRepository{}
+var _ gitprovider.OrgRepository = &repository{}
 
-func newUserRepository(ctx *clientContext, apiObj git.GitRepository, ref gitprovider.RepositoryRef) *userRepository {
-	return &userRepository{
+func newRepository(ctx *clientContext, apiObj git.GitRepository, ref gitprovider.RepositoryRef) *repository {
+	return &repository{
 		clientContext: ctx,
 		r:             apiObj,
 		ref:           ref,
@@ -33,24 +33,34 @@ func newUserRepository(ctx *clientContext, apiObj git.GitRepository, ref gitprov
 			clientContext: ctx,
 			ref:           ref,
 		},
+		trees: &TreeClient{
+			clientContext: ctx,
+			ref:           ref,
+		},
+		branches: &BranchClient{
+			clientContext: ctx,
+			ref:           ref,
+		},
 	}
 }
 
-type userRepository struct {
+type repository struct {
 	*clientContext
 	pr  git.GitPullRequest
 	r   git.GitRepository
 	ref gitprovider.RepositoryRef
 
 	pullRequests *PullRequestClient
+	trees        *TreeClient
+	branches     *BranchClient
 }
 
-func (r *userRepository) TeamAccess() gitprovider.TeamAccessClient {
+func (r *repository) TeamAccess() gitprovider.TeamAccessClient {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *userRepository) Get() gitprovider.RepositoryInfo {
+func (r *repository) Get() gitprovider.RepositoryInfo {
 	return repositoryFromAPI(&r.r)
 }
 
@@ -61,61 +71,59 @@ func repositoryFromAPI(apiObj *git.GitRepository) gitprovider.RepositoryInfo {
 	}
 	return repo
 }
-func (r userRepository) APIObject() interface{} {
+func (r *repository) Trees() gitprovider.TreeClient {
+	return r.trees
+}
+
+func (r *repository) APIObject() interface{} {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r userRepository) Update(ctx context.Context) error {
+func (r *repository) Update(ctx context.Context) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r userRepository) Reconcile(ctx context.Context) (actionTaken bool, err error) {
+func (r *repository) Reconcile(ctx context.Context) (actionTaken bool, err error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r userRepository) Delete(ctx context.Context) error {
+func (r *repository) Delete(ctx context.Context) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r userRepository) Repository() gitprovider.RepositoryRef {
+func (r *repository) Repository() gitprovider.RepositoryRef {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r userRepository) Set(info gitprovider.RepositoryInfo) error {
+func (r *repository) Set(info gitprovider.RepositoryInfo) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r userRepository) DeployKeys() gitprovider.DeployKeyClient {
+func (r *repository) DeployKeys() gitprovider.DeployKeyClient {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r userRepository) Commits() gitprovider.CommitClient {
+func (r *repository) Commits() gitprovider.CommitClient {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r userRepository) Branches() gitprovider.BranchClient {
-	//TODO implement me
+func (r *repository) Branches() gitprovider.BranchClient {
+	return r.branches
+}
+
+func (r *repository) PullRequests() gitprovider.PullRequestClient {
 	panic("implement me")
 }
 
-func (r userRepository) PullRequests() gitprovider.PullRequestClient {
-	panic("implement me")
-}
-
-func (r userRepository) Files() gitprovider.FileClient {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (r userRepository) Trees() gitprovider.TreeClient {
+func (r *repository) Files() gitprovider.FileClient {
 	//TODO implement me
 	panic("implement me")
 }

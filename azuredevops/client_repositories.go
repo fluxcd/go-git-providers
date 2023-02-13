@@ -41,7 +41,7 @@ func (c *RepositoriesClient) Get(ctx context.Context, ref gitprovider.OrgReposit
 	if err != nil {
 		return nil, err
 	}
-	return newUserRepository(c.clientContext, *apiObj, ref), nil
+	return newRepository(c.clientContext, *apiObj, ref), nil
 }
 
 func (c *RepositoriesClient) List(ctx context.Context, o gitprovider.OrganizationRef) ([]gitprovider.OrgRepository, error) {

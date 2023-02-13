@@ -81,7 +81,7 @@ func (c *TreeClient) List(ctx context.Context, sha string, path string, recursiv
 	if err != nil {
 		return nil, err
 	}
-	treeEntries := make([]*gitprovider.TreeEntry, 0)
+	treeEntries := make([]*gitprovider.TreeEntry, 0, len(*apiObj.TreeEntries))
 	for _, treeEntry := range *apiObj.TreeEntries {
 		if *treeEntry.GitObjectType == "blob" {
 			treeEntries = append(treeEntries, &gitprovider.TreeEntry{

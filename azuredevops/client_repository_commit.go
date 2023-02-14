@@ -32,9 +32,49 @@ type CommitClient struct {
 	ref gitprovider.RepositoryRef
 }
 
-func (c *CommitClient) ListPage(ctx context.Context, branch string, perPage int, page int) ([]gitprovider.Commit, error) {
-	//TODO implement me
-	panic("implement me")
+// ListPage lists all repository commits of the given page and page size.
+// ListPage returns all available repository commits
+// using multiple paginated requests if needed.
+
+func (c *CommitClient) ListPage(ctx context.Context, branch string, perPage, page int) ([]gitprovider.Commit, error) {
+	dks, err := c.listPage(ctx, branch, perPage, page)
+	if err != nil {
+		return nil, err
+	}
+	// Cast to the generic []gitprovider.Commit
+	commits := make([]gitprovider.Commit, 0, len(dks))
+	for _, dk := range dks {
+		commits = append(commits, dk)
+	}
+	return commits, nil
+}
+
+func (c *CommitClient) listPage(ctx context.Context, branch string, perPage, page int) ([]*commitType, error) {
+	repositoryId := c.ref.GetRepository()
+	projectId := c.ref.GetIdentity()
+	branchRetrieved := git.GitVersionDescriptor{
+		Version: &branch,
+	}
+	searchCriteria := git.GitQueryCommitsCriteria{
+		Top:         &page,
+		ItemVersion: &branchRetrieved,
+	}
+	apiObjs, err := c.g.GetCommits(ctx, git.GetCommitsArgs{
+		RepositoryId:   &repositoryId,
+		Project:        &projectId,
+		SearchCriteria: &searchCriteria,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Map the api object to our CommitType type
+	keys := make([]*commitType, 0, len(*apiObjs))
+	keys = append(keys, newCommit(c, &git.GitPush{
+		Commits: apiObjs,
+	}))
+
+	return keys, nil
 }
 
 func (c *CommitClient) Create(ctx context.Context, branch string, message string, files []gitprovider.CommitFile) (gitprovider.Commit, error) {
@@ -71,16 +111,17 @@ func (c *CommitClient) Create(ctx context.Context, branch string, message string
 
 	// get latest commit from branch
 
-	commitsList, err := c.g.GetRefs(ctx, git.GetRefsArgs{
-		RepositoryId: &repositoryId,
-		Project:      &projectId,
-	})
-	latestCommitTreeSHA := commitsList.Value[0].ObjectId
+	commitsList, err := c.ListPage(ctx, branch, 0, 1)
+	if err != nil {
+		return nil, err
+	}
+
+	latestCommitTreeSHA := commitsList[0].Get().Sha
 
 	// create the commit now
 	refArgs := []git.GitRefUpdate{{
 		Name:        &ref,
-		OldObjectId: latestCommitTreeSHA,
+		OldObjectId: &latestCommitTreeSHA,
 	},
 	}
 

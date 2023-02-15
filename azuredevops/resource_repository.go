@@ -139,7 +139,7 @@ func (r *repository) Branches() gitprovider.BranchClient {
 }
 
 func (r *repository) PullRequests() gitprovider.PullRequestClient {
-	panic("implement me")
+	return r.pullRequests
 }
 
 func (r *repository) Files() gitprovider.FileClient {

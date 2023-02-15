@@ -19,10 +19,12 @@ package azuredevops
 import (
 	"context"
 	"github.com/fluxcd/go-git-providers/gitprovider"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/git"
 )
 
 // PullRequestClient implements the gitprovider.PullRequestClient interface.
-//var _ gitprovider.PullRequestClient = &PullRequestClient{}
+
+var _ gitprovider.PullRequestClient = &PullRequestClient{}
 
 // PullRequestClient operates on the pull requests for a specific repository.
 type PullRequestClient struct {
@@ -30,9 +32,35 @@ type PullRequestClient struct {
 	ref gitprovider.RepositoryRef
 }
 
-func (c *PullRequestClient) Create(ctx context.Context, title, branch, baseBranch, description string) (gitprovider.PullRequest, error) {
+func (c *PullRequestClient) List(ctx context.Context) ([]gitprovider.PullRequest, error) {
 	//TODO implement me
 	panic("implement me")
+}
+
+func (c *PullRequestClient) Create(ctx context.Context, title, branch, baseBranch, description string) (gitprovider.PullRequest, error) {
+	repositoryId := c.ref.GetRepository()
+	projectId := c.ref.GetIdentity()
+	ref := "refs/heads/" + branch
+	refBaseBranch := "refs/heads/" + baseBranch
+
+
+	pullRequestToCreate := git.GitPullRequest{
+		Description:   &description,
+		SourceRefName: &ref,
+		TargetRefName: &refBaseBranch,
+		Title:         &title,
+	}
+	prOpts := git.CreatePullRequestArgs{
+		GitPullRequestToCreate: &pullRequestToCreate,
+		RepositoryId:           &repositoryId,
+		Project:                &projectId,
+	}
+	pr, err := c.g.CreatePullRequest(ctx, prOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	return newPullRequest(c.clientContext, pr), nil
 }
 
 func (c *PullRequestClient) Edit(ctx context.Context, number int, opts gitprovider.EditOptions) (gitprovider.PullRequest, error) {

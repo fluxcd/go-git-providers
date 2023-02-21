@@ -19,6 +19,7 @@ package azuredevops
 import (
 	"context"
 	"fmt"
+
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/git"
 )
@@ -35,7 +36,6 @@ type CommitClient struct {
 // ListPage lists all repository commits of the given page and page size.
 // ListPage returns all available repository commits
 // using multiple paginated requests if needed.
-
 func (c *CommitClient) ListPage(ctx context.Context, branch string, perPage, page int) ([]gitprovider.Commit, error) {
 	dks, err := c.listPage(ctx, branch, perPage, page)
 	if err != nil {
@@ -48,15 +48,15 @@ func (c *CommitClient) ListPage(ctx context.Context, branch string, perPage, pag
 	}
 	return commits, nil
 }
-
-func (c *CommitClient) listPage(ctx context.Context, branch string, perPage, page int) ([]*commitType, error) {
+func (c *CommitClient) listPage(ctx context.Context, branch string, perPage, page int) ([]*commit, error) {
 	repositoryId := c.ref.GetRepository()
 	projectId := c.ref.GetIdentity()
 	branchRetrieved := git.GitVersionDescriptor{
 		Version: &branch,
+		VersionType: &git.GitVersionTypeValues.Branch,
 	}
 	searchCriteria := git.GitQueryCommitsCriteria{
-		Top:         &page,
+		Top:         &perPage,
 		ItemVersion: &branchRetrieved,
 	}
 	apiObjs, err := c.g.GetCommits(ctx, git.GetCommitsArgs{
@@ -68,8 +68,8 @@ func (c *CommitClient) listPage(ctx context.Context, branch string, perPage, pag
 		return nil, err
 	}
 
-	// Map the api object to our CommitType type
-	keys := make([]*commitType, 0, len(*apiObjs))
+	// Map the api object to our Commit type
+	keys := make([]*commit,0, len(*apiObjs))
 	keys = append(keys, newCommit(c, &git.GitPush{
 		Commits: apiObjs,
 	}))
@@ -77,6 +77,7 @@ func (c *CommitClient) listPage(ctx context.Context, branch string, perPage, pag
 	return keys, nil
 }
 
+// Create a new commit in a specific repository branch. This can be a list of commits or a single commit.
 func (c *CommitClient) Create(ctx context.Context, branch string, message string, files []gitprovider.CommitFile) (gitprovider.Commit, error) {
 	if len(files) == 0 {
 		return nil, fmt.Errorf("no files added")
@@ -85,11 +86,10 @@ func (c *CommitClient) Create(ctx context.Context, branch string, message string
 	projectId := c.ref.GetIdentity()
 	ref := "refs/heads/" + branch
 
-	var change []interface{}
-	var all []interface{}
+	var all []any
 
 	for _, file := range files {
-		all = append([]interface{}{git.Change{
+		all = append(all, git.Change{
 			ChangeType: &git.VersionControlChangeTypeValues.Add,
 			Item: map[string]interface{}{
 				"path": file.Path,
@@ -100,7 +100,7 @@ func (c *CommitClient) Create(ctx context.Context, branch string, message string
 			},
 			SourceServerItem: nil,
 			Url:              nil,
-		}}, change...)
+		})
 	}
 
 	commits := []git.GitCommitRef{
@@ -111,7 +111,7 @@ func (c *CommitClient) Create(ctx context.Context, branch string, message string
 
 	// get latest commit from branch
 
-	commitsList, err := c.ListPage(ctx, branch, 0, 1)
+	commitsList, err := c.ListPage(ctx, branch, 1, 0)
 	if err != nil {
 		return nil, err
 	}

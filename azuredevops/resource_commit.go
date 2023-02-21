@@ -21,25 +21,25 @@ import (
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/git"
 )
 
-func newCommit(c *CommitClient, commit *git.GitPush) *commitType {
-	return &commitType{
-		k: *commit,
+func newCommit(c *CommitClient, gitPush *git.GitPush) *commit {
+	return &commit{
+		k: *gitPush,
 		c: c,
 	}
 }
 
-var _ gitprovider.Commit = &commitType{}
+var _ gitprovider.Commit = &commit{}
 
-type commitType struct {
+type commit struct {
 	k git.GitPush
 	c *CommitClient
 }
 
-func (c commitType) APIObject() interface{} {
+func (c commit) APIObject() interface{} {
 	return &c.k
 }
 
-func (c commitType) Get() gitprovider.CommitInfo {
+func (c commit) Get() gitprovider.CommitInfo {
 	return commitFromAPI(&c.k)
 }
 func commitFromAPI(apiObj *git.GitPush) gitprovider.CommitInfo {

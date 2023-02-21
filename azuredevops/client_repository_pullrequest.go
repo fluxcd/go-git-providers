@@ -37,6 +37,7 @@ func (c *PullRequestClient) List(ctx context.Context) ([]gitprovider.PullRequest
 	panic("implement me")
 }
 
+// Create creates a new pull request.
 func (c *PullRequestClient) Create(ctx context.Context, title, branch, baseBranch, description string) (gitprovider.PullRequest, error) {
 	repositoryId := c.ref.GetRepository()
 	projectId := c.ref.GetIdentity()

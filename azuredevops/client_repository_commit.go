@@ -86,7 +86,7 @@ func (c *CommitClient) Create(ctx context.Context, branch string, message string
 	projectId := c.ref.GetIdentity()
 	ref := "refs/heads/" + branch
 
-	var all []any
+	all := make([]any, 0, len(files))
 
 	for _, file := range files {
 		all = append(all, git.Change{

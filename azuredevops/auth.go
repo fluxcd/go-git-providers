@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v6"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/core"
@@ -55,6 +56,9 @@ func NewClient(personalAccessToken string, ctx context.Context, optFns ...gitpro
 	connection := azuredevops.NewPatConnection(domain, personalAccessToken)
 	// coreClient provides access to Azure Devops organization,projects and teams
 	coreClient, err := core.NewClient(ctx, connection)
+	if err != nil {
+		return nil, err
+	}
 	// gitClient provides access to the Azure Devops Git repositories the files,trees,commits and refs
 	gitClient, err := git.NewClient(ctx, connection)
 	if err != nil {

@@ -44,7 +44,6 @@ func (c *PullRequestClient) Create(ctx context.Context, title, branch, baseBranc
 	ref := "refs/heads/" + branch
 	refBaseBranch := "refs/heads/" + baseBranch
 
-
 	pullRequestToCreate := git.GitPullRequest{
 		Description:   &description,
 		SourceRefName: &ref,

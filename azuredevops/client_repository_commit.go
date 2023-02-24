@@ -52,7 +52,7 @@ func (c *CommitClient) listPage(ctx context.Context, branch string, perPage, pag
 	repositoryId := c.ref.GetRepository()
 	projectId := c.ref.GetIdentity()
 	branchRetrieved := git.GitVersionDescriptor{
-		Version: &branch,
+		Version:     &branch,
 		VersionType: &git.GitVersionTypeValues.Branch,
 	}
 	searchCriteria := git.GitQueryCommitsCriteria{
@@ -69,7 +69,7 @@ func (c *CommitClient) listPage(ctx context.Context, branch string, perPage, pag
 	}
 
 	// Map the api object to our Commit type
-	keys := make([]*commit,0, len(*apiObjs))
+	keys := make([]*commit, 0, len(*apiObjs))
 	keys = append(keys, newCommit(c, &git.GitPush{
 		Commits: apiObjs,
 	}))

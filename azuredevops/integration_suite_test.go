@@ -50,7 +50,6 @@ var (
 	customTransportImpl *customTransport
 	azureDomain         = "dev.azure.com"
 	defaultBranch       = "main"
-	azureUser           string
 	testOrgName         = "go-git-provider-testing"
 	testTeamName        = "fluxcd-test-team"
 	// placeholders, will be randomized and created.
@@ -177,11 +176,6 @@ var _ = Describe("azure Provider", func() {
 
 		log := setupLogr()
 		log.V(1).Info("logger construction succeeded")
-
-		azureUser = os.Getenv("AZURE_USER")
-		if azureUser == "" {
-			Fail("couldn't acquire azure_USER env variable")
-		}
 
 		azureToken := os.Getenv("AZURE_TOKEN")
 		if azureToken == "" {

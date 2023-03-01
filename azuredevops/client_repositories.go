@@ -44,9 +44,25 @@ func (c *RepositoriesClient) Get(ctx context.Context, ref gitprovider.OrgReposit
 	return newRepository(c.clientContext, *apiObj, ref), nil
 }
 
-func (c *RepositoriesClient) List(ctx context.Context, o gitprovider.OrganizationRef) ([]gitprovider.OrgRepository, error) {
-	//TODO implement me
-	panic("implement me")
+func (c *RepositoriesClient) List(ctx context.Context, ref gitprovider.OrganizationRef) ([]gitprovider.OrgRepository, error) {
+
+	opts := git.GetRepositoriesArgs{Project: &ref.Organization}
+	apiObjs, err := c.g.GetRepositories(ctx, opts)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Traverse the list, and return a list of UserRepository objects
+	repos := make([]gitprovider.OrgRepository, 0, len(*apiObjs))
+	for _, apiObj := range *apiObjs {
+		// apiObj is already validated at ListUserRepos
+		repos = append(repos, newRepository(c.clientContext, apiObj, gitprovider.OrgRepositoryRef{
+			OrganizationRef: ref,
+			RepositoryName:  *apiObj.Name,
+		}))
+	}
+	return repos, nil
 }
 
 func (c *RepositoriesClient) Create(ctx context.Context, r gitprovider.OrgRepositoryRef, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryCreateOption) (gitprovider.OrgRepository, error) {

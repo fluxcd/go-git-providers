@@ -25,6 +25,7 @@ import (
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/fluxcd/go-git-providers/gitprovider/testutils"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/git"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -43,7 +44,7 @@ var _ = Describe("Azure Provider", func() {
 		Expect(*info.DefaultBranch).To(Equal(defaultBranch))
 
 		// Expect high-level fields to match their underlying data
-		internal := repo.APIObject().(*Repository)
+		internal := repo.APIObject().(*git.GitRepository)
 		Expect(repo.Repository().GetRepository()).To(Equal(internal.Name))
 		Expect(repo.Repository().GetIdentity()).To(Equal(testOrgName))
 		Expect(*info.Visibility).To(Equal(gitprovider.RepositoryVisibilityPrivate))
@@ -103,8 +104,8 @@ var _ = Describe("Azure Provider", func() {
 		fmt.Println("Clone ssh URL: ", sshURL)
 
 		// Expect the two responses (one from POST and one from GET to have equal "spec")
-		getSpec := repositoryFromAPI(getRepoRef.APIObject().(*Repository))
-		postSpec := repositoryFromAPI(repo.APIObject().(*Repository))
+		getSpec := repositoryFromAPI(getRepoRef.APIObject().(*git.GitRepository))
+		postSpec := repositoryFromAPI(repo.APIObject().(*git.GitRepository))
 		Expect(getSpec.Equals(postSpec)).To(BeTrue())
 	})
 
@@ -139,7 +140,7 @@ var _ = Describe("Azure Provider", func() {
 			Visibility:    gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
 		})
 
-		reflect.DeepEqual(repositoryFromAPI(resp.APIObject().(*Repository)), gitprovider.RepositoryInfo{
+		reflect.DeepEqual(repositoryFromAPI(resp.APIObject().(*git.GitRepository)), gitprovider.RepositoryInfo{
 			Description:   gitprovider.StringVar(defaultDescription),
 			DefaultBranch: gitprovider.StringVar(defaultBranch),
 			Visibility:    gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),

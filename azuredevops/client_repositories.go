@@ -46,6 +46,11 @@ func (c *RepositoriesClient) Get(ctx context.Context, ref gitprovider.OrgReposit
 
 func (c *RepositoriesClient) List(ctx context.Context, ref gitprovider.OrganizationRef) ([]gitprovider.OrgRepository, error) {
 
+	// Make sure the OrganizationRef is valid
+	if err := validateOrganizationRef(ref, c.domain); err != nil {
+		return nil, err
+	}
+
 	opts := git.GetRepositoriesArgs{Project: &ref.Organization}
 	apiObjs, err := c.g.GetRepositories(ctx, opts)
 
@@ -65,9 +70,25 @@ func (c *RepositoriesClient) List(ctx context.Context, ref gitprovider.Organizat
 	return repos, nil
 }
 
-func (c *RepositoriesClient) Create(ctx context.Context, r gitprovider.OrgRepositoryRef, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryCreateOption) (gitprovider.OrgRepository, error) {
-	//TODO implement me
-	panic("implement me")
+func (c *RepositoriesClient) Create(ctx context.Context, ref gitprovider.OrgRepositoryRef, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryCreateOption) (gitprovider.OrgRepository, error) {
+
+	// if err := validateRepositoryRef(ref, c.domain); err != nil {
+	// 	return nil, err
+	// }
+
+	// gitRepositoryToCreate := git.GitRepositoryCreateOptions{}
+	// CreateRepositoryArgs := git.CreateRepositoryArgs{
+	// 	git.GitRepositoryToCreate: &gitRepositoryToCreate,
+	// 	Project:                   &ref.Organization,
+	// 	Info:                      &req,
+	// }
+
+	// // Create a git repository in a team project.
+	// apiObj, err := c.g.CreateRepository(ctx, CreateRepositoryArgs)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// return newOrgRepository(c.clientContext, apiObj, ref), nil
 }
 
 func (c *RepositoriesClient) Reconcile(ctx context.Context, r gitprovider.OrgRepositoryRef, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryReconcileOption) (resp gitprovider.OrgRepository, actionTaken bool, err error) {

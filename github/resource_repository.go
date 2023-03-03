@@ -129,6 +129,10 @@ func (r *userRepository) DeployKeys() gitprovider.DeployKeyClient {
 	return r.deployKeys
 }
 
+func (r *userRepository) DeployTokens() (gitprovider.DeployTokenClient, error) {
+	return nil, gitprovider.ErrNoProviderSupport
+}
+
 func (r *userRepository) Commits() gitprovider.CommitClient {
 	return r.commits
 }

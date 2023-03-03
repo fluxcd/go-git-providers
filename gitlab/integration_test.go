@@ -47,7 +47,8 @@ const (
 	// Include scheme if custom, e.g.:
 	// gitlabDomain = "https://gitlab.acme.org/"
 	// gitlabDomain = "https://gitlab.dev.wkp.weave.works"
-	gitlabDomain = "gitlab.com"
+	// gitlabDomain = "gitlab.com"
+	gitlabDomain = "http://localhost:9042"
 
 	defaultDescription = "Foo description"
 	defaultBranch      = "main"
@@ -623,6 +624,70 @@ var _ = Describe("GitLab Provider", func() {
 		Expect(err).ToNot(HaveOccurred())
 		for _, key := range keys {
 			err = key.Delete(ctx)
+			Expect(err).ToNot(HaveOccurred())
+		}
+	})
+
+	It("should create, delete and reconcile deploy tokens", func() {
+		testDeployTokenName := "test-deploy-token"
+		repoRef := newOrgRepoRef(testOrgName, testSharedOrgRepoName)
+
+		orgRepo, err := c.OrgRepositories().Get(ctx, repoRef)
+		Expect(err).ToNot(HaveOccurred())
+
+		dts, err := orgRepo.DeployTokens()
+		Expect(err).ToNot(HaveOccurred())
+
+		// List tokens should return 0
+		tokens, err := dts.List(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(len(tokens)).To(Equal(0))
+
+		testDeployTokenInfo := gitprovider.DeployTokenInfo{
+			Name: testDeployTokenName,
+		}
+		_, err = dts.Create(ctx, testDeployTokenInfo)
+		Expect(err).ToNot(HaveOccurred())
+
+		// List tokens should now return 1
+		tokens, err = dts.List(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(len(tokens)).To(Equal(1))
+
+		// Getting the token directly should return the same object
+		getToken, err := dts.Get(ctx, testDeployTokenName)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(getToken.Get().Name).To(Equal(testDeployTokenInfo.Name))
+
+		// We always have to re-create the token, because we don't know its actual token value
+		Expect(getToken.Set(getToken.Get())).ToNot(HaveOccurred())
+		actionTaken, err := getToken.Reconcile(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(actionTaken).To(BeTrue())
+
+		// Reconcile creates a new token if the name and username is different
+		name := "new-name"
+		anotherUsername := "another-username"
+		req := getToken.Get()
+		req.Name = name
+		req.Username = anotherUsername
+
+		Expect(getToken.Set(req)).ToNot(HaveOccurred())
+		actionTaken, err = getToken.Reconcile(ctx)
+		// Expect the update to succeed, and modify the state
+		Expect(err).ToNot(HaveOccurred())
+		Expect(actionTaken).To(BeTrue())
+
+		getToken, err = dts.Get(ctx, name)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(getToken.Get().Name).To(Equal(name))
+
+		// Delete the tokens
+		tokens, err = dts.List(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		for _, token := range tokens {
+			err = token.Delete(ctx)
 			Expect(err).ToNot(HaveOccurred())
 		}
 	})

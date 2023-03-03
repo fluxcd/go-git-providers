@@ -79,6 +79,31 @@ func TestDeployKey_Validate(t *testing.T) {
 	}
 }
 
+func TestDeployToken_Validate(t *testing.T) {
+	tests := []struct {
+		name         string
+		token        DeployTokenInfo
+		expectedErrs []error
+	}{
+		{
+			name: "valid create",
+			token: DeployTokenInfo{
+				Name: "foo-deploytoken",
+			},
+		},
+		{
+			name:         "invalid create, missing name",
+			token:        DeployTokenInfo{},
+			expectedErrs: []error{validation.ErrFieldRequired},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assertValidation(t, "DeployToken", tt.token.ValidateInfo, tt.expectedErrs)
+		})
+	}
+}
+
 func TestRepository_Validate(t *testing.T) {
 	unknownRepositoryVisibility := RepositoryVisibility("unknown")
 	tests := []struct {

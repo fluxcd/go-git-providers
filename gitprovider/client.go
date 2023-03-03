@@ -207,6 +207,33 @@ type DeployKeyClient interface {
 	Reconcile(ctx context.Context, req DeployKeyInfo) (resp DeployKey, actionTaken bool, err error)
 }
 
+// DeployTokenClient operates on the deploy token list of a specific repository.
+// This client can be accessed through Repository.DeployTokens().
+type DeployTokenClient interface {
+	// Get a DeployToken by its name.
+	//
+	// ErrNotFound is returned if the resource does not exist.
+	Get(ctx context.Context, name string) (DeployToken, error)
+
+	// List all deploy tokens for the given repository.
+	//
+	// List returns all available deploy tokens for the given type,
+	// using multiple paginated requests if needed.
+	List(ctx context.Context) ([]DeployToken, error)
+
+	// Create a deploy token with the given specifications.
+	//
+	// ErrAlreadyExists will be returned if the resource already exists.
+	Create(ctx context.Context, req DeployTokenInfo) (DeployToken, error)
+
+	// Reconcile makes sure the given desired state (req) becomes the actual state in the backing Git provider.
+	//
+	// If req doesn't exist under the hood, it is created (actionTaken == true).
+	// If req doesn't equal the actual state, the resource will be updated (actionTaken == true).
+	// If req is already the actual state, this is a no-op (actionTaken == false).
+	Reconcile(ctx context.Context, req DeployTokenInfo) (resp DeployToken, actionTaken bool, err error)
+}
+
 // CommitClient operates on the commits list for a specific repository.
 // This client can be accessed through Repository.Commits().
 type CommitClient interface {

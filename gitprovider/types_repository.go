@@ -179,6 +179,47 @@ func (dk DeployKeyInfo) Equals(actual InfoRequest) bool {
 	return reflect.DeepEqual(dk, actual)
 }
 
+// DeployTokenInfo implements InfoRequest and DefaultedInfoRequest (with a pointer receiver).
+var _ InfoRequest = DeployTokenInfo{}
+var _ DefaultedInfoRequest = &DeployTokenInfo{}
+
+// DeployTokenInfo contains high-level information about a deploy token.
+type DeployTokenInfo struct {
+	// Name is the human-friendly interpretation of what the token is for (and does).
+	// +required
+	Name string `json:"name"`
+
+	// Username is the generated Deploy Token Username by the API
+	// +optional
+	Username string `json:"username"`
+
+	// Token is the generated Deploy Token by the API
+	// +optional
+	Token string `json:"token"`
+}
+
+// Default defaults the DeployToken fields.
+func (dk *DeployTokenInfo) Default() {
+}
+
+// ValidateInfo validates the object at {Object}.Set() and POST-time.
+func (dk DeployTokenInfo) ValidateInfo() error {
+	validator := validation.New("DeployToken")
+	// Make sure we've set the name of the deploy token
+	if len(dk.Name) == 0 {
+		validator.Required("Name")
+	}
+	// Don't care about the RepositoryRef, as that information is coming from
+	// the RepositoryClient. In the client, we make sure that they equal.
+	return validator.Error()
+}
+
+// Equals can be used to check if this *Info request (the desired state) matches the actual
+// passed in as the argument.
+func (dk DeployTokenInfo) Equals(actual InfoRequest) bool {
+	return reflect.DeepEqual(dk, actual)
+}
+
 // CommitInfo contains high-level information about a deploy key.
 type CommitInfo struct {
 	// Sha is the git sha for this commit.

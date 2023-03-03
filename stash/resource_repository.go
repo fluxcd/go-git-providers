@@ -117,6 +117,10 @@ func (r *userRepository) DeployKeys() gitprovider.DeployKeyClient {
 	return r.deployKeys
 }
 
+func (r *userRepository) DeployTokens() (gitprovider.DeployTokenClient, error) {
+	return nil, gitprovider.ErrNoProviderSupport
+}
+
 // The internal API object will be overridden with the received server data.
 func (r *userRepository) Update(ctx context.Context) error {
 	// update by calling client

@@ -116,6 +116,19 @@ func allDeployKeyPages(opts *gitlab.ListProjectDeployKeysOptions, fn func() (*gi
 	}
 }
 
+func allDeployTokenPages(opts *gitlab.ListProjectDeployTokensOptions, fn func() (*gitlab.Response, error)) error {
+	for {
+		resp, err := fn()
+		if err != nil {
+			return err
+		}
+		if resp.NextPage == 0 {
+			return nil
+		}
+		opts.Page = resp.NextPage
+	}
+}
+
 // validateUserRepositoryRef makes sure the UserRepositoryRef is valid for GitHub's usage.
 func validateUserRepositoryRef(ref gitprovider.UserRepositoryRef, expectedDomain string) error {
 	// Make sure the RepositoryRef fields are valid

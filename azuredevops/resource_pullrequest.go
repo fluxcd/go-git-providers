@@ -19,7 +19,6 @@ package azuredevops
 import (
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/git"
-	"reflect"
 )
 
 var _ gitprovider.PullRequest = &pullrequest{}
@@ -52,13 +51,15 @@ func pullrequestFromAPI(apiObj *git.GitPullRequest) gitprovider.PullRequestInfo 
 			sourceBranch = *head
 		}
 	}
-	status := reflect.ValueOf(apiObj.MergeStatus)
-	merged := status.FieldByName(string(git.PullRequestAsyncStatusValues.Succeeded))
+	status := false
+	if apiObj.MergeStatus != nil && apiObj.MergeStatus == &git.PullRequestAsyncStatusValues.Succeeded {
+		status = true
+	}
 
 	return gitprovider.PullRequestInfo{
 		Title:        *apiObj.Title,
 		Description:  *apiObj.Description,
-		Merged:       merged.Bool(),
+		Merged:       status,
 		Number:       *apiObj.PullRequestId,
 		WebURL:       *apiObj.Url,
 		SourceBranch: sourceBranch,

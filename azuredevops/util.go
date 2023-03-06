@@ -17,10 +17,18 @@ limitations under the License.
 package azuredevops
 
 import (
+	"errors"
 	"fmt"
+	"net/http"
+	"strings"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/fluxcd/go-git-providers/validation"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v6"
+)
+
+const (
+	alreadyExistsMagicString = "TF400948: A Git repository with the name"
 )
 
 // validateIdentityFields makes sure the type of the IdentityRef is supported, and the domain is as expected.
@@ -58,4 +66,44 @@ func validateRepositoryRef(ref gitprovider.OrgRepositoryRef, expectedDomain stri
 	}
 	// Make sure the type is valid, and domain is expected
 	return validateIdentityFields(ref, expectedDomain)
+}
+
+// handleHTTPError checks the type of err, and returns typed variants of it
+// However, it _always_ keeps the original error too, and just wraps it in a MultiError
+// The consumer must use errors.Is and errors.As to check for equality and get data out of it.
+func handleHTTPError(err error) error {
+	// Short-circuit quickly if possible, allow always piping through this function
+	if err == nil {
+		return nil
+	}
+	azureDevopsErrorResponse := azuredevops.WrappedError{}
+	if errors.As(err, &azureDevopsErrorResponse) {
+		httpErr := gitprovider.HTTPError{
+			Response: &http.Response{
+				StatusCode: *azureDevopsErrorResponse.StatusCode,
+				Status:     *azureDevopsErrorResponse.TypeKey,
+			},
+			ErrorMessage: azureDevopsErrorResponse.Error(),
+			Message:      *azureDevopsErrorResponse.Message,
+		}
+		// Check for invalid credentials, and return a typed error in that case
+		if *azureDevopsErrorResponse.StatusCode == http.StatusForbidden ||
+			*azureDevopsErrorResponse.StatusCode == http.StatusUnauthorized {
+			return validation.NewMultiError(err,
+				&gitprovider.InvalidCredentialsError{HTTPError: httpErr},
+			)
+		}
+		// Check for 404 Not Found
+		if *azureDevopsErrorResponse.StatusCode == http.StatusNotFound {
+			return validation.NewMultiError(err, gitprovider.ErrNotFound)
+		}
+		// Check for already exists errors
+		if strings.Contains(*azureDevopsErrorResponse.Message, alreadyExistsMagicString) {
+			return validation.NewMultiError(err, gitprovider.ErrAlreadyExists)
+		}
+		// Otherwise, return a generic *HTTPError
+		return validation.NewMultiError(err, &httpErr)
+	}
+	// Do nothing, just pipe through the unknown err
+	return err
 }

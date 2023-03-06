@@ -35,20 +35,7 @@ type CommitClient struct {
 
 // ListPage lists all repository commits of the given page and page size.
 // ListPage returns all available repository commits
-// using multiple paginated requests if needed.
 func (c *CommitClient) ListPage(ctx context.Context, branch string, perPage, page int) ([]gitprovider.Commit, error) {
-	dks, err := c.listPage(ctx, branch, perPage, page)
-	if err != nil {
-		return nil, err
-	}
-	// Cast to the generic []gitprovider.Commit
-	commits := make([]gitprovider.Commit, 0, len(dks))
-	for _, dk := range dks {
-		commits = append(commits, dk)
-	}
-	return commits, nil
-}
-func (c *CommitClient) listPage(ctx context.Context, branch string, perPage, page int) ([]*commit, error) {
 	repositoryId := c.ref.GetRepository()
 	projectId := c.ref.GetIdentity()
 	branchRetrieved := git.GitVersionDescriptor{
@@ -69,12 +56,12 @@ func (c *CommitClient) listPage(ctx context.Context, branch string, perPage, pag
 	}
 
 	// Map the api object to our Commit type
-	keys := make([]*commit, 0, len(*apiObjs))
-	keys = append(keys, newCommit(c, &git.GitPush{
+	commits := make([]gitprovider.Commit, 0, len(*apiObjs))
+	commits = append(commits, newCommit(c, &git.GitPush{
 		Commits: apiObjs,
 	}))
 
-	return keys, nil
+	return commits, nil
 }
 
 // Create a new commit in a specific repository branch. This can be a list of commits or a single commit.

@@ -114,11 +114,12 @@ func (c *CommitClient) Create(ctx context.Context, branch string, message string
 	// get latest commit from branch
 
 	commitsList, err := c.ListPage(ctx, branch, 1, 0)
-	if err != nil {
-		return nil, err
+	latestCommitTreeSHA := ""
+	if err != nil && len(commitsList) == 0 {
+		latestCommitTreeSHA = "0000000000000000000000000000000000000000"
+	} else {
+		latestCommitTreeSHA = commitsList[0].Get().Sha
 	}
-
-	latestCommitTreeSHA := commitsList[0].Get().Sha
 
 	// create the commit now
 	refArgs := []git.GitRefUpdate{{

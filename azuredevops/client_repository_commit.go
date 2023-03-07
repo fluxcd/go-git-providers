@@ -36,6 +36,19 @@ type CommitClient struct {
 // ListPage lists all repository commits of the given page and page size.
 // ListPage returns all available repository commits
 func (c *CommitClient) ListPage(ctx context.Context, branch string, perPage, page int) ([]gitprovider.Commit, error) {
+	dks, err := c.listPage(ctx, branch, perPage, page)
+	if err != nil {
+		return nil, err
+	}
+	// Cast to the generic []gitprovider.Commit
+	commits := make([]gitprovider.Commit, 0, len(dks))
+	for _, dk := range dks {
+		commits = append(commits, dk)
+	}
+	return commits, nil
+}
+
+func (c *CommitClient) listPage(ctx context.Context, branch string, perPage, page int) ([]*commit, error) {
 	repositoryId := c.ref.GetRepository()
 	projectId := c.ref.GetIdentity()
 	branchRetrieved := git.GitVersionDescriptor{
@@ -51,20 +64,22 @@ func (c *CommitClient) ListPage(ctx context.Context, branch string, perPage, pag
 		Project:        &projectId,
 		SearchCriteria: &searchCriteria,
 	})
+
 	if err != nil {
 		return nil, err
 	}
 
 	// Map the api object to our Commit type
-	commits := make([]gitprovider.Commit, 0, len(*apiObjs))
-	commits = append(commits, newCommit(c, &git.GitPush{
-		Commits: apiObjs,
-	}))
+	// Make sure to have a 1:1 mapping between the two
+	keys := make([]*commit, 0, len(*apiObjs))
+	for _, apiObj := range *apiObjs {
+		keys = append(keys, newCommit(c, apiObj))
+	}
 
-	return commits, nil
+	return keys, nil
 }
 
-// Create a new commit in a specific repository branch. This can be a list of commits or a single commit.
+// Create a new gitPush in a specific repository branch. This can be a list of commits or a single gitPush.
 func (c *CommitClient) Create(ctx context.Context, branch string, message string, files []gitprovider.CommitFile) (gitprovider.Commit, error) {
 	if len(files) == 0 {
 		return nil, fmt.Errorf("no files added")
@@ -120,10 +135,10 @@ func (c *CommitClient) Create(ctx context.Context, branch string, message string
 		RepositoryId: &repositoryId,
 		Project:      &projectId,
 	}
-	commit, err := c.g.CreatePush(ctx, opts)
+	gitPush, err := c.g.CreatePush(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
 
-	return newCommit(c, commit), nil
+	return newCommit(c, (*gitPush.Commits)[0]), nil
 }

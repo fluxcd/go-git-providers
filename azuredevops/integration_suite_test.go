@@ -251,7 +251,6 @@ func cleanupOrgRepos(ctx context.Context, prefix string) {
 			continue
 		}
 		fmt.Printf("Deleting the %s organization's repository: %s with slug %s\n", key, name, slug)
-		repo.Delete(ctx)
 		Expect(repo.Delete(ctx)).To(Succeed())
 	}
 }

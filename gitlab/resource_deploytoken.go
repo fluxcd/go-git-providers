@@ -94,9 +94,8 @@ func (dk *deployToken) Delete(_ context.Context) error {
 // Reconcile makes sure the desired state in this object (called "req" here) becomes
 // the actual state in the backing Git provider.
 //
-// If req doesn't exist under the hood, it is created (actionTaken == true).
-// If req doesn't equal the actual state, the resource will be updated (actionTaken == true).
-// If req is already the actual state, this is a no-op (actionTaken == false).
+// The deploy token cannot be retrieved from the GitLab,
+// consequently we have to re-create the deploy token in every reconcile call.
 //
 // The internal API object will be overridden with the received server data if actionTaken == true.
 func (dk *deployToken) Reconcile(ctx context.Context) (bool, error) {

@@ -35,6 +35,10 @@ func newUserProject(ctx *clientContext, apiObj *gogitlab.Project, ref gitprovide
 			clientContext: ctx,
 			ref:           ref,
 		},
+		deployTokens: &DeployTokenClient{
+			clientContext: ctx,
+			ref:           ref,
+		},
 		commits: &CommitClient{
 			clientContext: ctx,
 			ref:           ref,
@@ -67,6 +71,7 @@ type userProject struct {
 	ref gitprovider.RepositoryRef
 
 	deployKeys   *DeployKeyClient
+	deployTokens *DeployTokenClient
 	commits      *CommitClient
 	branches     *BranchClient
 	pullRequests *PullRequestClient
@@ -96,6 +101,10 @@ func (p *userProject) Repository() gitprovider.RepositoryRef {
 
 func (p *userProject) DeployKeys() gitprovider.DeployKeyClient {
 	return p.deployKeys
+}
+
+func (p *userProject) DeployTokens() (gitprovider.DeployTokenClient, error) {
+	return p.deployTokens, nil
 }
 
 func (p *userProject) Commits() gitprovider.CommitClient {

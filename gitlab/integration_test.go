@@ -185,6 +185,28 @@ var _ = Describe("GitLab Provider", func() {
 		testOrgRepoName       string = "test-org-repo"
 		testRepoName          string = "test-repo"
 		testTreeRepoName      string = "test-repo-tree"
+
+		orgReposToCleanup []gitprovider.OrgRepositoryRef
+
+		createRepo = func(ctx context.Context, repoRef gitprovider.OrgRepositoryRef) gitprovider.OrgRepository {
+			_, err := c.OrgRepositories().Get(ctx, repoRef)
+			Expect(errors.Is(err, gitprovider.ErrNotFound)).To(BeTrue())
+
+			// Create a new repo
+			_, err = c.OrgRepositories().Create(ctx, repoRef, gitprovider.RepositoryInfo{
+				Description: gitprovider.StringVar(defaultDescription),
+			}, &gitprovider.RepositoryCreateOptions{
+				AutoInit:        gitprovider.BoolVar(true),
+				LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateApache2),
+			})
+			Expect(err).ToNot(HaveOccurred())
+			orgReposToCleanup = append(orgReposToCleanup, repoRef)
+
+			orgRepo, err := c.OrgRepositories().Get(ctx, repoRef)
+			Expect(err).ToNot(HaveOccurred())
+
+			return orgRepo
+		}
 	)
 
 	BeforeSuite(func() {
@@ -336,7 +358,7 @@ var _ = Describe("GitLab Provider", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(getOrg2).ToNot(BeNil())
 		})
-		Expect(hits).To(Equal(1))
+		Expect(hits).To(Equal(1), "unexpected number of cache hits")
 	})
 
 	It("should not fail when .Children is called", func() {
@@ -623,6 +645,69 @@ var _ = Describe("GitLab Provider", func() {
 		Expect(err).ToNot(HaveOccurred())
 		for _, key := range keys {
 			err = key.Delete(ctx)
+			Expect(err).ToNot(HaveOccurred())
+		}
+	})
+
+	It("should create, delete and reconcile deploy tokens", func() {
+		orgRepo := createRepo(ctx, newOrgRepoRef(
+			testOrgName,
+			fmt.Sprintf("deploy-key-spec-repo-%03d", rand.Intn(1000))))
+		testDeployTokenName := "test-deploy-token"
+
+		dts, err := orgRepo.DeployTokens()
+		Expect(err).ToNot(HaveOccurred())
+
+		// List tokens should return 0
+		tokens, err := dts.List(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(len(tokens)).To(Equal(0))
+
+		testDeployTokenInfo := gitprovider.DeployTokenInfo{
+			Name: testDeployTokenName,
+		}
+		_, err = dts.Create(ctx, testDeployTokenInfo)
+		Expect(err).ToNot(HaveOccurred())
+
+		// List tokens should now return 1
+		tokens, err = dts.List(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(len(tokens)).To(Equal(1))
+
+		// Getting the token directly should return the same object
+		getToken, err := dts.Get(ctx, testDeployTokenName)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(getToken.Get().Name).To(Equal(testDeployTokenInfo.Name))
+
+		// We always have to re-create the token, because we don't know its actual token value
+		Expect(getToken.Set(getToken.Get())).ToNot(HaveOccurred())
+		actionTaken, err := getToken.Reconcile(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(actionTaken).To(BeTrue())
+
+		// Reconcile creates a new token if the name and username is different
+		name := "new-name"
+		anotherUsername := "another-username"
+		req := getToken.Get()
+		req.Name = name
+		req.Username = anotherUsername
+
+		Expect(getToken.Set(req)).ToNot(HaveOccurred())
+		actionTaken, err = getToken.Reconcile(ctx)
+		// Expect the update to succeed, and modify the state
+		Expect(err).ToNot(HaveOccurred())
+		Expect(actionTaken).To(BeTrue())
+
+		getToken, err = dts.Get(ctx, name)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(getToken.Get().Name).To(Equal(name))
+
+		// Delete the tokens
+		tokens, err = dts.List(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		for _, token := range tokens {
+			err = token.Delete(ctx)
 			Expect(err).ToNot(HaveOccurred())
 		}
 	})
@@ -1070,32 +1155,39 @@ var _ = Describe("GitLab Provider", func() {
 		fmt.Println("Deleting the user repo: ", testRepoName)
 		repoRef := newUserRepoRef(testUserName, testRepoName)
 		repo, err := c.UserRepositories().Get(ctx, repoRef)
-		if errors.Is(err, gitprovider.ErrNotFound) {
-			return
+		if !errors.Is(err, gitprovider.ErrNotFound) {
+			Expect(err).ToNot(HaveOccurred())
+			Expect(repo.Delete(ctx)).ToNot(HaveOccurred())
 		}
-		Expect(err).ToNot(HaveOccurred())
-		Expect(repo.Delete(ctx)).ToNot(HaveOccurred())
 
 		// Delete the test org repo used
 		fmt.Println("Deleting the org repo: ", testOrgRepoName)
 		orgRepoRef := newOrgRepoRef(testOrgName, testOrgRepoName)
 		repo, err = c.OrgRepositories().Get(ctx, orgRepoRef)
-		if errors.Is(err, gitprovider.ErrNotFound) {
-			return
+		if !errors.Is(err, gitprovider.ErrNotFound) {
+			Expect(err).ToNot(HaveOccurred())
+			Expect(repo.Delete(ctx)).ToNot(HaveOccurred())
 		}
-		Expect(err).ToNot(HaveOccurred())
-		Expect(repo.Delete(ctx)).ToNot(HaveOccurred())
 
 		// Delete the test shared org repo used
 		fmt.Println("Deleting the shared org repo: ", testSharedOrgRepoName)
 		sharedOrgRepoRef := newOrgRepoRef(testOrgName, testSharedOrgRepoName)
 		repo, err = c.OrgRepositories().Get(ctx, sharedOrgRepoRef)
-		if errors.Is(err, gitprovider.ErrNotFound) {
-			return
+		if !errors.Is(err, gitprovider.ErrNotFound) {
+			Expect(err).ToNot(HaveOccurred())
+			Expect(repo.Delete(ctx)).ToNot(HaveOccurred())
 		}
-		Expect(err).ToNot(HaveOccurred())
-		Expect(repo.Delete(ctx)).ToNot(HaveOccurred())
+
+		for _, ref := range orgReposToCleanup {
+			repo, err = c.OrgRepositories().Get(ctx, ref)
+			if errors.Is(err, gitprovider.ErrNotFound) {
+				continue
+			}
+			Expect(err).ToNot(HaveOccurred())
+			Expect(repo.Delete(ctx)).ToNot(HaveOccurred(), "failed to delete repo %s", ref)
+		}
 	})
+
 })
 
 func expectPRToBeMerged(ctx context.Context, userRepo gitprovider.UserRepository, prNumber int) {

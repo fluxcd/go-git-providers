@@ -88,6 +88,18 @@ type gitlabClient interface {
 	// This function handles HTTP error wrapping.
 	DeleteKey(projectName string, keyID int) error
 
+	// Deploy token methods
+
+	// ListTokens is a wrapper for "GET /projects/{project}/deploy_tokens".
+	// This function handles pagination, HTTP error wrapping, and validates the server result.
+	ListTokens(projectName string) ([]*gitlab.DeployToken, error)
+	// CreateProjectKey is a wrapper for "POST /projects/{project}/deploy_tokens".
+	// This function handles HTTP error wrapping, and validates the server result.
+	CreateToken(projectName string, req *gitlab.DeployToken) (*gitlab.DeployToken, error)
+	// DeleteKey is a wrapper for "DELETE /projects/{project}/deploy_tokens/{key_id}".
+	// This function handles HTTP error wrapping.
+	DeleteToken(projectName string, keyID int) error
+
 	// Team related methods
 
 	// ShareGroup is a wrapper for ""
@@ -370,6 +382,54 @@ func (c *gitlabClientImpl) CreateKey(projectName string, req *gitlab.ProjectDepl
 func (c *gitlabClientImpl) DeleteKey(projectName string, keyID int) error {
 	// DELETE /projects/{project}/deploy_keys
 	_, err := c.c.DeployKeys.DeleteDeployKey(projectName, keyID)
+	return handleHTTPError(err)
+}
+
+func (c *gitlabClientImpl) ListTokens(projectName string) ([]*gitlab.DeployToken, error) {
+	apiObjs := []*gitlab.DeployToken{}
+	opts := &gitlab.ListProjectDeployTokensOptions{}
+	err := allDeployTokenPages(opts, func() (*gitlab.Response, error) {
+		// GET /projects/{project}/deploy_tokens
+		pageObjs, resp, listErr := c.c.DeployTokens.ListProjectDeployTokens(projectName, opts)
+		// filter for active tokens
+		for _, apiObj := range pageObjs {
+			if !apiObj.Expired && !apiObj.Revoked {
+				apiObjs = append(apiObjs, apiObj)
+			}
+		}
+		return resp, listErr
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, apiObj := range apiObjs {
+		if err := validateDeployTokenAPI(apiObj); err != nil {
+			return nil, err
+		}
+	}
+	return apiObjs, nil
+}
+
+func (c *gitlabClientImpl) CreateToken(projectName string, req *gitlab.DeployToken) (*gitlab.DeployToken, error) {
+	opts := &gitlab.CreateProjectDeployTokenOptions{
+		Name:   &req.Name,
+		Scopes: &[]string{"read_repository"},
+	}
+	// POST /projects/{project}/deploy_tokens
+	apiObj, _, err := c.c.DeployTokens.CreateProjectDeployToken(projectName, opts)
+	if err != nil {
+		return nil, handleHTTPError(err)
+	}
+	if err := validateDeployTokenAPI(apiObj); err != nil {
+		return nil, err
+	}
+	return apiObj, nil
+}
+
+func (c *gitlabClientImpl) DeleteToken(projectName string, keyID int) error {
+	// DELETE /projects/{project}/deploy_tokens/{deploy_token_id}
+	_, err := c.c.DeployTokens.DeleteProjectDeployToken(projectName, keyID)
 	return handleHTTPError(err)
 }
 

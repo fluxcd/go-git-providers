@@ -68,6 +68,10 @@ type UserRepository interface {
 	// DeployKeys gives access to manipulating deploy keys to access this specific repository.
 	DeployKeys() DeployKeyClient
 
+	// DeployTokens gives access to manipulating deploy tokens to access this specific repository.
+	// Returns "ErrNoProviderSupport" if the provider doesn't support deploy tokens.
+	DeployTokens() (DeployTokenClient, error)
+
 	// Commits gives access to this specific repository commits
 	Commits() CommitClient
 
@@ -117,6 +121,27 @@ type DeployKey interface {
 	// Set sets high-level desired state for this deploy key. In order to apply these changes in
 	// the Git provider, run .Update() or .Reconcile().
 	Set(DeployKeyInfo) error
+}
+
+// DeployToken represents a short-lived credential used to access a repository.
+type DeployToken interface {
+	// DeployToken implements the Object interface,
+	// allowing access to the underlying object returned from the API.
+	Object
+	// The deploy token can be updated.
+	Updatable
+	// The deploy token can be reconciled.
+	Reconcilable
+	// The deploy token can be deleted.
+	Deletable
+	// RepositoryBound returns repository reference details.
+	RepositoryBound
+
+	// Get returns high-level information about this deploy token.
+	Get() DeployTokenInfo
+	// Set sets high-level desired state for this deploy token. In order to apply these changes in
+	// the Git provider, run .Update() or .Reconcile().
+	Set(DeployTokenInfo) error
 }
 
 // TeamAccess describes a binding between a repository and a team.

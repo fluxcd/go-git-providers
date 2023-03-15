@@ -1,6 +1,5 @@
-TEST_VERBOSE?=
+TEST_FLAGS?=
 TEST_PATTERN?=./...
-TEST_STOP_ON_ERROR?=
 
 all: test
 
@@ -14,4 +13,4 @@ vet:
 	go vet ./...
 
 test: tidy fmt vet
-	go test ${TEST_VERBOSE} ${TEST_STOP_ON_ERROR} -race -coverprofile=coverage.txt -covermode=atomic ${TEST_PATTERN}
+	go test ${TEST_FLAGS} -race -coverprofile=coverage.txt -covermode=atomic ${TEST_PATTERN}

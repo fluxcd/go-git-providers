@@ -119,7 +119,7 @@ func (c *RepositoriesClient) Reconcile(ctx context.Context, ref gitprovider.OrgR
 		return nil, false, err
 	}
 	// Run generic reconciliation
-	reconcileRepository(ctx, actual, req)
+	actionTaken := reconcileRepository(ctx, actual, req)
 
 	return actual, actionTaken, err
 }

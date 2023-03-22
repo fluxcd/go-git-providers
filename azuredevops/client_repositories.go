@@ -76,7 +76,6 @@ func (c *RepositoriesClient) List(ctx context.Context, ref gitprovider.Organizat
 // Create creates a repository for the given organization, with the data and options.
 // ErrAlreadyExists will be returned if the resource already exists.
 func (c *RepositoriesClient) Create(ctx context.Context, ref gitprovider.OrgRepositoryRef, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryCreateOption) (gitprovider.OrgRepository, error) {
-
 	if err := validateRepositoryRef(ref, c.domain); err != nil {
 		return nil, err
 	}

@@ -22,7 +22,6 @@ import (
 	"fmt"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/v6"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/git"
 )
 
@@ -116,18 +115,12 @@ func (c *CommitClient) Create(ctx context.Context, branch string, message string
 	// get latest commit from branch
 	commitsList, err := c.ListPage(ctx, branch, 1, 0)
 	latestCommitTreeSHA := ""
-	azureDevopsErrorResponse := azuredevops.WrappedError{}
-	if errors.As(err, &azureDevopsErrorResponse) {
-		fmt.Println(azureDevopsErrorResponse.StatusCode)
-		if (*azureDevopsErrorResponse.StatusCode) == 404 && len(commitsList) == 0 {
-			latestCommitTreeSHA = "0000000000000000000000000000000000000000"
-		} else if (*azureDevopsErrorResponse.StatusCode) == 200 && (len(commitsList) > 1) {
-			latestCommitTreeSHA = commitsList[0].Get().Sha
-		} else {
-			return nil, handleHTTPError(err)
-		}
+	if errors.Is(handleHTTPError(err), gitprovider.ErrNotFound) && len(commitsList) == 0 {
+		latestCommitTreeSHA = "0000000000000000000000000000000000000000"
+	} else if len(commitsList) > 1 {
+		latestCommitTreeSHA = commitsList[0].Get().Sha
 	} else {
-		return nil, err
+		return nil, handleHTTPError(err)
 	}
 
 	// create the commit now

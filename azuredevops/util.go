@@ -34,7 +34,6 @@ const (
 // validateIdentityFields makes sure the type of the IdentityRef is supported, and the domain is as expected.
 func validateIdentityFields(ref gitprovider.IdentityRef, expectedDomain string) error {
 	// Make sure the expected domain is used
-
 	if ref.GetDomain() != expectedDomain {
 		return fmt.Errorf("domain %q not supported by this client: %w", ref.GetDomain(), gitprovider.ErrDomainUnsupported)
 	}

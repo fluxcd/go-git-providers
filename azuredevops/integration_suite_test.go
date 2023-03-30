@@ -50,7 +50,7 @@ var (
 	customTransportImpl *customTransport
 	azureDomain         = "dev.azure.com"
 	defaultBranch       = "main"
-	testOrgName         = "go-git-provider-testing"
+	testOrgName         = "souleb"
 	testTeamName        = "fluxcd-test-team"
 	// placeholders, will be randomized and created.
 	testSharedOrgRepoName string

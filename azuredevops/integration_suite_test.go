@@ -53,10 +53,9 @@ var (
 	testOrgName         = "souleb"
 	testTeamName        = "fluxcd-test-team"
 	// placeholders, will be randomized and created.
-	testSharedOrgRepoName string
-	testOrgRepoName       string
-	testRepoName          string
-	client                gitprovider.Client
+	testOrgRepoName string
+	testRepoName    string
+	client          gitprovider.Client
 )
 
 func init() {

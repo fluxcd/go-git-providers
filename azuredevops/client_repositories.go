@@ -100,12 +100,13 @@ func (c *RepositoriesClient) Create(ctx context.Context, ref gitprovider.OrgRepo
 // If req doesn't exist under the hood, it is created (actionTaken == true).
 // If req doesn't equal the actual state, the resource will be updated (actionTaken == true).
 // If req is already the actual state, this is a no-op (actionTaken == false).
-func (c *RepositoriesClient) Reconcile(ctx context.Context, ref gitprovider.OrgRepositoryRef, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryReconcileOption) (resp gitprovider.OrgRepository, actionTaken bool, err error) {
+func (c *RepositoriesClient) Reconcile(ctx context.Context, ref gitprovider.OrgRepositoryRef, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryReconcileOption) (gitprovider.OrgRepository, bool, error) {
 	// First thing, validate and default the request to ensure a valid and fully-populated object
 	// (to minimize any possible diffs between desired and actual state)
-	if err := gitprovider.ValidateAndDefaultInfo(&req); err != nil {
-		return nil, false, err
-	}
+	// For Azure devops this enforces a default branch name of "main" which shouldn't be the case
+	// if err := gitprovider.ValidateAndDefaultInfo(&req); err != nil {
+	// 	return nil, false, err
+	// }
 
 	actual, err := c.Get(ctx, ref)
 	if err != nil {
@@ -118,13 +119,13 @@ func (c *RepositoriesClient) Reconcile(ctx context.Context, ref gitprovider.OrgR
 		// Unexpected path, Get should succeed or return NotFound
 		return nil, false, err
 	}
-	// Run generic reconciliation
-	actionTaken := reconcileRepository(ctx, actual, req)
 
+	// Run generic reconciliation
+	actionTaken, err := reconcileRepository(ctx, actual, req)
 	return actual, actionTaken, err
 }
 
-func reconcileRepository(ctx context.Context, actual gitprovider.UserRepository, req gitprovider.RepositoryInfo) (bool, error) {
+func reconcileRepository(ctx context.Context, actual gitprovider.OrgRepository, req gitprovider.RepositoryInfo) (bool, error) {
 	// If the desired matches the actual state, just return the actual state
 	if req.Equals(actual.Get()) {
 		return false, nil

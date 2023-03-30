@@ -28,7 +28,7 @@ import (
 
 var _ gitprovider.OrgRepository = &repository{}
 
-func newRepository(ctx *clientContext, apiObj git.GitRepository, ref gitprovider.RepositoryRef) *repository {
+func newRepository(ctx *clientContext, apiObj git.GitRepository, ref gitprovider.OrgRepositoryRef) *repository {
 	return &repository{
 		clientContext: ctx,
 		r:             apiObj,
@@ -57,7 +57,7 @@ type repository struct {
 	pr        git.GitPullRequest
 	r         git.GitRepository
 	topUpdate *git.GitRepository
-	ref       gitprovider.RepositoryRef
+	ref       gitprovider.OrgRepositoryRef
 
 	pullRequests *PullRequestClient
 	trees        *TreeClient
@@ -155,15 +155,11 @@ func (r *repository) Reconcile(ctx context.Context) (bool, error) {
 	if err != nil {
 		// Create if not found
 		if errors.Is(handleHTTPError(err), gitprovider.ErrNotFound) {
-			orgName := ""
-			if orgRef, ok := r.ref.(gitprovider.OrgRepositoryRef); ok {
-				orgName = orgRef.Organization
-			}
 			CreateRepositoryArgs := git.CreateRepositoryArgs{
 				GitRepositoryToCreate: &git.GitRepositoryCreateOptions{
 					Name: &repositoryID,
 				},
-				Project: &orgName,
+				Project: &r.ref.Organization,
 			}
 
 			// Create a git repository in a team project.

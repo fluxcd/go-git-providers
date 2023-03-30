@@ -78,6 +78,12 @@ func repositoryFromAPI(apiObj *git.GitRepository) gitprovider.RepositoryInfo {
 	repo := gitprovider.RepositoryInfo{
 		Name: apiObj.Name,
 	}
+	if apiObj.Project.Description != nil {
+		repo.Description = apiObj.Project.Description
+	}
+	if apiObj.DefaultBranch != nil {
+		repo.DefaultBranch = apiObj.DefaultBranch
+	}
 	repo.Visibility = gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate)
 	if *apiObj.Project.Visibility == "public" {
 		repo.Visibility = gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPublic)

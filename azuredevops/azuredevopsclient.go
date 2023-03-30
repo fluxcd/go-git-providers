@@ -63,13 +63,12 @@ type ProviderClient struct {
 }
 
 func (c *ProviderClient) Raw() interface{} {
-	//TODO implement me
-	panic("implement me")
+	return gitprovider.ErrNoProviderSupport
 }
 
 func (c *ProviderClient) UserRepositories() gitprovider.UserRepositoriesClient {
-	//TODO implement me
-	panic("implement me")
+	// Method not support for AzureDevops
+	return nil
 }
 
 func (c *ProviderClient) OrgRepositories() gitprovider.OrgRepositoriesClient {
@@ -97,8 +96,7 @@ func (c *ProviderClient) ProviderID() gitprovider.ProviderID {
 }
 
 func (c *ProviderClient) HasTokenPermission(ctx context.Context, permission gitprovider.TokenPermission) (bool, error) {
-	//TODO implement me
-	panic("implement me")
+	return false, gitprovider.ErrNoProviderSupport
 }
 
 func (c *ProviderClient) ProviderID() gitprovider.ProviderID {

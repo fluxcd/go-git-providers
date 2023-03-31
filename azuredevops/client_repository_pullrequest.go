@@ -18,6 +18,7 @@ package azuredevops
 
 import (
 	"context"
+
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/git"
 )
@@ -33,8 +34,25 @@ type PullRequestClient struct {
 }
 
 func (c *PullRequestClient) List(ctx context.Context) ([]gitprovider.PullRequest, error) {
-	//TODO implement me
-	panic("implement me")
+	repositoryId := c.ref.GetRepository()
+	projectId := c.ref.GetIdentity()
+	prOpts := git.GetPullRequestsArgs{
+		RepositoryId:   &repositoryId,
+		Project:        &projectId,
+		SearchCriteria: &git.GitPullRequestSearchCriteria{},
+	}
+	prs, err := c.g.GetPullRequests(ctx, prOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	requests := make([]gitprovider.PullRequest, len(*prs))
+
+	for idx, pr := range *prs {
+		requests[idx] = newPullRequest(c.clientContext, &pr)
+	}
+
+	return requests, nil
 }
 
 // Create creates a new pull request.
@@ -64,16 +82,54 @@ func (c *PullRequestClient) Create(ctx context.Context, title, branch, baseBranc
 }
 
 func (c *PullRequestClient) Edit(ctx context.Context, number int, opts gitprovider.EditOptions) (gitprovider.PullRequest, error) {
-	//TODO implement me
-	panic("implement me")
+	editPR := &git.GitPullRequest{}
+	editPR.Title = opts.Title
+	repositoryId := c.ref.GetRepository()
+	projectId := c.ref.GetIdentity()
+	editedPR, err := c.g.UpdatePullRequest(ctx, git.UpdatePullRequestArgs{
+		GitPullRequestToUpdate: editPR,
+		Project:                &projectId,
+		RepositoryId:           &repositoryId,
+		PullRequestId:          &number,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return newPullRequest(c.clientContext, editedPR), nil
 }
 
 func (c *PullRequestClient) Get(ctx context.Context, number int) (gitprovider.PullRequest, error) {
-	//TODO implement me
-	panic("implement me")
+	projectId := c.ref.GetIdentity()
+	pr, err := c.g.GetPullRequestById(ctx, git.GetPullRequestByIdArgs{
+		Project:       &projectId,
+		PullRequestId: &number,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return newPullRequest(c.clientContext, pr), nil
 }
 
 func (c *PullRequestClient) Merge(ctx context.Context, number int, mergeMethod gitprovider.MergeMethod, message string) error {
-	//TODO implement me
-	panic("implement me")
+	//Request a git merge operation. Currently Azure Devops supports merging only 2 commits.
+	// TODO: this operation requires only the commits to be merged,not the many parameters above.
+	// repositoryId := c.ref.GetRepository()
+	// projectId := c.ref.GetIdentity()
+
+	// _, err := c.g.CreateMergeRequest(ctx, git.CreateMergeRequestArgs{
+	// 	Project:            &projectId,
+	// 	RepositoryNameOrId: &repositoryId,
+	// 	MergeParameters: &git.GitMergeParameters{
+	// 		Comment: &message,
+	// 		Parents: &[]string{
+	// 			repositoryId,
+	// 		},
+	// 	},
+	// })
+	// if err != nil {
+	// 	return err
+	// }
+
+	return nil
 }

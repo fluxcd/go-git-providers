@@ -66,8 +66,8 @@ type repository struct {
 }
 
 func (r *repository) TeamAccess() gitprovider.TeamAccessClient {
-	//TODO implement me
-	panic("implement me")
+	//No implemented for Azure Devops
+	return nil
 }
 
 func (r *repository) Get() gitprovider.RepositoryInfo {
@@ -207,8 +207,8 @@ func (r *repository) Set(info gitprovider.RepositoryInfo) error {
 }
 
 func (r *repository) DeployKeys() gitprovider.DeployKeyClient {
-	//TODO implement me
-	panic("implement me")
+	///No implemented for Azure Devops
+	return nil
 }
 
 func (r *repository) Commits() gitprovider.CommitClient {
@@ -224,8 +224,8 @@ func (r *repository) PullRequests() gitprovider.PullRequestClient {
 }
 
 func (r *repository) Files() gitprovider.FileClient {
-	//TODO implement me
-	panic("implement me")
+	//No implemented for Azure Devops
+	return nil
 }
 func repositoryInfoToAPIObj(repo *gitprovider.RepositoryInfo, apiObj *git.GitRepository) {
 	if repo.Visibility != nil {

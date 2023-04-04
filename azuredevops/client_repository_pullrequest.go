@@ -113,23 +113,32 @@ func (c *PullRequestClient) Get(ctx context.Context, number int) (gitprovider.Pu
 
 func (c *PullRequestClient) Merge(ctx context.Context, number int, mergeMethod gitprovider.MergeMethod, message string) error {
 	//Request a git merge operation. Currently Azure Devops supports merging only 2 commits.
-	// TODO: this operation requires only the commits to be merged,not the many parameters above.
-	// repositoryId := c.ref.GetRepository()
-	// projectId := c.ref.GetIdentity()
-
-	// _, err := c.g.CreateMergeRequest(ctx, git.CreateMergeRequestArgs{
-	// 	Project:            &projectId,
-	// 	RepositoryNameOrId: &repositoryId,
-	// 	MergeParameters: &git.GitMergeParameters{
-	// 		Comment: &message,
-	// 		Parents: &[]string{
-	// 			repositoryId,
-	// 		},
-	// 	},
-	// })
-	// if err != nil {
-	// 	return err
-	// }
-
+	repositoryId := c.ref.GetRepository()
+	projectId := c.ref.GetIdentity()
+	pullRequest, err := c.Get(ctx, number)
+	if err != nil {
+		return handleHTTPError(err)
+	}
+	//Get the last commit id from the pull request
+	//Merge the pull request
+	_, prError := c.g.UpdatePullRequest(ctx,
+		git.UpdatePullRequestArgs{
+			GitPullRequestToUpdate: &git.GitPullRequest{
+				Description: &message,
+				LastMergeSourceCommit: &git.GitCommitRef{
+					CommitId: pullRequest.APIObject().(*git.GitPullRequest).LastMergeSourceCommit.CommitId,
+				},
+				Status: &git.PullRequestStatusValues.Completed,
+				CompletionOptions: &git.GitPullRequestCompletionOptions{
+					MergeStrategy: (*git.GitPullRequestMergeStrategy)(&mergeMethod),
+				},
+			},
+			Project:       &projectId,
+			PullRequestId: &number,
+			RepositoryId:  &repositoryId,
+		})
+	if prError != nil {
+		return handleHTTPError(prError)
+	}
 	return nil
 }

@@ -29,19 +29,39 @@ type pullrequest struct {
 	pr git.GitPullRequest
 }
 
-func (p pullrequest) APIObject() interface{} {
-	//TODO implement me
-	panic("implement me")
+func (pr pullrequest) APIObject() interface{} {
+	return &pr.pr
 }
 
-func (p pullrequest) Get() gitprovider.PullRequestInfo {
-	//TODO implement me
-	panic("implement me")
+func (pr pullrequest) Get() gitprovider.PullRequestInfo {
+	return pullrequestFromAPI(&pr.pr)
 }
 
-func newPullRequest(ctx *clientContext, apiObj git.GitPullRequest) *pullrequest {
+func newPullRequest(ctx *clientContext, apiObj *git.GitPullRequest) *pullrequest {
 	return &pullrequest{
 		clientContext: ctx,
-		pr:            apiObj,
+		pr:            *apiObj,
+	}
+}
+func pullrequestFromAPI(apiObj *git.GitPullRequest) gitprovider.PullRequestInfo {
+	var sourceBranch string
+	head := apiObj.SourceRefName
+	if head != nil {
+		if head != nil {
+			sourceBranch = *head
+		}
+	}
+	status := false
+	if apiObj.MergeStatus != nil && apiObj.MergeStatus == &git.PullRequestAsyncStatusValues.Succeeded {
+		status = true
+	}
+
+	return gitprovider.PullRequestInfo{
+		Title:        *apiObj.Title,
+		Description:  *apiObj.Description,
+		Merged:       status,
+		Number:       *apiObj.PullRequestId,
+		WebURL:       *apiObj.Url,
+		SourceBranch: sourceBranch,
 	}
 }

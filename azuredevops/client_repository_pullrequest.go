@@ -18,11 +18,14 @@ package azuredevops
 
 import (
 	"context"
+
 	"github.com/fluxcd/go-git-providers/gitprovider"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/git"
 )
 
 // PullRequestClient implements the gitprovider.PullRequestClient interface.
-//var _ gitprovider.PullRequestClient = &PullRequestClient{}
+
+var _ gitprovider.PullRequestClient = &PullRequestClient{}
 
 // PullRequestClient operates on the pull requests for a specific repository.
 type PullRequestClient struct {
@@ -30,22 +33,112 @@ type PullRequestClient struct {
 	ref gitprovider.RepositoryRef
 }
 
+func (c *PullRequestClient) List(ctx context.Context) ([]gitprovider.PullRequest, error) {
+	repositoryId := c.ref.GetRepository()
+	projectId := c.ref.GetIdentity()
+	prOpts := git.GetPullRequestsArgs{
+		RepositoryId:   &repositoryId,
+		Project:        &projectId,
+		SearchCriteria: &git.GitPullRequestSearchCriteria{},
+	}
+	prs, err := c.g.GetPullRequests(ctx, prOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	requests := make([]gitprovider.PullRequest, len(*prs))
+
+	for idx, pr := range *prs {
+		requests[idx] = newPullRequest(c.clientContext, &pr)
+	}
+
+	return requests, nil
+}
+
+// Create creates a new pull request.
 func (c *PullRequestClient) Create(ctx context.Context, title, branch, baseBranch, description string) (gitprovider.PullRequest, error) {
-	//TODO implement me
-	panic("implement me")
+	repositoryId := c.ref.GetRepository()
+	projectId := c.ref.GetIdentity()
+	ref := "refs/heads/" + branch
+	refBaseBranch := "refs/heads/" + baseBranch
+
+	pullRequestToCreate := git.GitPullRequest{
+		Description:   &description,
+		SourceRefName: &ref,
+		TargetRefName: &refBaseBranch,
+		Title:         &title,
+	}
+	prOpts := git.CreatePullRequestArgs{
+		GitPullRequestToCreate: &pullRequestToCreate,
+		RepositoryId:           &repositoryId,
+		Project:                &projectId,
+	}
+	pr, err := c.g.CreatePullRequest(ctx, prOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	return newPullRequest(c.clientContext, pr), nil
 }
 
 func (c *PullRequestClient) Edit(ctx context.Context, number int, opts gitprovider.EditOptions) (gitprovider.PullRequest, error) {
-	//TODO implement me
-	panic("implement me")
+	editPR := &git.GitPullRequest{}
+	editPR.Title = opts.Title
+	repositoryId := c.ref.GetRepository()
+	projectId := c.ref.GetIdentity()
+	editedPR, err := c.g.UpdatePullRequest(ctx, git.UpdatePullRequestArgs{
+		GitPullRequestToUpdate: editPR,
+		Project:                &projectId,
+		RepositoryId:           &repositoryId,
+		PullRequestId:          &number,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return newPullRequest(c.clientContext, editedPR), nil
 }
 
 func (c *PullRequestClient) Get(ctx context.Context, number int) (gitprovider.PullRequest, error) {
-	//TODO implement me
-	panic("implement me")
+	projectId := c.ref.GetIdentity()
+	pr, err := c.g.GetPullRequestById(ctx, git.GetPullRequestByIdArgs{
+		Project:       &projectId,
+		PullRequestId: &number,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return newPullRequest(c.clientContext, pr), nil
 }
 
 func (c *PullRequestClient) Merge(ctx context.Context, number int, mergeMethod gitprovider.MergeMethod, message string) error {
-	//TODO implement me
-	panic("implement me")
+	//Request a git merge operation. Currently Azure Devops supports merging only 2 commits.
+	repositoryId := c.ref.GetRepository()
+	projectId := c.ref.GetIdentity()
+	pullRequest, err := c.Get(ctx, number)
+	if err != nil {
+		return handleHTTPError(err)
+	}
+	//Get the last commit id from the pull request
+	//Merge the pull request
+	_, prError := c.g.UpdatePullRequest(ctx,
+		git.UpdatePullRequestArgs{
+			GitPullRequestToUpdate: &git.GitPullRequest{
+				Description: &message,
+				LastMergeSourceCommit: &git.GitCommitRef{
+					CommitId: pullRequest.APIObject().(*git.GitPullRequest).LastMergeSourceCommit.CommitId,
+				},
+				Status: &git.PullRequestStatusValues.Completed,
+				CompletionOptions: &git.GitPullRequestCompletionOptions{
+					MergeStrategy: (*git.GitPullRequestMergeStrategy)(&mergeMethod),
+				},
+			},
+			Project:       &projectId,
+			PullRequestId: &number,
+			RepositoryId:  &repositoryId,
+		})
+	if prError != nil {
+		return handleHTTPError(prError)
+	}
+	return nil
 }

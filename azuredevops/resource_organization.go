@@ -39,8 +39,8 @@ type organization struct {
 }
 
 func (o *organization) Teams() gitprovider.TeamsClient {
-	//TODO implement me
-	panic("implement me")
+	//No implemented for Azure Devops
+	return nil
 }
 func (o *organization) Get() gitprovider.OrganizationInfo {
 	return organizationFromAPI(&o.p)

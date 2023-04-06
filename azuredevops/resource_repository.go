@@ -206,6 +206,11 @@ func (r *repository) Set(info gitprovider.RepositoryInfo) error {
 	return nil
 }
 
+func (r *repository) DeployTokens() (gitprovider.DeployTokenClient, error) {
+	///No implemented for Azure Devops
+	return nil, nil
+}
+
 func (r *repository) DeployKeys() gitprovider.DeployKeyClient {
 	///No implemented for Azure Devops
 	return nil

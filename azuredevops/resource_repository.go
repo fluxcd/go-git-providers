@@ -19,6 +19,7 @@ package azuredevops
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/google/go-cmp/cmp"
@@ -65,6 +66,16 @@ type repository struct {
 	commits      *CommitClient
 }
 
+func (r *repository) DeployTokens() (gitprovider.DeployTokenClient, error) {
+	///No implemented for Azure Devops
+	return nil, fmt.Errorf("Not supported by this client")
+
+}
+
+func (r *repository) DeployKeys() gitprovider.DeployKeyClient {
+	///No implemented for Azure Devops
+	return nil
+}
 func (r *repository) TeamAccess() gitprovider.TeamAccessClient {
 	//No implemented for Azure Devops
 	return nil
@@ -191,11 +202,6 @@ func (r *repository) Set(info gitprovider.RepositoryInfo) error {
 		return err
 	}
 	repositoryInfoToAPIObj(&info, &r.r)
-	return nil
-}
-
-func (r *repository) DeployKeys() gitprovider.DeployKeyClient {
-	///No implemented for Azure Devops
 	return nil
 }
 

@@ -50,7 +50,7 @@ var (
 	customTransportImpl *customTransport
 	azureDomain         = "dev.azure.com"
 	defaultBranch       = "main"
-	testOrgName         = "souleb"
+	testOrgName         = "flux"
 	testTeamName        = "fluxcd-test-team"
 	// placeholders, will be randomized and created.
 	testOrgRepoName string

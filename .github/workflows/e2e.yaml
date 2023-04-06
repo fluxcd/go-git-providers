@@ -30,6 +30,8 @@ jobs:
           [ -n "${{ secrets.STASH_TOKEN }}" ] && export STASH_TOKEN=${{ secrets.STASH_TOKEN }} || echo "using default STASH_TOKEN"
           [ -n "${{ secrets.STASH_USER }}" ] && export STASH_USER=${{ secrets.STASH_USER }} || echo "using default STASH_USER"
           [ -n "${{ secrets.STASH_DOMAIN }}" ] && export STASH_DOMAIN=${{ secrets.STASH_DOMAIN }} || echo "using default STASH_DOMAIN"
+          [ -n "${{ secrets.AZURE_TOKEN }}" ] && export AZURE_TOKEN=${{ secrets.AZURE_TOKEN }} || echo "using default AZURE_TOKEN"
+          [ -n "${{ secrets.AZURE_DOMAIN }}" ] && export AZURE_DOMAIN=${{ secrets.AZURE_DOMAIN }} || echo "using default AZURE_DOMAIN"
           make test
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@d9f34f8cd5cb3b3eb79b3e4b5dae3a16df499a70 # v3.1.1

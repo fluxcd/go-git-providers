@@ -23,13 +23,13 @@ GITLAB_TEST_SUBGROUP ?= fluxcd-testing-sub-group
 GITLAB_TEST_TEAM_NAME ?= fluxcd-testing-2
 
 start-provider-instances-gitlab:
-	GITLAB_TOKEN=$(GITLAB_TOKEN) GIT_PROVIDER_USER=$(GIT_PROVIDER_USER) GIT_PROVIDER_ORGANIZATION=$(GIT_PROVIDER_ORGANIZATION) GITLAB_TEST_REPO_NAME=$(GITLAB_TEST_REPO_NAME) GITLAB_TEST_SUBGROUP=$(GITLAB_TEST_SUBGROUP) GITLAB_TEST_TEAM_NAME=$(GITLAB_TEST_TEAM_NAME) docker-compose up -d gitlab
+	GITLAB_TOKEN=$(GITLAB_TOKEN) GIT_PROVIDER_USER=$(GIT_PROVIDER_USER) GIT_PROVIDER_ORGANIZATION=$(GIT_PROVIDER_ORGANIZATION) GITLAB_TEST_REPO_NAME=$(GITLAB_TEST_REPO_NAME) GITLAB_TEST_SUBGROUP=$(GITLAB_TEST_SUBGROUP) GITLAB_TEST_TEAM_NAME=$(GITLAB_TEST_TEAM_NAME) docker compose up -d gitlab
 	GITLAB_BASE_URL=$(GITLAB_BASE_URL) GITLAB_TOKEN=$(GITLAB_TOKEN) ./tests/gitlab/await-healthy.sh
 
 start-provider-instances: start-provider-instances-gitlab
 
 stop-provider-instances:
-	docker-compose down --volumes
+	docker compose down --volumes
 
 test: tidy fmt vet
 	GITLAB_BASE_URL=$(GITLAB_BASE_URL) GITLAB_TOKEN=$(GITLAB_TOKEN) go test ${TEST_FLAGS} ${TEST_STOP_ON_ERROR} -race -coverprofile=coverage.txt -covermode=atomic ${TEST_PATTERN}

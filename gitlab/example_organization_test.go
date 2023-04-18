@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"testing"
 
 	"github.com/fluxcd/go-git-providers/gitlab"
 	"github.com/fluxcd/go-git-providers/gitprovider"
@@ -19,10 +18,10 @@ func checkErr(err error) {
 	}
 }
 
-func TestExampleOrganizationsClient_Get(t *testing.T) {
+func ExampleOrganizationsClient_Get() {
 	// Create a new client
 	ctx := context.Background()
-	c, err := gitlab.NewClient(os.Getenv("GITLAB_TOKEN"), "")
+	c, err := gitlab.NewClient(os.Getenv("GITLAB_ACCESS_TOKEN"), "")
 	checkErr(err)
 
 	// Get public information about the fluxcd organization
@@ -38,5 +37,5 @@ func TestExampleOrganizationsClient_Get(t *testing.T) {
 	internalOrg := org.APIObject().(*gogitlab.Group)
 
 	fmt.Printf("Name: %s. Location: %s.", *orgInfo.Name, internalOrg.Path)
-	// Output: Name: Flux project. Location: CNCF incubation.
+	// Output: Name: fluxcd-testing-public. Location: fluxcd-testing-public.
 }

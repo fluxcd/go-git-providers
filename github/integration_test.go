@@ -31,7 +31,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-github/v49/github"
+	"github.com/google/go-github/v52/github"
 	"github.com/gregjones/httpcache"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

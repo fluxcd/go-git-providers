@@ -33,6 +33,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/go-logr/zapr"
 	"go.uber.org/zap/zaptest"
+	"k8s.io/utils/pointer"
 )
 
 func Test_NewClient(t *testing.T) {
@@ -45,6 +46,7 @@ func Test_NewClient(t *testing.T) {
 		transport http.RoundTripper
 		log       logr.Logger
 		output    string
+		err       *string
 	}{
 		{
 			name:      "no host",
@@ -54,7 +56,7 @@ func Test_NewClient(t *testing.T) {
 			client:    &http.Client{},
 			transport: defaultTransport,
 			log:       logr.Discard(),
-			output:    "host is required",
+			err:       pointer.String("host is required"),
 		},
 		{
 			name:      "wrong host",
@@ -64,7 +66,7 @@ func Test_NewClient(t *testing.T) {
 			client:    &http.Client{},
 			transport: defaultTransport,
 			log:       logr.Discard(),
-			output:    `failed to parse host https://local#.@*dev to url, parse "https://local#.@*dev": net/url: invalid userinfo`,
+			err:       pointer.String(`failed to parse host https://local#.@*dev to url, parse "https://local#.@*dev": net/url: invalid userinfo`),
 		},
 		{
 			name:   "default host",
@@ -85,7 +87,6 @@ func Test_NewClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var val string
 			c, err := NewClient(&http.Client{}, tt.host, tt.header, tt.log, func(c *Client) error {
 				c.Client.HTTPClient = &http.Client{
 					Transport: tt.transport,
@@ -94,13 +95,18 @@ func Test_NewClient(t *testing.T) {
 				return nil
 			})
 			if err != nil {
-				val = fmt.Sprintf("%s", err)
-			}
-			if c != nil {
-				val = c.BaseURL.String()
-			}
-			if val != tt.output {
-				t.Errorf("Expected %s, got %s", tt.output, val)
+				if tt.err == nil {
+					t.Errorf("did not expect an error but got %q", err)
+				} else if *tt.err != err.Error() {
+					t.Errorf("unexpected error: expected %q but got %q", *tt.err, err)
+				}
+			} else {
+				if tt.err != nil {
+					t.Errorf("expected error %q but got none", *tt.err)
+				}
+				if tt.output != c.BaseURL.String() {
+					t.Errorf("expected output %q but got %q", tt.output, c.BaseURL.String())
+				}
 			}
 		})
 	}

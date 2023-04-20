@@ -18,6 +18,7 @@ package stash
 
 import (
 	"errors"
+	"fmt"
 	"net/url"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
@@ -33,13 +34,13 @@ func NewStashClient(username, token string, optFns ...gitprovider.ClientOption) 
 
 	opts, err := gitprovider.MakeClientOptions(optFns...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed making client options: %w", err)
 	}
 
 	// Create a *http.Client using the transport chain
 	client, err := gitprovider.BuildClientFromTransportChain(opts.GetTransportChain())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed building client: %w", err)
 	}
 
 	if opts.Domain == nil {
@@ -55,7 +56,7 @@ func NewStashClient(username, token string, optFns ...gitprovider.ClientOption) 
 
 	url, err = url.Parse(host)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed parsing host URL %q: %w", host, err)
 	}
 
 	var stashClient *Client
@@ -66,7 +67,7 @@ func NewStashClient(username, token string, optFns ...gitprovider.ClientOption) 
 	}
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed creating client: %w", err)
 	}
 
 	// By default, turn destructive actions off. But allow overrides.

@@ -30,6 +30,8 @@ git_provider_organization.save!
 NamespaceSetting.new(namespace: git_provider_organization).save!
 git_provider_organization.add_owner(git_provider_user)
 
+::Projects::CreateService.new(git_provider_user, { name: '$GITLAB_TEST_REPO_NAME', namespace_id: git_provider_organization.id }).execute
+
 gitlab_test_subgroup = Group.new(name: '$GITLAB_TEST_SUBGROUP', path: '$GITLAB_TEST_SUBGROUP', parent: git_provider_organization)
 gitlab_test_subgroup.save!
 

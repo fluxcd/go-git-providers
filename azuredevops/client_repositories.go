@@ -21,7 +21,7 @@ import (
 	"errors"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/git"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/git"
 )
 
 // OrgRepositoriesClient implements the gitprovider.OrgRepositoriesClient interface.

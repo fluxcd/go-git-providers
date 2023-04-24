@@ -25,7 +25,7 @@ import (
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/fluxcd/go-git-providers/gitprovider/testutils"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/git"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/git"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

@@ -18,8 +18,11 @@ package azuredevops
 
 import (
 	"context"
+	"fmt"
+	"strconv"
+
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/core"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/core"
 )
 
 // OrganizationsClient implements the gitprovider.OrganizationsClient interface.
@@ -70,10 +73,14 @@ func (c *OrganizationsClient) List(ctx context.Context) ([]gitprovider.Organizat
 			projects[i] = newProject(c.clientContext, teamProject, ref)
 			index++
 		}
-
 		if apiObjs.ContinuationToken != "" {
+			continuationToken, err := strconv.Atoi(apiObjs.ContinuationToken)
+			if err != nil {
+				fmt.Println("Error converting 'ContinuationToken' to int")
+			}
+
 			opts := core.GetProjectsArgs{
-				ContinuationToken: &apiObjs.ContinuationToken,
+				ContinuationToken: &continuationToken,
 			}
 			apiObjs, err = c.c.GetProjects(ctx, opts)
 			if err != nil {

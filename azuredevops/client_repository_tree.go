@@ -18,8 +18,9 @@ package azuredevops
 
 import (
 	"context"
+
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/git"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/git"
 )
 
 // TreeClient implements the gitprovider.TreeClient interface.

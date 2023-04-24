@@ -19,10 +19,11 @@ package azuredevops
 import (
 	"context"
 	"fmt"
-	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/core"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/git"
 	"net/url"
+
+	"github.com/fluxcd/go-git-providers/gitprovider"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/core"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/git"
 )
 
 // ProviderID is the provider ID for AzureDevops.

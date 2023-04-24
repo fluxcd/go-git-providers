@@ -22,8 +22,8 @@ import (
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/google/go-cmp/cmp"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/core"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/git"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/core"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/git"
 )
 
 var _ gitprovider.OrgRepository = &repository{}

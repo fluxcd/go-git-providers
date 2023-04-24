@@ -15,7 +15,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-retryablehttp v0.7.2
 	github.com/ktrysmt/go-bitbucket v0.9.48
-	github.com/microsoft/azure-devops-go-api/azuredevops/v6 v6.0.1
+	github.com/microsoft/azure-devops-go-api/azuredevops/v7 v7.1.0
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.20.0
 	github.com/xanzy/go-gitlab v0.81.0

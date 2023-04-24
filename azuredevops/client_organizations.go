@@ -76,7 +76,7 @@ func (c *OrganizationsClient) List(ctx context.Context) ([]gitprovider.Organizat
 		if apiObjs.ContinuationToken != "" {
 			continuationToken, err := strconv.Atoi(apiObjs.ContinuationToken)
 			if err != nil {
-				fmt.Println("Error converting 'ContinuationToken' to int")
+				return nil, fmt.Errorf("Error converting 'ContinuationToken' to integer: %w", err)
 			}
 
 			opts := core.GetProjectsArgs{

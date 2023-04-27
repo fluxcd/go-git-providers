@@ -1,5 +1,5 @@
 ---
-name: e2e-self-managed
+name: e2e-gitlab
 
 "on":
   workflow_dispatch:
@@ -29,7 +29,7 @@ jobs:
       - name: Start Provider instances
         run: make start-provider-instances GITLAB_VERSION=latest
       - name: Run tests [gitlab]
-        run: make test TEST_PATTERN=./gitlab
+        run: make test-e2e-gitlab
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@d9f34f8cd5cb3b3eb79b3e4b5dae3a16df499a70 # v3.1.1
         with:

@@ -65,7 +65,6 @@ func (c *CommitClient) listPage(ctx context.Context, branch string, perPage, pag
 		Project:        &projectId,
 		SearchCriteria: &searchCriteria,
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -80,17 +79,18 @@ func (c *CommitClient) listPage(ctx context.Context, branch string, perPage, pag
 	return keys, nil
 }
 
-// Create a new gitPush in a specific repository branch. This can be a list of commits or a single gitPush.
+// Create a new commit on the given branch. The commit message and files are required.
 func (c *CommitClient) Create(ctx context.Context, branch string, message string, files []gitprovider.CommitFile) (gitprovider.Commit, error) {
 	if len(files) == 0 {
 		return nil, fmt.Errorf("no files added")
 	}
+	if message == "" {
+		return nil, fmt.Errorf("no commit message provided")
+	}
 	repositoryId := c.ref.GetRepository()
 	projectId := c.ref.GetIdentity()
-	ref := "refs/heads/" + branch
-
+	ref := gitRefPrefix + branch
 	all := make([]any, 0, len(files))
-
 	for _, file := range files {
 		all = append(all, git.Change{
 			ChangeType: &git.VersionControlChangeTypeValues.Add,
@@ -116,7 +116,7 @@ func (c *CommitClient) Create(ctx context.Context, branch string, message string
 	commitsList, err := c.ListPage(ctx, branch, 1, 0)
 	latestCommitTreeSHA := ""
 	if errors.Is(handleHTTPError(err), gitprovider.ErrNotFound) && len(commitsList) == 0 {
-		latestCommitTreeSHA = "0000000000000000000000000000000000000000"
+		latestCommitTreeSHA = emptyObjectPlaceholder
 	} else if len(commitsList) > 1 {
 		latestCommitTreeSHA = commitsList[0].Get().Sha
 	} else {
@@ -130,7 +130,7 @@ func (c *CommitClient) Create(ctx context.Context, branch string, message string
 	},
 	}
 
-	opts := git.CreatePushArgs{
+	args := git.CreatePushArgs{
 		Push: &git.GitPush{
 			Commits:    &commits,
 			RefUpdates: &refArgs,
@@ -138,7 +138,7 @@ func (c *CommitClient) Create(ctx context.Context, branch string, message string
 		RepositoryId: &repositoryId,
 		Project:      &projectId,
 	}
-	gitPush, err := c.g.CreatePush(ctx, opts)
+	gitPush, err := c.g.CreatePush(ctx, args)
 	if err != nil {
 		return nil, err
 	}

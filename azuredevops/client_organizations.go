@@ -26,15 +26,16 @@ import (
 // OrganizationsClient implements the gitprovider.OrganizationsClient interface.
 var _ gitprovider.OrganizationsClient = &OrganizationsClient{}
 
-// OrganizationsClient operates on the groups the user has access to.
+// OrganizationsClient operates on the projects a user has access to.
 type OrganizationsClient struct {
 	*clientContext
 }
 
-// Get a specific project that a user has access to
+// Get returns the specific project the user has access to.
 func (c *OrganizationsClient) Get(ctx context.Context, ref gitprovider.OrganizationRef) (gitprovider.Organization, error) {
-	opts := core.GetProjectArgs{ProjectId: &ref.Organization}
-	project, err := c.c.GetProject(ctx, opts)
+	args := core.GetProjectArgs{ProjectId: &ref.Organization}
+	// https://pkg.go.dev/github.com/microsoft/azure-devops-go-api/azuredevops/v6@v6.0.1/core#ClientImpl.GetProject
+	project, err := c.c.GetProject(ctx, args)
 	if err != nil {
 		return nil, err
 	}
@@ -43,55 +44,47 @@ func (c *OrganizationsClient) Get(ctx context.Context, ref gitprovider.Organizat
 	return newProject(c.clientContext, *project, ref), nil
 }
 
-// List all the projects the specific user has access to.
-// List returns all available projects, using multiple paginated requests if needed.
+// List returns all available projects, using multiple requests if needed.
 func (c *OrganizationsClient) List(ctx context.Context) ([]gitprovider.Organization, error) {
-	opts := core.GetProjectsArgs{}
-	apiObjs, err := c.c.GetProjects(ctx, opts)
+	args := core.GetProjectsArgs{}
+	projects := make([]gitprovider.Organization, 0)
+
+	return c.list(ctx, args, projects)
+}
+
+func (c *OrganizationsClient) list(ctx context.Context, args core.GetProjectsArgs, projects []gitprovider.Organization) ([]gitprovider.Organization, error) {
+	// https://pkg.go.dev/github.com/microsoft/azure-devops-go-api/azuredevops/v6@v6.0.1/core#ClientImpl.GetProjects
+	apiObjs, err := c.c.GetProjects(ctx, args)
 	if err != nil {
 		return nil, err
 	}
 
-	projects := make([]gitprovider.Organization, len(apiObjs.Value))
-
-	index := 0
-	for apiObjs != nil {
-		for i, apiObj := range apiObjs.Value {
-			ref := gitprovider.OrganizationRef{
-				Domain:       *apiObj.Url,
-				Organization: *apiObj.Name,
-			}
-
-			teamProject := core.TeamProject{
-				Id:   apiObj.Id,
-				Name: apiObj.Name,
-			}
-
-			ref.SetKey(apiObj.Id.String())
-			projects[i] = newProject(c.clientContext, teamProject, ref)
-			index++
+	for _, apiObj := range apiObjs.Value {
+		ref := gitprovider.OrganizationRef{
+			Domain:       *apiObj.Url,
+			Organization: *apiObj.Name,
 		}
 
-		if apiObjs.ContinuationToken != "" {
-			opts := core.GetProjectsArgs{
-				ContinuationToken: &apiObjs.ContinuationToken,
-			}
-			apiObjs, err = c.c.GetProjects(ctx, opts)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			apiObjs = nil
+		teamProject := core.TeamProject{
+			Id:   apiObj.Id,
+			Name: apiObj.Name,
 		}
+
+		ref.SetKey(apiObj.Id.String())
+		projects = append(projects, newProject(c.clientContext, teamProject, ref))
+	}
+
+	if apiObjs.ContinuationToken != "" {
+		args := core.GetProjectsArgs{
+			ContinuationToken: &apiObjs.ContinuationToken,
+		}
+		return c.list(ctx, args, projects)
 	}
 
 	return projects, nil
-
 }
 
-// Children returns the immediate child-organizations for the specific OrganizationRef o.
-// The OrganizationRef may point to any existing sub-organization.
-// Children returns all available organizations, using multiple paginated requests if needed.
+// Children is not supported by AzureDevops.
 func (c *OrganizationsClient) Children(_ context.Context, _ gitprovider.OrganizationRef) ([]gitprovider.Organization, error) {
 	return nil, gitprovider.ErrNoProviderSupport
 }

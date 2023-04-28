@@ -51,7 +51,10 @@ func Test_DomainVariations(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
-			c2, _ := NewClient("personalAccessToken", ctx, tt.opts)
+			c2, err := NewClient("personalAccessToken", ctx, tt.opts)
+			if err != nil {
+				t.Fatal(err)
+			}
 			if diff := cmp.Diff(tt.want, c2.SupportedDomain()); diff != "" {
 				t.Errorf("New Azure client returned domain (want -> got): %s", diff)
 			}

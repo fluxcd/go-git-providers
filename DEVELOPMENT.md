@@ -86,6 +86,18 @@ make test-e2e-stash
 | Test organization | go-git-provider-testing      | `GIT_PROVIDER_ORGANIZATION` |
 | Test team         | fluxcd-test-team             | `STASH_TEST_TEAM_NAME`      |
 
+
+### Azure DevOps
+
+All tests are run against dev.azure.com. Adjust the following variables to your needs:
+
+| Setting           | Default value                | Environment variable        |
+| ----------------- | ---------------------------- | --------------------------- |
+| Domain            | dev.azure.com                | `AZURE_DOMAIN`              |
+| Access token      | read from `/tmp/azure.token` | `AZURE_TOKEN`               |
+| Test organization | flux                         | `GIT_PROVIDER_ORGANIZATION` |
+| Test team         | fluxcd-test-team             | `AZURE_TEST_TEAM_NAME`      |
+
 ## Continuous Integration
 
 The e2e test suite runs in GitHub Actions on each commit to the main branch and on branches pushed to the repository, i.e. on PRs created from people with write access.

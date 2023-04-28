@@ -54,10 +54,8 @@ func newRepository(ctx *clientContext, apiObj git.GitRepository, ref gitprovider
 
 type repository struct {
 	*clientContext
-	pr        git.GitPullRequest
-	r         git.GitRepository
-	topUpdate *git.GitRepository
-	ref       gitprovider.OrgRepositoryRef
+	r   git.GitRepository
+	ref gitprovider.OrgRepositoryRef
 
 	pullRequests *PullRequestClient
 	trees        *TreeClient
@@ -65,11 +63,14 @@ type repository struct {
 	commits      *CommitClient
 }
 
+// TeamsAccess returns the TeamsAccessClient for the repository.
+// This is not implemented for Azure Devops.
 func (r *repository) TeamAccess() gitprovider.TeamAccessClient {
 	//No implemented for Azure Devops
 	return nil
 }
 
+// Get returns the repository info for this repository.
 func (r *repository) Get() gitprovider.RepositoryInfo {
 	return repositoryFromAPI(&r.r)
 }
@@ -90,32 +91,15 @@ func repositoryFromAPI(apiObj *git.GitRepository) gitprovider.RepositoryInfo {
 	}
 	return repo
 }
+
+// Trees returns the TreesClient for the repository.
 func (r *repository) Trees() gitprovider.TreeClient {
 	return r.trees
 }
 
+// APIObject returns the internal API object for this repository.
 func (r *repository) APIObject() interface{} {
 	return &r.r
-}
-
-func (r *repository) Get() gitprovider.RepositoryInfo {
-	return repositoryFromAPI(&r.r)
-}
-
-func repositoryFromAPI(apiObj *git.GitRepository) gitprovider.RepositoryInfo {
-	repo := gitprovider.RepositoryInfo{
-		Description:   apiObj.Name,
-		DefaultBranch: apiObj.DefaultBranch,
-	}
-	return repo
-}
-func (r *repository) Trees() gitprovider.TreeClient {
-	return r.trees
-}
-
-func (r *repository) APIObject() interface{} {
-	//TODO implement me
-	panic("implement me")
 }
 
 func (r *repository) Update(ctx context.Context) error {
@@ -143,9 +127,7 @@ func (r *repository) Update(ctx context.Context) error {
 // If req is already the actual state, this is a no-op (actionTaken == false).
 //
 // The internal API object will be overridden with the received server data if actionTaken == true.
-
 func (r *repository) Reconcile(ctx context.Context) (bool, error) {
-
 	projectName := r.ref.GetIdentity()
 	repositoryID := r.ref.GetRepository()
 	apiObj, err := r.g.GetRepository(ctx, git.GetRepositoryArgs{
@@ -198,6 +180,13 @@ func (r *repository) Delete(ctx context.Context) error {
 	})
 }
 
+func (r *repository) Repository() gitprovider.RepositoryRef {
+	return r.ref
+}
+
+// Set sets the desired state of this object.
+// User have to call Update() to apply the changes to the server.
+// The changes will then be reflected in the internal API object.
 func (r *repository) Set(info gitprovider.RepositoryInfo) error {
 	if err := info.ValidateInfo(); err != nil {
 		return err
@@ -206,32 +195,42 @@ func (r *repository) Set(info gitprovider.RepositoryInfo) error {
 	return nil
 }
 
+// DeployTokens returns the DeployTokenClient for the repository.
+// This is not implemented for Azure Devops.
 func (r *repository) DeployTokens() (gitprovider.DeployTokenClient, error) {
 	///No implemented for Azure Devops
 	return nil, nil
 }
 
+// DeployKeys returns the DeployKeyClient for the repository.
+// This is not implemented for Azure Devops.
 func (r *repository) DeployKeys() gitprovider.DeployKeyClient {
 	///No implemented for Azure Devops
 	return nil
 }
 
+// Commits returns the CommitsClient for the repository.
 func (r *repository) Commits() gitprovider.CommitClient {
 	return r.commits
 }
 
+// Branches returns the BranchesClient for the repository.
 func (r *repository) Branches() gitprovider.BranchClient {
 	return r.branches
 }
 
+// PullRequests returns the PullRequestsClient for the repository.
 func (r *repository) PullRequests() gitprovider.PullRequestClient {
 	return r.pullRequests
 }
 
+// Files returns the FilesClient for the repository.
+// This is not implemented for Azure Devops.
 func (r *repository) Files() gitprovider.FileClient {
 	//No implemented for Azure Devops
 	return nil
 }
+
 func repositoryInfoToAPIObj(repo *gitprovider.RepositoryInfo, apiObj *git.GitRepository) {
 	if repo.Visibility != nil {
 		*apiObj.Project.Visibility = core.ProjectVisibility(*gitprovider.StringVar(string(*repo.Visibility)))
@@ -256,6 +255,7 @@ type azureDevopsRepoSpec struct {
 	*git.GitRepository
 }
 
+// Equals compares two Azure Devops repository specs.
 func (s *azureDevopsRepoSpec) Equals(other *azureDevopsRepoSpec) bool {
 	return cmp.Equal(s, other)
 }

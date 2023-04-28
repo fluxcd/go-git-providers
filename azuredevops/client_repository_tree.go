@@ -18,6 +18,7 @@ package azuredevops
 
 import (
 	"context"
+
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/git"
 )
@@ -31,7 +32,7 @@ type TreeClient struct {
 	ref gitprovider.RepositoryRef
 }
 
-// Get returns a tree
+// Get returns a tree object for a given SHA.
 func (c *TreeClient) Get(ctx context.Context, sha string, recursive bool) (*gitprovider.TreeInfo, error) {
 	repoName := c.ref.GetRepository()
 	projectName := c.ref.GetIdentity()

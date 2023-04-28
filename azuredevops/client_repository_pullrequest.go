@@ -1,5 +1,5 @@
 /*
-Copyright 2021 The Flux CD contributors.
+Copyright 2023 The Flux CD contributors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@ import (
 )
 
 // PullRequestClient implements the gitprovider.PullRequestClient interface.
-
 var _ gitprovider.PullRequestClient = &PullRequestClient{}
 
 // PullRequestClient operates on the pull requests for a specific repository.
@@ -33,6 +32,7 @@ type PullRequestClient struct {
 	ref gitprovider.RepositoryRef
 }
 
+// List lists all pull requests for the repository.
 func (c *PullRequestClient) List(ctx context.Context) ([]gitprovider.PullRequest, error) {
 	repositoryId := c.ref.GetRepository()
 	projectId := c.ref.GetIdentity()
@@ -59,8 +59,8 @@ func (c *PullRequestClient) List(ctx context.Context) ([]gitprovider.PullRequest
 func (c *PullRequestClient) Create(ctx context.Context, title, branch, baseBranch, description string) (gitprovider.PullRequest, error) {
 	repositoryId := c.ref.GetRepository()
 	projectId := c.ref.GetIdentity()
-	ref := "refs/heads/" + branch
-	refBaseBranch := "refs/heads/" + baseBranch
+	ref := gitRefPrefix + branch
+	refBaseBranch := gitRefPrefix + baseBranch
 
 	pullRequestToCreate := git.GitPullRequest{
 		Description:   &description,
@@ -81,6 +81,7 @@ func (c *PullRequestClient) Create(ctx context.Context, title, branch, baseBranc
 	return newPullRequest(c.clientContext, pr), nil
 }
 
+// Edit edits an existing pull request.
 func (c *PullRequestClient) Edit(ctx context.Context, number int, opts gitprovider.EditOptions) (gitprovider.PullRequest, error) {
 	editPR := &git.GitPullRequest{}
 	editPR.Title = opts.Title
@@ -98,6 +99,7 @@ func (c *PullRequestClient) Edit(ctx context.Context, number int, opts gitprovid
 	return newPullRequest(c.clientContext, editedPR), nil
 }
 
+// Get gets a pull request by its number.
 func (c *PullRequestClient) Get(ctx context.Context, number int) (gitprovider.PullRequest, error) {
 	projectId := c.ref.GetIdentity()
 	pr, err := c.g.GetPullRequestById(ctx, git.GetPullRequestByIdArgs{
@@ -111,6 +113,7 @@ func (c *PullRequestClient) Get(ctx context.Context, number int) (gitprovider.Pu
 	return newPullRequest(c.clientContext, pr), nil
 }
 
+// Merge merges a pull request.
 func (c *PullRequestClient) Merge(ctx context.Context, number int, mergeMethod gitprovider.MergeMethod, message string) error {
 	//Request a git merge operation. Currently Azure Devops supports merging only 2 commits.
 	repositoryId := c.ref.GetRepository()
@@ -119,8 +122,7 @@ func (c *PullRequestClient) Merge(ctx context.Context, number int, mergeMethod g
 	if err != nil {
 		return handleHTTPError(err)
 	}
-	//Get the last commit id from the pull request
-	//Merge the pull request
+
 	_, prError := c.g.UpdatePullRequest(ctx,
 		git.UpdatePullRequestArgs{
 			GitPullRequestToUpdate: &git.GitPullRequest{
@@ -140,5 +142,6 @@ func (c *PullRequestClient) Merge(ctx context.Context, number int, mergeMethod g
 	if prError != nil {
 		return handleHTTPError(prError)
 	}
+
 	return nil
 }

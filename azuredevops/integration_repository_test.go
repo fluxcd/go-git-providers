@@ -213,12 +213,9 @@ var _ = Describe("Azure Provider", func() {
 			//get the list of commits
 			commits, err = repo.Commits().ListPage(ctx, defaultBranch, 1, 0)
 			if err != nil && len(commits) == 0 {
-
 				err = errors.New("empty commits list")
-
 				Expect(err).ToNot(HaveOccurred())
 				Expect(createCommits).ToNot(BeNil())
-
 			}
 
 			return retryOp.IsRetryable(err, fmt.Sprintf("get commits, repository: %s", repo.Repository().GetRepository()))

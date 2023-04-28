@@ -19,10 +19,11 @@ package azuredevops
 import (
 	"context"
 	"fmt"
+	"net/url"
+
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/core"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/git"
-	"net/url"
 )
 
 // ProviderID is the provider ID for AzureDevops.
@@ -45,7 +46,7 @@ func newClient(c core.Client, g git.Client, domain string, destructiveActions bo
 	}
 }
 
-// Client implements the gitprovider.Client interface.
+// ProviderClient implements the gitprovider.Client interface.
 var _ gitprovider.Client = &ProviderClient{}
 
 type clientContext struct {
@@ -55,6 +56,7 @@ type clientContext struct {
 	destructiveActions bool
 }
 
+// ProviderClient is the AzureDevops implementation of the gitprovider.Client interface.
 type ProviderClient struct {
 	*clientContext
 
@@ -62,26 +64,30 @@ type ProviderClient struct {
 	repos *RepositoriesClient
 }
 
+// Raw returns the underlying AzureDevops client.
+// It returns the core.Client
 func (c *ProviderClient) Raw() interface{} {
-	return gitprovider.ErrNoProviderSupport
+	return c.c
 }
 
+// UserRepositories returns the UserRepositoriesClient for the client.
 func (c *ProviderClient) UserRepositories() gitprovider.UserRepositoriesClient {
 	// Method not support for AzureDevops
 	return nil
 }
 
+// OrgRepositories returns the OrgRepositoriesClient for the client.
 func (c *ProviderClient) OrgRepositories() gitprovider.OrgRepositoriesClient {
 	return c.repos
 }
 
+// Organizations returns the OrganizationsClient for the client.
 func (c *ProviderClient) Organizations() gitprovider.OrganizationsClient {
 	return c.orgs
 }
 
-// SupportedDomain returns the domain endpoint for this client, e.g. "gitlab.com" or
-// "my-custom-git-server.com:6443". This allows a higher-level user to know what Client to use for
-// what endpoints.
+// SupportedDomain returns the domain endpoint for this client, e.g. "dev.azure.com" or
+// "my-custom-git-server.com:6443".
 // This field is set at client creation time, and can't be changed.
 func (c *ProviderClient) SupportedDomain() string {
 	u, _ := url.Parse(c.domain)
@@ -91,19 +97,12 @@ func (c *ProviderClient) SupportedDomain() string {
 	return c.domain
 }
 
+// ProviderID returns the provider ID for this client, e.g. "azuredevops".
 func (c *ProviderClient) ProviderID() gitprovider.ProviderID {
 	return ProviderID
 }
 
+// HasTokenPermission returns whether the token has the given permission.
 func (c *ProviderClient) HasTokenPermission(ctx context.Context, permission gitprovider.TokenPermission) (bool, error) {
 	return false, gitprovider.ErrNoProviderSupport
-}
-
-func (c *ProviderClient) ProviderID() gitprovider.ProviderID {
-	return ProviderID
-}
-
-func (c *ProviderClient) HasTokenPermission(ctx context.Context, permission gitprovider.TokenPermission) (bool, error) {
-	//TODO implement me
-	panic("implement me")
 }

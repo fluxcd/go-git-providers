@@ -18,8 +18,14 @@ package azuredevops
 
 import (
 	"context"
+
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/git"
+)
+
+const (
+	emptyObjectPlaceholder = "0000000000000000000000000000000000000000"
+	gitRefPrefix           = "refs/heads/"
 )
 
 // BranchClient implements the gitprovider.BranchClient interface.
@@ -32,12 +38,11 @@ type BranchClient struct {
 }
 
 // Create creates a branch with the given specifications.
-
 func (b BranchClient) Create(ctx context.Context, branch, sha string) error {
-	ref := "refs/heads/" + branch
+	ref := gitRefPrefix + branch
 	repositoryId := b.ref.GetRepository()
 	project := b.ref.GetIdentity()
-	oldObjectId := "0000000000000000000000000000000000000000"
+	oldObjectId := emptyObjectPlaceholder
 	opts := []git.GitRefUpdate{
 		{
 			Name:        &ref,
@@ -51,11 +56,9 @@ func (b BranchClient) Create(ctx context.Context, branch, sha string) error {
 		Project:      &project,
 	}
 
-	if _, err := b.g.UpdateRefs(
-		ctx,
-		reference,
-	); err != nil {
+	if _, err := b.g.UpdateRefs(ctx, reference); err != nil {
 		return err
 	}
+
 	return nil
 }

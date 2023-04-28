@@ -38,18 +38,24 @@ type organization struct {
 	ref gitprovider.OrganizationRef
 }
 
+// Teams returns the TeamsClient for the organization.
+// This is not implemented for Azure Devops.
 func (o *organization) Teams() gitprovider.TeamsClient {
 	//No implemented for Azure Devops
 	return nil
 }
+
+// Get returns the organization info for this organization.
 func (o *organization) Get() gitprovider.OrganizationInfo {
 	return organizationFromAPI(&o.p)
 }
 
+// APIObject returns the underlying API object for this organization.
 func (o *organization) APIObject() interface{} {
 	return &o.p
 }
 
+// Organization returns the OrganizationRef for this organization.
 func (o *organization) Organization() gitprovider.OrganizationRef {
 	return o.ref
 }

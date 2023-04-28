@@ -20,16 +20,13 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"net/http"
 	"os"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
 	"encoding/json"
 
-	"github.com/gregjones/httpcache"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -46,12 +43,10 @@ const (
 )
 
 var (
-	// customTransportImpl is a shared instance of a customTransport, allowing counting of cache hits.
-	customTransportImpl *customTransport
-	azureDomain         = "dev.azure.com"
-	defaultBranch       = "main"
-	testOrgName         = "flux"
-	testTeamName        = "fluxcd-test-team"
+	azureDomain   = "dev.azure.com"
+	defaultBranch = "main"
+	testOrgName   = "flux"
+	testTeamName  = "fluxcd-test-team"
 	// placeholders, will be randomized and created.
 	testOrgRepoName string
 	testRepoName    string
@@ -103,69 +98,6 @@ func TestProvider(t *testing.T) {
 	RunSpecs(t, "azure Provider Suite")
 }
 
-func customTransportFactory(transport http.RoundTripper) http.RoundTripper {
-	if customTransportImpl != nil {
-		panic("didn't expect this function to be called twice")
-	}
-	customTransportImpl = &customTransport{
-		transport:      transport,
-		countCacheHits: false,
-		cacheHits:      0,
-		mu:             &sync.Mutex{},
-	}
-	return customTransportImpl
-}
-
-type customTransport struct {
-	transport      http.RoundTripper
-	countCacheHits bool
-	cacheHits      int
-	mu             *sync.Mutex
-}
-
-func (t *customTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
-	resp, err := t.transport.RoundTrip(req)
-	// If we should count, count all cache hits whenever found
-	if t.countCacheHits {
-		if _, ok := resp.Header[httpcache.XFromCache]; ok {
-			t.cacheHits++
-		}
-	}
-	return resp, err
-}
-
-func (t *customTransport) resetCounter() {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
-	t.cacheHits = 0
-}
-
-func (t *customTransport) setCounter(state bool) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
-	t.countCacheHits = state
-}
-
-func (t *customTransport) getCacheHits() int {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
-	return t.cacheHits
-}
-
-func (t *customTransport) countCacheHitsForFunc(fn func()) int {
-	t.setCounter(true)
-	t.resetCounter()
-	fn()
-	t.setCounter(false)
-	return t.getCacheHits()
-}
-
 var _ = Describe("azure Provider", func() {
 	var (
 		ctx context.Context = context.Background()
@@ -205,8 +137,6 @@ var _ = Describe("azure Provider", func() {
 			gitprovider.WithDomain(azureDomain),
 			gitprovider.WithDestructiveAPICalls(true),
 			gitprovider.WithConditionalRequests(true),
-			// It seems not to be possible with azure devops to provide our own http Client
-			gitprovider.WithPreChainTransportHook(customTransportFactory),
 			gitprovider.WithLogger(&log),
 		)
 		Expect(err).ToNot(HaveOccurred())
@@ -244,12 +174,10 @@ func cleanupOrgRepos(ctx context.Context, prefix string) {
 	for _, repo := range repos {
 		// Delete the test org repo used
 		name := repo.Repository().GetRepository()
-		slug := repo.Repository().(gitprovider.Slugger).Slug()
-		key := repo.Repository().(gitprovider.Keyer).Key()
 		if !strings.HasPrefix(name, prefix) {
 			continue
 		}
-		fmt.Printf("Deleting the %s organization's repository: %s with slug %s\n", key, name, slug)
+		fmt.Printf("Deleting the organization's repository: %s\n", name)
 		Expect(repo.Delete(ctx)).To(Succeed())
 	}
 }

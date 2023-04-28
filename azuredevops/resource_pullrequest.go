@@ -29,10 +29,12 @@ type pullrequest struct {
 	pr git.GitPullRequest
 }
 
+// APIObject returns the underlying API object for this pull request.
 func (pr pullrequest) APIObject() interface{} {
 	return &pr.pr
 }
 
+// Get returns the pull request info for this pull request.
 func (pr pullrequest) Get() gitprovider.PullRequestInfo {
 	return pullrequestFromAPI(&pr.pr)
 }
@@ -43,6 +45,7 @@ func newPullRequest(ctx *clientContext, apiObj *git.GitPullRequest) *pullrequest
 		pr:            *apiObj,
 	}
 }
+
 func pullrequestFromAPI(apiObj *git.GitPullRequest) gitprovider.PullRequestInfo {
 	var sourceBranch string
 	head := apiObj.SourceRefName

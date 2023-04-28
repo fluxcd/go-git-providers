@@ -27,8 +27,7 @@ import (
 // OrgRepositoriesClient implements the gitprovider.OrgRepositoriesClient interface.
 var _ gitprovider.OrgRepositoriesClient = &RepositoriesClient{}
 
-// OrgRepositoriesClient operates on repositories the user has access to.
-
+// RepositoriesClient operates on repositories the user has access to.
 type RepositoriesClient struct {
 	*clientContext
 }
@@ -37,34 +36,31 @@ type RepositoriesClient struct {
 //
 // ErrNotFound is returned if the resource does not exist.
 func (c *RepositoriesClient) Get(ctx context.Context, ref gitprovider.OrgRepositoryRef) (gitprovider.OrgRepository, error) {
-	// GET /repos/{owner}/{repo}
-	opts := git.GetRepositoryArgs{RepositoryId: &ref.RepositoryName, Project: &ref.Organization}
-	apiObj, err := c.g.GetRepository(ctx, opts)
-
+	// https://pkg.go.dev/github.com/microsoft/azure-devops-go-api/azuredevops/v6@v6.0.1/git#ClientImpl.GetRepository
+	args := git.GetRepositoryArgs{RepositoryId: &ref.RepositoryName, Project: &ref.Organization}
+	apiObj, err := c.g.GetRepository(ctx, args)
 	if err != nil {
 		return nil, handleHTTPError(err)
 	}
+
 	return newRepository(c.clientContext, *apiObj, ref), nil
 }
 
+// List returns all available repositories, using multiple requests if needed.
 func (c *RepositoriesClient) List(ctx context.Context, ref gitprovider.OrganizationRef) ([]gitprovider.OrgRepository, error) {
-
-	// Make sure the OrganizationRef is valid
 	if err := validateOrganizationRef(ref, c.domain); err != nil {
 		return nil, err
 	}
 
-	opts := git.GetRepositoriesArgs{Project: &ref.Organization}
-	apiObjs, err := c.g.GetRepositories(ctx, opts)
-
+	args := git.GetRepositoriesArgs{Project: &ref.Organization}
+	// https://pkg.go.dev/github.com/microsoft/azure-devops-go-api/azuredevops/v6@v6.0.1/git#ClientImpl.GetRepositories
+	apiObjs, err := c.g.GetRepositories(ctx, args)
 	if err != nil {
 		return nil, err
 	}
 
-	// Traverse the list, and return a list of UserRepository objects
 	repos := make([]gitprovider.OrgRepository, 0, len(*apiObjs))
 	for _, apiObj := range *apiObjs {
-		// apiObj is already validated at ListUserRepos
 		repos = append(repos, newRepository(c.clientContext, apiObj, gitprovider.OrgRepositoryRef{
 			OrganizationRef: ref,
 			RepositoryName:  *apiObj.Name,

@@ -34,5 +34,12 @@ stop-provider-instances:
 test: tidy fmt vet
 	go test ${TEST_FLAGS} -race -coverprofile=coverage.txt -covermode=atomic ${TEST_PATTERN}
 
+test-e2e-github: tidy fmt vet
+	go test ${TEST_FLAGS} -race -coverprofile=coverage.txt -covermode=atomic -tags=e2e ./github/...
+
 test-e2e-gitlab: tidy fmt vet
-	GITLAB_BASE_URL=$(GITLAB_BASE_URL) GITLAB_TOKEN=$(GITLAB_TOKEN) go test ${TEST_FLAGS} ${TEST_STOP_ON_ERROR} -race -coverprofile=coverage.txt -covermode=atomic -tags e2e ./gitlab/...
+	GITLAB_BASE_URL=$(GITLAB_BASE_URL) GITLAB_TOKEN=$(GITLAB_TOKEN) go test ${TEST_FLAGS} -race -coverprofile=coverage.txt -covermode=atomic -tags=e2e ./gitlab/...
+
+test-e2e-stash: tidy fmt vet
+	go test ${TEST_FLAGS} -race -coverprofile=coverage.txt -covermode=atomic -tags=e2e ./stash/...
+

@@ -12,34 +12,32 @@
 
 ## How to run the test suite locally
 
-> **Note**
-> Set the `CLEANUP_ALL` environment variable to a non-empty value if you want the e2e test suite to delete
-> any data that is created as part of the test run. Otherwise your test group/organization will be left behind
-> with lots of repositories.
-
-The `test` Make target runs the full test suite, mainly comprised of end-to-end tests against all supported providers:
+The test suite can broadly be divided into unit and end-to-end/integration tests. The `test` Make target runs the unit tests:
 
 ```
 make test
 ```
 
-To run only the tests for a certain provider, provide the package in the `TEST_PATTERN` environment variable:
-
-```
-make test TEST_PATTERN=./github/...
-```
-
 For more verbose test output, use `TEST_FLAGS`:
 
 ```
-make test TEST_PATTERN=./github/... TEST_FLAGS="-v"
+make test TEST_FLAGS="-v"
 ```
 
-## Provider-specific configuration of the e2e tests
+### End-to-end tests
 
-The tests for each provider can be configured to simplify running them locally. The following paragraphs describe the configuration options of each provider.
+> **Note**
+> Set the `CLEANUP_ALL` environment variable to a non-empty value if you want the e2e test suite to delete
+> any data that is created as part of the test run. Otherwise your test group/organization will be left behind
+> with lots of repositories.
 
-### GitHub
+The end-to-end test suite has tests for all supported providers, each backed by a dedicated Make target.
+
+#### GitHub
+
+```
+make test-e2e-github
+```
 
 All tests are run against github.com. Adjust the following variables to your needs:
 
@@ -49,9 +47,22 @@ All tests are run against github.com. Adjust the following variables to your nee
 | Test organization | fluxcd-testing                | `GIT_PROVIDER_ORGANIZATION` |
 | Test user         | fluxcd-gitprovider-bot        | `GIT_PROVIDER_USER`         |
 
-### GitLab
+#### GitLab
 
-All tests are run against gitlab.com. Adjust the following variables to your needs:
+For the GitLab tests there is automation in place to spin up an ephemeral GitLab instance to run the test suite against:
+
+```
+make start-provider-instances-gitlab
+```
+
+As soon as the containers are up and GitLab is running, execute the tests:
+
+```
+make test-e2e-gitlab
+```
+
+The Make target automatically runs the tests against the ephemeral instance. To change the test configuration, adjust
+the following variables to your needs:
 
 | Setting                                         | Default value                 | Environment variable        |
 | ----------------------------------------------- | ----------------------------- | --------------------------- |
@@ -61,7 +72,11 @@ All tests are run against gitlab.com. Adjust the following variables to your nee
 | Test team (this is an ordinary group in GitLab) | fluxcd-testing-2              | `GITLAB_TEST_TEAM_NAME`     |
 | Test user                                       | fluxcd-gitprovider-bot        | `GIT_PROVIDER_USER`         |
 
-### Stash
+#### Stash
+
+```
+make test-e2e-stash
+```
 
 | Setting           | Default value                | Environment variable        |
 | ----------------- | ---------------------------- | --------------------------- |

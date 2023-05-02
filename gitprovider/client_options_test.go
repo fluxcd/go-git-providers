@@ -300,8 +300,10 @@ func Test_makeCientOptions(t *testing.T) {
 			if tt.want == nil {
 				return
 			}
-			if !roundTrippersEqual(got.authTransport, tt.want.authTransport) ||
-				!roundTrippersEqual(got.PostChainTransportHook, tt.want.PostChainTransportHook) ||
+			if !roundTrippersEqual(got.authTransport, tt.want.authTransport) {
+				t.Errorf("unexpected authTransport, got %#v, want %#v", got.authTransport, tt.want.authTransport)
+			}
+			if !roundTrippersEqual(got.PostChainTransportHook, tt.want.PostChainTransportHook) ||
 				!roundTrippersEqual(got.PreChainTransportHook, tt.want.PreChainTransportHook) {
 				t.Errorf("makeOptions() = %v, want %v", got, tt.want)
 			}

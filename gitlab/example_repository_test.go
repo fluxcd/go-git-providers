@@ -1,3 +1,5 @@
+//go:build e2e
+
 package gitlab_test
 
 import (
@@ -13,7 +15,7 @@ import (
 func ExampleOrgRepositoriesClient_Get() {
 	// Create a new client
 	ctx := context.Background()
-	c, err := gitlab.NewClient(os.Getenv("GITLAB_TOKEN"), "")
+	c, err := gitlab.NewClient(os.Getenv("GITLAB_ACCESS_TOKEN"), "")
 	checkErr(err)
 
 	// Parse the URL into an OrgRepositoryRef

@@ -1,0 +1,33 @@
+name: e2e-github
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ '*' ]
+    tags-ignore: [ '*' ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - name: Restore Go cache
+        uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Setup Go
+        uses: actions/setup-go@4d34df0c2316fe8122ab82dc22947d607c0c91f9 # v4.0.0
+        with:
+          go-version: 1.18.x
+      - name: Run tests
+        run: |
+          [ -n "${{ secrets.GITPROVIDER_BOT_TOKEN }}" ] && export GITHUB_TOKEN=${{ secrets.GITPROVIDER_BOT_TOKEN }} || echo "using default GITHUB_TOKEN"
+          make test-e2e-github
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@40a12dcee2df644d47232dde008099a3e9e4f865 # v3.1.2
+        with:
+          files: ./coverage.txt

@@ -1,3 +1,5 @@
+//go:build e2e
+
 /*
 Copyright 2020 The Flux CD contributors.
 
@@ -43,11 +45,6 @@ import (
 
 const (
 	ghTokenFile = "/tmp/gitlab-token"
-
-	// Include scheme if custom, e.g.:
-	// gitlabDomain = "https://gitlab.acme.org/"
-	// gitlabDomain = "https://gitlab.dev.wkp.weave.works"
-	gitlabDomain = "gitlab.com"
 
 	defaultDescription = "Foo description"
 	defaultBranch      = "main"
@@ -174,6 +171,11 @@ var _ = Describe("GitLab Provider", func() {
 		ctx context.Context = context.Background()
 		c   gitprovider.Client
 
+		// Include scheme if custom, e.g.:
+		// gitlabDomain = "https://gitlab.acme.org/"
+		// gitlabDomain = "https://gitlab.dev.wkp.weave.works"
+		testBaseUrl string = "gitlab.com"
+
 		// Should exist in environment
 		testOrgName      string = "fluxcd-testing"
 		testSubgroupName string = "fluxcd-testing-sub-group"
@@ -220,6 +222,10 @@ var _ = Describe("GitLab Provider", func() {
 			}
 		}
 
+		if baseUrl := os.Getenv("GITLAB_BASE_URL"); len(baseUrl) != 0 {
+			testBaseUrl = baseUrl
+		}
+
 		if orgName := os.Getenv("GIT_PROVIDER_ORGANIZATION"); len(orgName) != 0 {
 			testOrgName = orgName
 		}
@@ -239,7 +245,7 @@ var _ = Describe("GitLab Provider", func() {
 		var err error
 		c, err = NewClient(
 			gitlabToken, "",
-			gitprovider.WithDomain(gitlabDomain),
+			gitprovider.WithDomain(testBaseUrl),
 			gitprovider.WithDestructiveAPICalls(true),
 			gitprovider.WithConditionalRequests(true),
 			gitprovider.WithPreChainTransportHook(customTransportFactory),
@@ -282,7 +288,7 @@ var _ = Describe("GitLab Provider", func() {
 
 	cleanupOrgRepos := func(prefix string) {
 		fmt.Fprintf(os.Stderr, "Deleting repos starting with %s in org: %s\n", prefix, testOrgName)
-		repos, err := c.OrgRepositories().List(ctx, newOrgRef(testOrgName))
+		repos, err := c.OrgRepositories().List(ctx, newOrgRef(testBaseUrl, testOrgName))
 		Expect(err).ToNot(HaveOccurred())
 		for _, repo := range repos {
 			// Delete the test org repo used
@@ -298,7 +304,7 @@ var _ = Describe("GitLab Provider", func() {
 
 	cleanupUserRepos := func(prefix string) {
 		fmt.Fprintf(os.Stderr, "Deleting repos starting with %s for user: %s\n", prefix, testUserName)
-		repos, err := c.UserRepositories().List(ctx, newUserRef(testUserName))
+		repos, err := c.UserRepositories().List(ctx, newUserRef(testBaseUrl, testUserName))
 		Expect(err).ToNot(HaveOccurred())
 		for _, repo := range repos {
 			// Delete the test org repo used
@@ -363,7 +369,7 @@ var _ = Describe("GitLab Provider", func() {
 
 	It("should not fail when .Children is called", func() {
 		_, err := c.Organizations().Children(ctx, gitprovider.OrganizationRef{
-			Domain:       gitlabDomain,
+			Domain:       testBaseUrl,
 			Organization: testOrgName,
 		})
 		Expect(err).ToNot(HaveOccurred())
@@ -371,7 +377,7 @@ var _ = Describe("GitLab Provider", func() {
 
 	It("should be possible to create a group project", func() {
 		// First, check what repositories are available
-		repos, err := c.OrgRepositories().List(ctx, newOrgRef(testOrgName))
+		repos, err := c.OrgRepositories().List(ctx, newOrgRef(testBaseUrl, testOrgName))
 		Expect(err).ToNot(HaveOccurred())
 
 		// Generate a repository name which doesn't exist already
@@ -382,7 +388,7 @@ var _ = Describe("GitLab Provider", func() {
 
 		// We know that a repo with this name doesn't exist in the organization, let's verify we get an
 		// ErrNotFound
-		repoRef := newOrgRepoRef(testOrgName, testOrgRepoName)
+		repoRef := newOrgRepoRef(testBaseUrl, testOrgName, testOrgRepoName)
 		sshURL := repoRef.GetCloneURL(gitprovider.TransportTypeSSH)
 		Expect(sshURL).NotTo(Equal(""))
 		_, err = c.OrgRepositories().Get(ctx, repoRef)
@@ -410,13 +416,13 @@ var _ = Describe("GitLab Provider", func() {
 	})
 
 	It("should error at creation time if the org repo already does exist", func() {
-		repoRef := newOrgRepoRef(testOrgName, testOrgRepoName)
+		repoRef := newOrgRepoRef(testBaseUrl, testOrgName, testOrgRepoName)
 		_, err := c.OrgRepositories().Create(ctx, repoRef, gitprovider.RepositoryInfo{})
 		Expect(errors.Is(err, gitprovider.ErrAlreadyExists)).To(BeTrue())
 	})
 
 	It("should update if the org repo already exists when reconciling", func() {
-		repoRef := newOrgRepoRef(testOrgName, testOrgRepoName)
+		repoRef := newOrgRepoRef(testBaseUrl, testOrgName, testOrgRepoName)
 		// No-op reconcile
 		resp, actionTaken, err := c.OrgRepositories().Reconcile(ctx, repoRef, gitprovider.RepositoryInfo{
 			Description:   gitprovider.StringVar(defaultDescription),
@@ -466,7 +472,7 @@ var _ = Describe("GitLab Provider", func() {
 	It("should update teams with access and permissions when reconciling", func() {
 
 		// Get the test organization
-		orgRef := newOrgRef(testOrgName)
+		orgRef := newOrgRef(testBaseUrl, testOrgName)
 		testOrg, err := c.Organizations().Get(ctx, orgRef)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -477,7 +483,7 @@ var _ = Describe("GitLab Provider", func() {
 		Expect(len(teams)).To(Equal(1), "The 1 team wasn't there...")
 
 		// First, check what repositories are available
-		repos, err := c.OrgRepositories().List(ctx, newOrgRef(testOrgName))
+		repos, err := c.OrgRepositories().List(ctx, newOrgRef(testBaseUrl, testOrgName))
 		Expect(err).ToNot(HaveOccurred())
 
 		// Generate an org repo name which doesn't exist already
@@ -488,7 +494,7 @@ var _ = Describe("GitLab Provider", func() {
 
 		// We know that a repo with this name doesn't exist in the organization, let's verify we get an
 		// ErrNotFound
-		repoRef := newOrgRepoRef(testOrgName, testSharedOrgRepoName)
+		repoRef := newOrgRepoRef(testBaseUrl, testOrgName, testSharedOrgRepoName)
 		_, err = c.OrgRepositories().Get(ctx, repoRef)
 		Expect(errors.Is(err, gitprovider.ErrNotFound)).To(BeTrue())
 
@@ -578,7 +584,7 @@ var _ = Describe("GitLab Provider", func() {
 
 	It("should create, delete and reconcile deploy keys", func() {
 		testDeployKeyName := "test-deploy-key"
-		repoRef := newOrgRepoRef(testOrgName, testSharedOrgRepoName)
+		repoRef := newOrgRepoRef(testBaseUrl, testOrgName, testSharedOrgRepoName)
 
 		orgRepo, err := c.OrgRepositories().Get(ctx, repoRef)
 		Expect(err).ToNot(HaveOccurred())
@@ -651,6 +657,7 @@ var _ = Describe("GitLab Provider", func() {
 
 	It("should create, delete and reconcile deploy tokens", func() {
 		orgRepo := createRepo(ctx, newOrgRepoRef(
+			testBaseUrl,
 			testOrgName,
 			fmt.Sprintf("deploy-key-spec-repo-%03d", rand.Intn(1000))))
 		testDeployTokenName := "test-deploy-token"
@@ -714,7 +721,7 @@ var _ = Describe("GitLab Provider", func() {
 
 	It("should be possible to create a user project", func() {
 		// First, check what repositories are available
-		repos, err := c.UserRepositories().List(ctx, newUserRef(testUserName))
+		repos, err := c.UserRepositories().List(ctx, newUserRef(testBaseUrl, testUserName))
 		Expect(err).ToNot(HaveOccurred())
 
 		// Generate a repository name which doesn't exist already
@@ -725,7 +732,7 @@ var _ = Describe("GitLab Provider", func() {
 
 		// We know that a repo with this name doesn't exist in the organization, let's verify we get an
 		// ErrNotFound
-		repoRef := newUserRepoRef(testUserName, testRepoName)
+		repoRef := newUserRepoRef(testBaseUrl, testUserName, testRepoName)
 		_, err = c.UserRepositories().Get(ctx, repoRef)
 		Expect(errors.Is(err, gitprovider.ErrNotFound)).To(BeTrue())
 		db := defaultBranchName
@@ -784,13 +791,13 @@ var _ = Describe("GitLab Provider", func() {
 	})
 
 	It("should error at creation time if the user repo already does exist", func() {
-		repoRef := newUserRepoRef(testUserName, testRepoName)
+		repoRef := newUserRepoRef(testBaseUrl, testUserName, testRepoName)
 		_, err := c.UserRepositories().Create(ctx, repoRef, gitprovider.RepositoryInfo{})
 		Expect(errors.Is(err, gitprovider.ErrAlreadyExists)).To(BeTrue())
 	})
 
 	It("should update if the user repo already exists when reconciling", func() {
-		repoRef := newUserRepoRef(testUserName, testRepoName)
+		repoRef := newUserRepoRef(testBaseUrl, testUserName, testRepoName)
 		// No-op reconcile
 		resp, actionTaken, err := c.UserRepositories().Reconcile(ctx, repoRef, gitprovider.RepositoryInfo{
 			Description:   gitprovider.StringVar(defaultDescription),
@@ -841,7 +848,7 @@ var _ = Describe("GitLab Provider", func() {
 	It("should be possible to create and edit a pr for a user repository", func() {
 
 		testRepoName = fmt.Sprintf("test-repo2-%03d", rand.Intn(1000))
-		repoRef := newUserRepoRef(testUserName, testRepoName)
+		repoRef := newUserRepoRef(testBaseUrl, testUserName, testRepoName)
 
 		defaultBranch := defaultBranchName
 
@@ -985,7 +992,7 @@ var _ = Describe("GitLab Provider", func() {
 
 	It("should be possible to download files from path and branch specified", func() {
 		testTreeRepoName = fmt.Sprintf("test-repo-tree-%03d", rand.Intn(1000))
-		userRepoRef := newUserRepoRef(testUserName, testTreeRepoName)
+		userRepoRef := newUserRepoRef(testBaseUrl, testUserName, testTreeRepoName)
 		// Create a new repo
 		db := defaultBranchName
 		repo, err := c.UserRepositories().Create(ctx, userRepoRef, gitprovider.RepositoryInfo{
@@ -1044,7 +1051,7 @@ var _ = Describe("GitLab Provider", func() {
 	})
 
 	It("should be possible to download files from path and branch specified with nested directory", func() {
-		userRepoRef := newUserRepoRef(testUserName, testTreeRepoName)
+		userRepoRef := newUserRepoRef(testBaseUrl, testUserName, testTreeRepoName)
 
 		userRepo, err := c.UserRepositories().Get(ctx, userRepoRef)
 		Expect(err).ToNot(HaveOccurred())
@@ -1095,7 +1102,7 @@ var _ = Describe("GitLab Provider", func() {
 
 	})
 	It("should be possible list repo tree files", func() {
-		userRepoRef := newUserRepoRef(testUserName, testTreeRepoName)
+		userRepoRef := newUserRepoRef(testBaseUrl, testUserName, testTreeRepoName)
 
 		userRepo, err := c.UserRepositories().Get(ctx, userRepoRef)
 		Expect(err).ToNot(HaveOccurred())
@@ -1153,7 +1160,7 @@ var _ = Describe("GitLab Provider", func() {
 		}
 		// Delete the test repo used
 		fmt.Println("Deleting the user repo: ", testRepoName)
-		repoRef := newUserRepoRef(testUserName, testRepoName)
+		repoRef := newUserRepoRef(testBaseUrl, testUserName, testRepoName)
 		repo, err := c.UserRepositories().Get(ctx, repoRef)
 		if !errors.Is(err, gitprovider.ErrNotFound) {
 			Expect(err).ToNot(HaveOccurred())
@@ -1162,7 +1169,7 @@ var _ = Describe("GitLab Provider", func() {
 
 		// Delete the test org repo used
 		fmt.Println("Deleting the org repo: ", testOrgRepoName)
-		orgRepoRef := newOrgRepoRef(testOrgName, testOrgRepoName)
+		orgRepoRef := newOrgRepoRef(testBaseUrl, testOrgName, testOrgRepoName)
 		repo, err = c.OrgRepositories().Get(ctx, orgRepoRef)
 		if !errors.Is(err, gitprovider.ErrNotFound) {
 			Expect(err).ToNot(HaveOccurred())
@@ -1171,7 +1178,7 @@ var _ = Describe("GitLab Provider", func() {
 
 		// Delete the test shared org repo used
 		fmt.Println("Deleting the shared org repo: ", testSharedOrgRepoName)
-		sharedOrgRepoRef := newOrgRepoRef(testOrgName, testSharedOrgRepoName)
+		sharedOrgRepoRef := newOrgRepoRef(testBaseUrl, testOrgName, testSharedOrgRepoName)
 		repo, err = c.OrgRepositories().Get(ctx, sharedOrgRepoRef)
 		if !errors.Is(err, gitprovider.ErrNotFound) {
 			Expect(err).ToNot(HaveOccurred())
@@ -1198,30 +1205,30 @@ func expectPRToBeMerged(ctx context.Context, userRepo gitprovider.UserRepository
 	}, time.Second*5).Should(BeTrue(), `PR status didn't change to "merged"`)
 }
 
-func newOrgRef(organizationName string) gitprovider.OrganizationRef {
+func newOrgRef(baseUrl, organizationName string) gitprovider.OrganizationRef {
 	return gitprovider.OrganizationRef{
-		Domain:       gitlabDomain,
+		Domain:       baseUrl,
 		Organization: organizationName,
 	}
 }
 
-func newOrgRepoRef(organizationName, repoName string) gitprovider.OrgRepositoryRef {
+func newOrgRepoRef(baseUrl, organizationName, repoName string) gitprovider.OrgRepositoryRef {
 	return gitprovider.OrgRepositoryRef{
-		OrganizationRef: newOrgRef(organizationName),
+		OrganizationRef: newOrgRef(baseUrl, organizationName),
 		RepositoryName:  repoName,
 	}
 }
 
-func newUserRef(userLogin string) gitprovider.UserRef {
+func newUserRef(baseUrl, userLogin string) gitprovider.UserRef {
 	return gitprovider.UserRef{
-		Domain:    gitlabDomain,
+		Domain:    baseUrl,
 		UserLogin: userLogin,
 	}
 }
 
-func newUserRepoRef(userLogin, repoName string) gitprovider.UserRepositoryRef {
+func newUserRepoRef(baseUrl, userLogin, repoName string) gitprovider.UserRepositoryRef {
 	return gitprovider.UserRepositoryRef{
-		UserRef:        newUserRef(userLogin),
+		UserRef:        newUserRef(baseUrl, userLogin),
 		RepositoryName: repoName,
 	}
 }

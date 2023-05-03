@@ -1,0 +1,34 @@
+---
+version: "3"
+
+services:
+  gitlab:
+    image: gitlab/gitlab-ce:${GITLAB_VERSION:-latest}
+    platform: linux/amd64
+    shm_size: 256m
+    ports:
+      - 9042:80
+    environment:
+      GITLAB_ROOT_PASSWORD: "FoQ7PaTZqWaftrZ7zvAK"
+      GITLAB_TOKEN: $GITLAB_TOKEN
+      GIT_PROVIDER_ORGANIZATION: $GIT_PROVIDER_ORGANIZATION
+      GIT_PROVIDER_USER: $GIT_PROVIDER_USER
+      GITLAB_TEST_REPO_NAME: $GITLAB_TEST_REPO_NAME
+      GITLAB_TEST_SUBGROUP: $GITLAB_TEST_SUBGROUP
+      GITLAB_TEST_TEAM_NAME: $GITLAB_TEST_TEAM_NAME
+    labels:
+      go-git-provider/owned: ""
+    volumes:
+      - gitlab-config:/etc/gitlab
+      - gitlab-logs:/var/log/gitlab
+      - gitlab-data:/var/opt/gitlab
+      - ${PWD}/tests/gitlab/healthcheck-and-setup.sh:/healthcheck-and-setup.sh:Z
+    healthcheck:
+      test: /healthcheck-and-setup.sh
+      interval: 60s
+      timeout: 10m
+
+volumes:
+  gitlab-config:
+  gitlab-logs:
+  gitlab-data:

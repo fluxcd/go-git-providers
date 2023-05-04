@@ -517,10 +517,11 @@ func (s *GitService) commit(w *git.Worktree, r *git.Repository, c *CreateCommit)
 			Email: c.Author.Email,
 			When:  authorDate,
 		},
-		Committer: committer,
-		Parents:   p,
-		SignKey:   c.SignKey,
-		All:       true,
+		Committer:         committer,
+		Parents:           p,
+		SignKey:           c.SignKey,
+		All:               true,
+		AllowEmptyCommits: true,
 	})
 	if err != nil {
 		return nil, err

@@ -130,7 +130,7 @@ func (c *OrgRepositoriesClient) Create(ctx context.Context,
 		if errors.Is(err, ErrAlreadyExists) {
 			return nil, gitprovider.ErrAlreadyExists
 		}
-		return nil, fmt.Errorf("failed to create repository %s/%s: %w", ref.Key(), ref.Slug(), err)
+		return nil, fmt.Errorf("failed to create repository %s/%s: %w", ref.Key(), ref.RepositoryName, err)
 	}
 
 	ref.SetSlug(apiObj.Slug)
@@ -283,6 +283,9 @@ func createRepository(ctx context.Context, c *Client, orgKey string, ref gitprov
 		}
 
 		err = initRepo(ctx, c, initCommit, repo)
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize repository: %w", err)
+		}
 		br, err := setDefaultBranch(ctx, c, orgKey, data.DefaultBranch, repo)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create default branch: %w", err)

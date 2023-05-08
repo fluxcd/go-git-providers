@@ -28,6 +28,6 @@ jobs:
           [ -n "${{ secrets.GITPROVIDER_BOT_TOKEN }}" ] && export GITHUB_TOKEN=${{ secrets.GITPROVIDER_BOT_TOKEN }} || echo "using default GITHUB_TOKEN"
           make test-e2e-github
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@40a12dcee2df644d47232dde008099a3e9e4f865 # v3.1.2
+        uses: codecov/codecov-action@894ff025c7b54547a9a2a1e9f228beae737ad3c2 # v3.1.2
         with:
           files: ./coverage.txt

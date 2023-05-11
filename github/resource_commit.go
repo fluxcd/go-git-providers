@@ -17,7 +17,7 @@ limitations under the License.
 package github
 
 import (
-	"github.com/google/go-github/v49/github"
+	"github.com/google/go-github/v52/github"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
@@ -50,7 +50,7 @@ func commitFromAPI(apiObj *github.Commit) gitprovider.CommitInfo {
 		TreeSha:   *apiObj.Tree.SHA,
 		Author:    *apiObj.Author.Name,
 		Message:   *apiObj.Message,
-		CreatedAt: *apiObj.Author.Date,
+		CreatedAt: *apiObj.Author.Date.GetTime(),
 		URL:       *apiObj.URL,
 	}
 }

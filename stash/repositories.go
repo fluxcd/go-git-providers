@@ -223,7 +223,7 @@ func (s *RepositoriesService) Create(ctx context.Context, projectKey string, rep
 	}
 	res, resp, err := s.Client.Do(req)
 	if err != nil {
-		if resp.StatusCode == http.StatusConflict {
+		if resp != nil && resp.StatusCode == http.StatusConflict {
 			return nil, ErrAlreadyExists
 		}
 		return nil, fmt.Errorf("create respository failed: %w", err)

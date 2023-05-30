@@ -43,3 +43,6 @@ test-e2e-gitlab: tidy fmt vet
 test-e2e-stash: tidy fmt vet
 	go test ${TEST_FLAGS} -race -coverprofile=coverage.txt -covermode=atomic -tags=e2e ./stash/...
 
+test-e2e-azuredevops: tidy fmt vet
+	go test ${TEST_FLAGS} -race -coverprofile=coverage.txt -covermode=atomic -tags=e2e ./azuredevops/...
+

@@ -58,6 +58,12 @@ type RepositoryInfo struct {
 	// Default value at POST-time: RepositoryVisibilityPrivate.
 	// +optional
 	Visibility *RepositoryVisibility `json:"visibility"`
+
+	// Name returns the name of the repository.
+	// No default value at POST-time.
+	// Added for Azure devops compatibility since it allows updating the name
+	// +optional
+	Name *string `json:"name"`
 }
 
 // Default defaults the Repository, implementing the InfoRequest interface.

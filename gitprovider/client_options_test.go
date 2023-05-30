@@ -212,7 +212,7 @@ func Test_clientOptions_getTransportChain(t *testing.T) {
 	}
 }
 
-func Test_makeCientOptions(t *testing.T) {
+func Test_makeClientOptions(t *testing.T) {
 	ca, err := os.ReadFile("./testdata/ca.pem")
 	if err != nil {
 		t.Fatal(err)

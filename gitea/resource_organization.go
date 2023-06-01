@@ -46,18 +46,23 @@ type organization struct {
 	teams *TeamsClient
 }
 
+// Get returns the organization information.
 func (o *organization) Get() gitprovider.OrganizationInfo {
 	return organizationFromAPI(&o.o)
 }
 
+// APIObject returns the underlying API object.
 func (o *organization) APIObject() interface{} {
 	return &o.o
 }
 
+
+// Organization returns the organization reference.
 func (o *organization) Organization() gitprovider.OrganizationRef {
 	return o.ref
 }
 
+// Teams returns the teams client.
 func (o *organization) Teams() gitprovider.TeamsClient {
 	return o.teams
 }

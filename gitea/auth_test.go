@@ -52,10 +52,10 @@ func Test_DomainVariations(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c1, _ := NewClient(tt.opts)
+			c1, _ := NewClient("token", tt.opts)
 			assertEqual(t, tt.want, c1.SupportedDomain())
 
-			c2, _ := NewClient(tt.opts)
+			c2, _ := NewClient("token", tt.opts)
 			assertEqual(t, tt.want, c2.SupportedDomain())
 		})
 	}

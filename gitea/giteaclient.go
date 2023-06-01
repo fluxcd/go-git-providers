@@ -65,9 +65,11 @@ type giteaClient interface {
 	// ListKeys is a wrapper for "GET /repos/{owner}/{repo}/keys".
 	// This function handles pagination, HTTP error wrapping, and validates the server result.
 	ListKeys(ctx context.Context, owner, repo string) ([]*gitea.DeployKey, error)
-	// ListCommitsPage is a wrapper for "GET /repos/{owner}/{repo}/git/commits".
+	// ListCommits is a wrapper for "GET /repos/{owner}/{repo}/git/commits".
 	// This function handles pagination, HTTP error wrapping.
-	ListCommitsPage(ctx context.Context, owner, repo, branch string, perPage int, page int) ([]*gitea.Commit, error)
+	ListCommits(ctx context.Context, owner, repo, branch string, perPage int, page int) ([]*gitea.Commit, error)
+	// CreateCommits is a wrapper for "POST /repos/{owner}/{repo}/git/contents/{path}".
+	CreateCommits(ctx context.Context, owner, repo string, path string, req *gitea.CreateFileOptions) (*gitea.FileResponse, error)
 	// CreateKey is a wrapper for "POST /repos/{owner}/{repo}/keys".
 	// This function handles HTTP error wrapping, and validates the server result.
 	CreateKey(ctx context.Context, owner, repo string, req *gitea.DeployKey) (*gitea.DeployKey, error)
@@ -87,6 +89,8 @@ type giteaClient interface {
 	// RemoveTeam is a wrapper for "DELETE /repos/{owner}/{repo}/teams/{team_slug}".
 	// This function handles HTTP error wrapping.
 	RemoveTeam(ctx context.Context, orgName, repo, teamName string) error
+
+	//
 }
 
 type giteaClientImpl struct {
@@ -96,10 +100,12 @@ type giteaClientImpl struct {
 
 var _ giteaClient = &giteaClientImpl{}
 
+// Client returns the underlying *gitea.Client
 func (c *giteaClientImpl) Client() *gitea.Client {
 	return c.c
 }
 
+// GetOrg returns a specific organization the user has access to.
 func (c *giteaClientImpl) GetOrg(_ context.Context, orgName string) (*gitea.Organization, error) {
 	apiObj, res, err := c.c.GetOrg(orgName)
 	if err != nil {
@@ -112,12 +118,12 @@ func (c *giteaClientImpl) GetOrg(_ context.Context, orgName string) (*gitea.Orga
 	return apiObj, nil
 }
 
+// ListOrgs returns all of current user's organizations.
 func (c *giteaClientImpl) ListOrgs(_ context.Context) ([]*gitea.Organization, error) {
 	opts := gitea.ListOrgsOptions{}
 	apiObjs := []*gitea.Organization{}
-	listOpts := &opts.ListOptions
 
-	err := allPages(listOpts, func() (*gitea.Response, error) {
+	err := allPages(&opts.ListOptions, func() (*gitea.Response, error) {
 		// GET /user/orgs"
 		pageObjs, resp, listErr := c.c.ListMyOrgs(opts)
 		if len(pageObjs) > 0 {
@@ -139,36 +145,40 @@ func (c *giteaClientImpl) ListOrgs(_ context.Context) ([]*gitea.Organization, er
 	return apiObjs, nil
 }
 
+// ListOrgTeamMembers returns all of current team members of the given team.
 func (c *giteaClientImpl) ListOrgTeamMembers(ctx context.Context, orgName, teamName string) ([]*gitea.User, error) {
 	teams, err := c.ListOrgTeams(ctx, orgName)
 	if err != nil {
 		return nil, err
 	}
 	apiObjs := []*gitea.User{}
-	teamFound := false
+	opts := gitea.ListTeamMembersOptions{}
 	for _, team := range teams {
-		if team.Name != teamName {
-			continue
+		if team.Name == teamName {
+			err := allPages(&opts.ListOptions, func() (*gitea.Response, error) {
+				pageObjs, resp, listErr := c.c.ListTeamMembers(team.ID, gitea.ListTeamMembersOptions{})
+				if len(pageObjs) > 0 {
+					apiObjs = append(apiObjs, pageObjs...)
+					return resp, listErr
+				}
+				return nil, nil
+			})
+			if err != nil {
+				return nil, err
+			}
+			return apiObjs, nil
 		}
-		teamFound = true
-		users, _, err := c.c.ListTeamMembers(team.ID, gitea.ListTeamMembersOptions{})
-		if err != nil {
-			continue
-		}
-		apiObjs = append(apiObjs, users...)
 	}
-	if teamFound {
-		return apiObjs, nil
-	}
+
 	return nil, gitprovider.ErrNotFound
 }
 
+// ListOrgTeams returns all teams of the given organization the user has access to.
 func (c *giteaClientImpl) ListOrgTeams(_ context.Context, orgName string) ([]*gitea.Team, error) {
 	opts := gitea.ListTeamsOptions{}
 	apiObjs := []*gitea.Team{}
-	listOpts := &opts.ListOptions
 
-	err := allPages(listOpts, func() (*gitea.Response, error) {
+	err := allPages(&opts.ListOptions, func() (*gitea.Response, error) {
 		// GET /orgs/{org}/teams"
 		pageObjs, resp, listErr := c.c.ListOrgTeams(orgName, opts)
 		if len(pageObjs) > 0 {
@@ -183,6 +193,7 @@ func (c *giteaClientImpl) ListOrgTeams(_ context.Context, orgName string) ([]*gi
 	return apiObjs, nil
 }
 
+// GetRepo returns the repository of the given owner by name.
 func (c *giteaClientImpl) GetRepo(_ context.Context, owner, repo string) (*gitea.Repository, error) {
 	apiObj, res, err := c.c.GetRepo(owner, repo)
 	return validateRepositoryAPIResp(apiObj, res, err)
@@ -200,12 +211,12 @@ func validateRepositoryAPIResp(apiObj *gitea.Repository, res *gitea.Response, er
 	return apiObj, nil
 }
 
+// ListOrgRepos returns all repositories of the given organization the user has access to.
 func (c *giteaClientImpl) ListOrgRepos(_ context.Context, org string) ([]*gitea.Repository, error) {
 	opts := gitea.ListOrgReposOptions{}
 	apiObjs := []*gitea.Repository{}
-	listOpts := &opts.ListOptions
 
-	err := allPages(listOpts, func() (*gitea.Response, error) {
+	err := allPages(&opts.ListOptions, func() (*gitea.Response, error) {
 		// GET /orgs/{org}/repos
 		pageObjs, resp, listErr := c.c.ListOrgRepos(org, opts)
 		if len(pageObjs) > 0 {
@@ -230,12 +241,12 @@ func validateRepositoryObjects(apiObjs []*gitea.Repository) ([]*gitea.Repository
 	return apiObjs, nil
 }
 
+// ListUserRepos returns all repositories of the given user.
 func (c *giteaClientImpl) ListUserRepos(_ context.Context, username string) ([]*gitea.Repository, error) {
 	opts := gitea.ListReposOptions{}
 	apiObjs := []*gitea.Repository{}
-	listOpts := &opts.ListOptions
 
-	err := allPages(listOpts, func() (*gitea.Response, error) {
+	err := allPages(&opts.ListOptions, func() (*gitea.Response, error) {
 		// GET /users/{username}/repos
 		pageObjs, resp, listErr := c.c.ListUserRepos(username, opts)
 		if len(pageObjs) > 0 {
@@ -250,6 +261,7 @@ func (c *giteaClientImpl) ListUserRepos(_ context.Context, username string) ([]*
 	return validateRepositoryObjects(apiObjs)
 }
 
+// CreateRepo creates a new repository for the authenticated user in the given organization.
 func (c *giteaClientImpl) CreateRepo(_ context.Context, orgName string, req *gitea.CreateRepoOption) (*gitea.Repository, error) {
 	if orgName != "" {
 		apiObj, res, err := c.c.CreateOrgRepo(orgName, *req)
@@ -259,26 +271,28 @@ func (c *giteaClientImpl) CreateRepo(_ context.Context, orgName string, req *git
 	return validateRepositoryAPIResp(apiObj, res, err)
 }
 
+// UpdateRepo updates the given repository.
 func (c *giteaClientImpl) UpdateRepo(_ context.Context, owner, repo string, req *gitea.EditRepoOption) (*gitea.Repository, error) {
 	apiObj, res, err := c.c.EditRepo(owner, repo, *req)
 	return validateRepositoryAPIResp(apiObj, res, err)
 }
 
+// DeleteRepo deletes the given repository.
 func (c *giteaClientImpl) DeleteRepo(_ context.Context, owner, repo string) error {
 	// Don't allow deleting repositories if the user didn't explicitly allow dangerous API calls.
 	if !c.destructiveActions {
 		return fmt.Errorf("cannot delete repository: %w", gitprovider.ErrDestructiveCallDisallowed)
 	}
-	res, err := c.c.DeleteRepo(owner, repo)
-	return handleHTTPError(res, err)
+	resp, err := c.c.DeleteRepo(owner, repo)
+	return handleHTTPError(resp, err)
 }
 
+// ListKeys returns all deploy keys of the given repository.
 func (c *giteaClientImpl) ListKeys(_ context.Context, owner, repo string) ([]*gitea.DeployKey, error) {
 	opts := gitea.ListDeployKeysOptions{}
 	apiObjs := []*gitea.DeployKey{}
-	listOpts := &opts.ListOptions
 
-	err := allPages(listOpts, func() (*gitea.Response, error) {
+	err := allPages(&opts.ListOptions, func() (*gitea.Response, error) {
 		// GET /repos/{owner}/{repo}/keys"
 		pageObjs, resp, listErr := c.c.ListDeployKeys(owner, repo, opts)
 		if len(pageObjs) > 0 {
@@ -300,7 +314,9 @@ func (c *giteaClientImpl) ListKeys(_ context.Context, owner, repo string) ([]*gi
 	return apiObjs, nil
 }
 
-func (c *giteaClientImpl) ListCommitsPage(_ context.Context, owner, repo, branch string, perPage int, page int) ([]*gitea.Commit, error) {
+// ListCommits returns all commits of the given repository and branch. It uses pagination, by providing
+// a page size and page number.
+func (c *giteaClientImpl) ListCommits(_ context.Context, owner, repo, branch string, perPage int, page int) ([]*gitea.Commit, error) {
 	opts := gitea.ListCommitOptions{
 		ListOptions: gitea.ListOptions{
 			PageSize: perPage,
@@ -309,18 +325,27 @@ func (c *giteaClientImpl) ListCommitsPage(_ context.Context, owner, repo, branch
 		SHA: branch,
 	}
 	apiObjs, _, listErr := c.c.ListRepoCommits(owner, repo, opts)
-
 	if listErr != nil {
 		return nil, listErr
 	}
 	return apiObjs, nil
 }
 
-func (c *giteaClientImpl) CreateKey(_ context.Context, owner, repo string, req *gitea.DeployKey) (*gitea.DeployKey, error) {
-	opts := gitea.CreateKeyOption{Title: req.Title, Key: req.Key, ReadOnly: req.ReadOnly}
-	apiObj, res, err := c.c.CreateDeployKey(owner, repo, opts)
+// CreateCommits creates a new commit for the given repository.
+func (c *giteaClientImpl) CreateCommits(_ context.Context, owner, repo string, path string, req *gitea.CreateFileOptions) (*gitea.FileResponse, error) {
+	apiObj, res, err := c.c.CreateFile(owner, repo, path, *req)
 	if err != nil {
 		return nil, handleHTTPError(res, err)
+	}
+	return apiObj, nil
+}
+
+// CreateKey creates a new deploy key for the given repository.
+func (c *giteaClientImpl) CreateKey(_ context.Context, owner, repo string, req *gitea.DeployKey) (*gitea.DeployKey, error) {
+	opts := gitea.CreateKeyOption{Title: req.Title, Key: req.Key, ReadOnly: req.ReadOnly}
+	apiObj, resp, err := c.c.CreateDeployKey(owner, repo, opts)
+	if err != nil {
+		return nil, handleHTTPError(resp, err)
 	}
 	if err := validateDeployKeyAPI(apiObj); err != nil {
 		return nil, err
@@ -328,43 +353,38 @@ func (c *giteaClientImpl) CreateKey(_ context.Context, owner, repo string, req *
 	return apiObj, nil
 }
 
+// DeleteKey deletes the given deploy key from the given repository.
 func (c *giteaClientImpl) DeleteKey(_ context.Context, owner, repo string, id int64) error {
 	res, err := c.c.DeleteDeployKey(owner, repo, id)
 	return handleHTTPError(res, err)
 }
 
+// GetTeamPermissions returns the permissions of the given team on the given repository.
 func (c *giteaClientImpl) GetTeamPermissions(_ context.Context, orgName, repo, teamName string) (*gitea.AccessMode, error) {
-	apiObj, res, err := c.c.CheckRepoTeam(orgName, repo, teamName)
+	apiObj, resp, err := c.c.CheckRepoTeam(orgName, repo, teamName)
 	if err != nil {
-		return nil, handleHTTPError(res, err)
+		return nil, handleHTTPError(resp, err)
 	}
 
 	return &apiObj.Permission, nil
 }
 
+// ListRepoTeams returns all teams of the given repository.
 func (c *giteaClientImpl) ListRepoTeams(ctx context.Context, orgName, repo string) ([]*gitea.Team, error) {
-	teamObjs, err := c.ListOrgTeams(ctx, orgName)
+	teamObjs, resp, err := c.c.GetRepoTeams(orgName, repo)
 	if err != nil {
-		return nil, err
+		return nil, handleHTTPError(resp, err)
 	}
-	apiObjs := []*gitea.Team{}
-	for _, teamObj := range teamObjs {
-		teamRepo, _, checkErr := c.c.CheckRepoTeam(orgName, repo, teamObj.Name)
-		if checkErr != nil {
-			continue
-		}
-		if teamRepo != nil {
-			apiObjs = append(apiObjs, teamRepo)
-		}
-	}
-	return apiObjs, nil
+	return teamObjs, nil
 }
 
+// AddTeam adds the given team to the given repository.
 func (c *giteaClientImpl) AddTeam(_ context.Context, orgName, repo, teamName string, permission gitprovider.RepositoryPermission) error {
 	res, err := c.c.AddRepoTeam(orgName, repo, teamName)
 	return handleHTTPError(res, err)
 }
 
+// RemoveTeam removes the given team from the given repository.
 func (c *giteaClientImpl) RemoveTeam(_ context.Context, orgName, repo, teamName string) error {
 	res, err := c.c.RemoveRepoTeam(orgName, repo, teamName)
 	return handleHTTPError(res, err)

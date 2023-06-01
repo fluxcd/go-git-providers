@@ -41,10 +41,12 @@ type deployKey struct {
 	c *DeployKeyClient
 }
 
+// Get returns the deploy key information.
 func (dk *deployKey) Get() gitprovider.DeployKeyInfo {
 	return deployKeyFromAPI(&dk.k)
 }
 
+// Set sets the deploy key information.
 func (dk *deployKey) Set(info gitprovider.DeployKeyInfo) error {
 	if err := info.ValidateInfo(); err != nil {
 		return err
@@ -53,10 +55,12 @@ func (dk *deployKey) Set(info gitprovider.DeployKeyInfo) error {
 	return nil
 }
 
+// APIObject returns the underlying API object.
 func (dk *deployKey) APIObject() interface{} {
 	return &dk.k
 }
 
+// Repository returns the repository that this deploy key belongs to.
 func (dk *deployKey) Repository() gitprovider.RepositoryRef {
 	return dk.c.ref
 }

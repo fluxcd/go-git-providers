@@ -86,11 +86,13 @@ var _ = Describe("Gitea Provider", func() {
 	It("should be possible to add org repo to 20 teams", func() {
 		testOrgRef := newOrgRef(testOrgName)
 		testOrg, err := c.Organizations().Get(ctx, testOrgRef)
+		Expect(err).ToNot(HaveOccurred())
 		testOrgRepoRef := newOrgRepoRef(testOrgName, testOrgRepoName)
 		testOrgRepos, err := c.OrgRepositories().Get(ctx, testOrgRepoRef)
-		ta, err := testOrgRepos.TeamAccess().Get(ctx, "Owners")
-		teamsClient := testOrg.Teams()
 		Expect(err).ToNot(HaveOccurred())
+		ta, err := testOrgRepos.TeamAccess().Get(ctx, "Owners")
+		Expect(err).ToNot(HaveOccurred())
+		teamsClient := testOrg.Teams()
 		ownerTaInfo := ta.Get()
 		for i := 0; i < 10; i++ {
 			newTeamName := fmt.Sprintf("test-team-%d", i+1)

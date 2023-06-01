@@ -132,12 +132,11 @@ func handleHTTPError(res *gitea.Response, err error) error {
 func allPages(opts *gitea.ListOptions, fn func() (*gitea.Response, error)) error {
 	opts.Page = 1
 	for {
-
 		resp, err := fn()
 		if err != nil {
 			return handleHTTPError(resp, err)
 		}
-		if resp == nil {
+		if resp == nil || resp.Header.Get("Link") == "" {
 			return nil
 		}
 		opts.Page += 1

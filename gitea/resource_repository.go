@@ -68,12 +68,15 @@ type userRepository struct {
 	branches     *BranchClient
 	pullRequests *PullRequestClient
 	files        *FileClient
+	trees        *TreeClient
 }
 
+// Get returns the repository information.
 func (r *userRepository) Get() gitprovider.RepositoryInfo {
 	return repositoryFromAPI(&r.r)
 }
 
+// Set sets the repository information.
 func (r *userRepository) Set(info gitprovider.RepositoryInfo) error {
 	if err := info.ValidateInfo(); err != nil {
 		return err
@@ -82,32 +85,50 @@ func (r *userRepository) Set(info gitprovider.RepositoryInfo) error {
 	return nil
 }
 
+// APIObject returns the underlying API object.
 func (r *userRepository) APIObject() interface{} {
 	return &r.r
 }
 
+// Repository returns the repository reference.
 func (r *userRepository) Repository() gitprovider.RepositoryRef {
 	return r.ref
 }
 
+// DeployKeys returns the deploy key client.
 func (r *userRepository) DeployKeys() gitprovider.DeployKeyClient {
 	return r.deployKeys
 }
 
+// DeployTokens returns the deploy token client.
+// ErrNoProviderSupport is returned as the provider does not support deploy tokens.
+func (r *userRepository) DeployTokens() (gitprovider.DeployTokenClient, error) {
+	return nil, gitprovider.ErrNoProviderSupport
+}
+
+// Commits returns the commit client.
 func (r *userRepository) Commits() gitprovider.CommitClient {
 	return r.commits
 }
 
+// Branches returns the branch client.
 func (r *userRepository) Branches() gitprovider.BranchClient {
 	return r.branches
 }
 
+// PullRequests returns the pull request client.
 func (r *userRepository) PullRequests() gitprovider.PullRequestClient {
 	return r.pullRequests
 }
 
+// Files returns the file client.
 func (r *userRepository) Files() gitprovider.FileClient {
 	return r.files
+}
+
+// Trees returns the tree client.
+func (r *userRepository) Trees() gitprovider.TreeClient {
+	return r.trees
 }
 
 // Update will apply the desired state in this object to the server.
@@ -164,17 +185,11 @@ func (r *userRepository) Update(ctx context.Context) error {
 // The internal API object will be overridden with the received server data if actionTaken == true.
 func (r *userRepository) Reconcile(ctx context.Context) (bool, error) {
 	opts := gitea.CreateRepoOption{
-		Name:        r.r.Name,
-		Description: r.r.Description,
-		Private:     r.r.Private,
-		// IssueLabels:   r.r.IssueLabels,
-		// AutoInit:      r.r.AutoInit,
-		Template: r.r.Template,
-		// Gitignores:    r.r.Gitignores,
-		// License:       r.r.License,
-		// Readme:        r.r.Readme,
+		Name:          r.r.Name,
+		Description:   r.r.Description,
+		Private:       r.r.Private,
+		Template:      r.r.Template,
 		DefaultBranch: r.r.DefaultBranch,
-		// TrustModel:    r.r.TrustModel,
 	}
 	apiObj, err := r.c.GetRepo(ctx, r.ref.GetIdentity(), r.ref.GetRepository())
 	if err != nil {
@@ -232,6 +247,7 @@ type orgRepository struct {
 	teamAccess *TeamAccessClient
 }
 
+// TeamAccess returns the team access client.
 func (r *orgRepository) TeamAccess() gitprovider.TeamAccessClient {
 	return r.teamAccess
 }
@@ -333,6 +349,7 @@ type giteaRepositorySpec struct {
 	*gitea.Repository
 }
 
+// Equals compares two giteaRepositorySpec objects for equality.
 func (s *giteaRepositorySpec) Equals(other *giteaRepositorySpec) bool {
 	return reflect.DeepEqual(s, other)
 }

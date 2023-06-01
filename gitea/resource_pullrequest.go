@@ -36,10 +36,12 @@ type pullrequest struct {
 	pr gitea.PullRequest
 }
 
+// Get returns the pull request information.
 func (pr *pullrequest) Get() gitprovider.PullRequestInfo {
 	return pullrequestFromAPI(&pr.pr)
 }
 
+// APIObject returns the underlying API object.
 func (pr *pullrequest) APIObject() interface{} {
 	return &pr.pr
 }

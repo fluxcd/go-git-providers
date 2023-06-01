@@ -33,7 +33,7 @@ const (
 // NewClient creates a new gitprovider.Client instance for Gitea API endpoints.
 //
 // Gitea Selfhosted can be used if you specify the domain using WithDomain.
-func NewClient(optFns ...gitprovider.ClientOption) (gitprovider.Client, error) {
+func NewClient(token string, optFns ...gitprovider.ClientOption) (gitprovider.Client, error) {
 	// Complete the options struct
 	opts, err := gitprovider.MakeClientOptions(optFns...)
 	if err != nil {
@@ -46,24 +46,17 @@ func NewClient(optFns ...gitprovider.ClientOption) (gitprovider.Client, error) {
 		return nil, err
 	}
 
-	// Create the Gitea client either for the default gitea.com domain, or
-	// a custom enterprise domain if opts.Domain is set to something other than
-	// the default.
-	var gt *gitea.Client
-	var domain string
-
-	// Gitea is primarily self-hosted
-	// using default domain if domain not provided
-	domain = *opts.Domain
-	if opts.Domain == nil || *opts.Domain == DefaultDomain {
-		// No domain set or the default gitea.com used
-		domain = DefaultDomain
+	domain := DefaultDomain
+	if opts.Domain != nil {
+		domain = *opts.Domain
 	}
 	baseURL := domain
 	if !strings.Contains(domain, "://") {
 		baseURL = fmt.Sprintf("https://%s/", domain)
 	}
-	if gt, err = gitea.NewClient(baseURL, gitea.SetHTTPClient(httpClient)); err != nil {
+
+	gt, err := gitea.NewClient(baseURL, gitea.SetHTTPClient(httpClient), gitea.SetToken(token))
+	if err != nil {
 		return nil, err
 	}
 	// By default, turn destructive actions off. But allow overrides.

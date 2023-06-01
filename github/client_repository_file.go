@@ -38,7 +38,6 @@ type FileClient struct {
 // If a file path is given, the contents of the file are returned
 // If a directory path is given, the contents of the files in the path's root are returned
 func (c *FileClient) Get(ctx context.Context, path, branch string, optFns ...gitprovider.FilesGetOption) ([]*gitprovider.CommitFile, error) {
-
 	opts := &github.RepositoryContentGetOptions{
 		Ref: branch,
 	}

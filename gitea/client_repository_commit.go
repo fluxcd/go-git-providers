@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	"code.gitea.io/sdk/gitea"
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
@@ -53,7 +54,7 @@ func (c *CommitClient) ListPage(ctx context.Context, branch string, perPage, pag
 
 func (c *CommitClient) listPage(ctx context.Context, branch string, perPage, page int) ([]*commitType, error) {
 	// GET /repos/{owner}/{repo}/commits
-	apiObjs, err := c.c.ListCommitsPage(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), branch, perPage, page)
+	apiObjs, err := c.c.ListCommits(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), branch, perPage, page)
 	if err != nil {
 		return nil, err
 	}
@@ -68,21 +69,33 @@ func (c *CommitClient) listPage(ctx context.Context, branch string, perPage, pag
 }
 
 // Create creates a commit with the given specifications.
+// This method creates a commit with a single file.
+// TODO: fix when gitea supports creating commits with multiple files
 func (c *CommitClient) Create(ctx context.Context, branch string, message string, files []gitprovider.CommitFile) (gitprovider.Commit, error) {
-
-	if len(files) == 0 {
+	if len(files) == 0 || len(files) > 1 {
 		return nil, fmt.Errorf("no files added")
 	}
 
-	// TODO: fix workaround
-	// Create temp branch
-	// Add files to the branch
-	// Sqash merge the temp branch to target branch
-	// Remove temp branch
-	// make changes locally and push a single commit
-	// opts := gitea.ListCommitOptions{}
-	// _, _, _ := c.c.Client().ListRepoCommits(c.ref.GetIdentity(), c.ref.GetRepository(), opts)
-	// Gitea api currently doesn't yet support creating commits with multiple files/patches
-	// see issue https://github.com/go-gitea/gitea/issues/14619#
-	return nil, fmt.Errorf("gitea doesn't yet support creating commits: %w", gitprovider.ErrNoProviderSupport)
+	resp, err := c.c.CreateCommits(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), *files[0].Path, &gitea.CreateFileOptions{
+		Content: *files[0].Content,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create commit: %w", err)
+	}
+
+	commit := &gitea.Commit{
+		HTMLURL: resp.Commit.HTMLURL,
+		Author: &gitea.User{
+			UserName: resp.Commit.Author.Name,
+			Email:    resp.Commit.Author.Email,
+		},
+		Committer: &gitea.User{
+			UserName: resp.Commit.Committer.Name,
+			Email:    resp.Commit.Committer.Email,
+		},
+		Parents: resp.Commit.Parents,
+	}
+	commit.CommitMeta = &resp.Commit.CommitMeta
+
+	return newCommit(c, commit), nil
 }

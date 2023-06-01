@@ -36,12 +36,9 @@ import (
 )
 
 const (
-	ghTokenFile = "/tmp/gitea-token"
-	giteaDomain = "http://gitea.example.com"
-
+	ghTokenFile        = "/tmp/gitea-token"
 	defaultDescription = "Foo description"
-	// TODO: This will change
-	defaultBranch = "main"
+	defaultBranch      = "main"
 )
 
 var (
@@ -50,10 +47,13 @@ var (
 	ctx                 context.Context = context.Background()
 	c                   gitprovider.Client
 
-	testOrgRepoName  string
-	testUserRepoName string
-	testOrgName      string = "fluxcd-testing"
-	testUser         string = "fluxcd-gitprovider-bot"
+	giteaUser    string
+	giteaDomain  = "http://try.gitea.io"
+	testOrgName  = "go-git-provider-testing"
+	testTeamName = "fluxcd-test-team"
+	// placeholders, will be randomized and created.
+	testOrgRepoName       string
+	testRepoName          string
 )
 
 func init() {
@@ -142,17 +142,25 @@ var _ = Describe("Gitea Provider", func() {
 			}
 		}
 
-		if orgName := os.Getenv("GIT_PROVIDER_ORGANIZATION"); len(orgName) != 0 {
+		if gitProviderUser := os.Getenv("GITEA_USER"); len(gitProviderUser) != 0 {
+			giteaUser = gitProviderUser
+		}
+
+		if giteaDomainVar := os.Getenv("GITEA_DOMAIN"); giteaDomainVar != "" {
+			giteaDomain = giteaDomainVar
+		}
+
+		if orgName := os.Getenv("GIT_PROVIDER_ORGANIZATION"); orgName != "" {
 			testOrgName = orgName
 		}
 
-		if gitProviderUser := os.Getenv("GIT_PROVIDER_USER"); len(gitProviderUser) != 0 {
-			testUser = gitProviderUser
+		if teamName := os.Getenv("GITEA_TEST_TEAM_NAME"); teamName != "" {
+			testTeamName = teamName
 		}
 
 		var err error
 		c, err = NewClient(
-			gitprovider.WithOAuth2Token(giteaToken),
+			giteaToken,
 			gitprovider.WithDomain(giteaDomain),
 			gitprovider.WithDestructiveAPICalls(true),
 			gitprovider.WithConditionalRequests(true),
@@ -160,40 +168,6 @@ var _ = Describe("Gitea Provider", func() {
 		)
 		Expect(err).ToNot(HaveOccurred())
 	})
-
-	cleanupOrgRepos := func(prefix string) {
-		fmt.Fprintf(os.Stderr, "Deleting repos starting with %s in org: %s\n", prefix, testOrgName)
-		repos, err := c.OrgRepositories().List(ctx, newOrgRef(testOrgName))
-		Expect(err).ToNot(HaveOccurred())
-		for _, repo := range repos {
-			// Delete the test org repo used
-			name := repo.Repository().GetRepository()
-			if !strings.HasPrefix(name, prefix) {
-				continue
-			}
-			fmt.Fprintf(os.Stderr, "Deleting the org repo: %s\n", name)
-			repo.Delete(ctx)
-			Expect(err).ToNot(HaveOccurred())
-		}
-	}
-
-	cleanupUserRepos := func(prefix string) {
-		fmt.Fprintf(os.Stderr, "Deleting repos starting with %s for user: %s\n", prefix, testUser)
-		repos, err := c.UserRepositories().List(ctx, newUserRef(testUser))
-		Expect(err).ToNot(HaveOccurred())
-		fmt.Fprintf(os.Stderr, "repos, len: %d\n", len(repos))
-		for _, repo := range repos {
-			fmt.Fprintf(os.Stderr, "repo: %s\n", repo.Repository().GetRepository())
-			name := repo.Repository().GetRepository()
-			if !strings.HasPrefix(name, prefix) {
-				fmt.Fprintf(os.Stderr, "Skipping the org repo: %s\n", name)
-				continue
-			}
-			fmt.Fprintf(os.Stderr, "Deleting the org repo: %s\n", name)
-			repo.Delete(ctx)
-			Expect(err).ToNot(HaveOccurred())
-		}
-	}
 
 	AfterSuite(func() {
 		if os.Getenv("SKIP_CLEANUP") == "1" {
@@ -204,26 +178,45 @@ var _ = Describe("Gitea Provider", func() {
 			return
 		}
 
-		if len(os.Getenv("CLEANUP_ALL")) > 0 {
-			defer cleanupOrgRepos("test-repo")
-			defer cleanupUserRepos("test-repo")
-		}
-
-		// Delete the org test repo used
-		orgRepo, err := c.OrgRepositories().Get(ctx, newOrgRepoRef(testOrgName, testOrgRepoName))
-		if err != nil && len(os.Getenv("CLEANUP_ALL")) > 0 {
-			fmt.Fprintf(os.Stderr, "failed to get repo: %s in org: %s, error: %s\n", testOrgRepoName, testOrgName, err)
-			fmt.Fprintf(os.Stderr, "CLEANUP_ALL set so continuing\n")
-		} else {
-			Expect(err).ToNot(HaveOccurred())
-			Expect(orgRepo.Delete(ctx)).ToNot(HaveOccurred())
-		}
-		// Delete the user test repo used
-		userRepo, err := c.UserRepositories().Get(ctx, newUserRepoRef(testUser, testUserRepoName))
-		Expect(err).ToNot(HaveOccurred())
-		Expect(userRepo.Delete(ctx)).ToNot(HaveOccurred())
+		defer cleanupOrgRepos(ctx, "test-org-repo")
+		defer cleanupOrgRepos(ctx, "test-shared-org-repo")
+		defer cleanupUserRepos(ctx, "test-user-repo")
 	})
 })
+
+func cleanupOrgRepos(ctx context.Context, prefix string) {
+	fmt.Fprintf(os.Stderr, "Deleting repos starting with %s in org: %s\n", prefix, testOrgName)
+	repos, err := c.OrgRepositories().List(ctx, newOrgRef(testOrgName))
+	Expect(err).ToNot(HaveOccurred())
+	for _, repo := range repos {
+		// Delete the test org repo used
+		name := repo.Repository().GetRepository()
+		if !strings.HasPrefix(name, prefix) {
+			continue
+		}
+		fmt.Fprintf(os.Stderr, "Deleting the org repo: %s\n", name)
+		repo.Delete(ctx)
+		Expect(err).ToNot(HaveOccurred())
+	}
+}
+
+func cleanupUserRepos(ctx context.Context, prefix string) {
+	fmt.Fprintf(os.Stderr, "Deleting repos starting with %s for user: %s\n", prefix, giteaUser)
+	repos, err := c.UserRepositories().List(ctx, newUserRef(giteaUser))
+	Expect(err).ToNot(HaveOccurred())
+	fmt.Fprintf(os.Stderr, "repos, len: %d\n", len(repos))
+	for _, repo := range repos {
+		fmt.Fprintf(os.Stderr, "repo: %s\n", repo.Repository().GetRepository())
+		name := repo.Repository().GetRepository()
+		if !strings.HasPrefix(name, prefix) {
+			fmt.Fprintf(os.Stderr, "Skipping the org repo: %s\n", name)
+			continue
+		}
+		fmt.Fprintf(os.Stderr, "Deleting the org repo: %s\n", name)
+		repo.Delete(ctx)
+		Expect(err).ToNot(HaveOccurred())
+	}
+}
 
 func newOrgRef(organizationName string) gitprovider.OrganizationRef {
 	return gitprovider.OrganizationRef{

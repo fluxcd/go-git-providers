@@ -3,6 +3,7 @@ package gitea_test
 import (
 	"context"
 	"fmt"
+	"os"
 
 	gogitea "code.gitea.io/sdk/gitea"
 	"github.com/fluxcd/go-git-providers/gitea"
@@ -12,7 +13,7 @@ import (
 func ExampleOrgRepositoriesClient_Get() {
 	// Create a new client
 	ctx := context.Background()
-	c, err := gitea.NewClient(gitprovider.WithDomain(gitea.DefaultDomain))
+	c, err := gitea.NewClient(os.Getenv("GITEA_ACCESS_TOKEN"), gitprovider.WithDomain(gitea.DefaultDomain))
 	checkErr(err)
 
 	// Parse the URL into an OrgRepositoryRef

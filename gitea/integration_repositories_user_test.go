@@ -46,7 +46,7 @@ var _ = Describe("Gitea Provider", func() {
 		// Expect high-level fields to match their underlying data
 		internal := repo.APIObject().(*gitea.Repository)
 		Expect(repo.Repository().GetRepository()).To(Equal(internal.Name))
-		Expect(repo.Repository().GetIdentity()).To(Equal(testUser))
+		Expect(repo.Repository().GetIdentity()).To(Equal(giteaUser))
 		internalPrivatestr := gitea.VisibleTypePublic
 		if internal.Private {
 			internalPrivatestr = gitea.VisibleTypePrivate
@@ -57,52 +57,48 @@ var _ = Describe("Gitea Provider", func() {
 
 	It("should be possible to create a user repository", func() {
 		// First, check what repositories are available
-		repos, err := c.UserRepositories().List(ctx, newUserRef(testUser))
+		repos, err := c.UserRepositories().List(ctx, newUserRef(giteaUser))
 		Expect(err).ToNot(HaveOccurred())
 
 		// Generate a repository name which doesn't exist already
-		testUserRepoName = fmt.Sprintf("test-repo-%03d", rand.Intn(1000))
-		for findUserRepo(repos, testUserRepoName) != nil {
-			testUserRepoName = fmt.Sprintf("test-repo-%03d", rand.Intn(1000))
+		testRepoName = fmt.Sprintf("test-user-repo-%03d", rand.Intn(1000))
+		for findUserRepo(repos, testRepoName) != nil {
+			testRepoName = fmt.Sprintf("test-user-repo-%03d", rand.Intn(1000))
 		}
 
-		userRepoRef := newUserRepoRef(testUser, testUserRepoName)
-		userRepoInfo := gitprovider.RepositoryInfo{
-			Description: gitprovider.StringVar(defaultDescription),
-			Visibility:  gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
-		}
+		fmt.Print("Creating repository ", testRepoName, "...")
+		repoRef := newUserRepoRef(giteaUser, testRepoName)
 
 		// Check that the repository doesn't exist
-		_, err = c.UserRepositories().Get(ctx, userRepoRef)
-		Expect(errors.Is(err, gitprovider.ErrNotFound)).To(BeTrue())
+		_, err = c.UserRepositories().Get(ctx, repoRef)
+		Expect(err).To(MatchError(gitprovider.ErrNotFound))
 
-		// Create it
-		userRepo, err := c.UserRepositories().Create(ctx, userRepoRef, userRepoInfo, &gitprovider.RepositoryCreateOptions{
+		repoInfo := gitprovider.RepositoryInfo{
+			Description:   gitprovider.StringVar(defaultDescription),
+			Visibility:    gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
+			DefaultBranch: gitprovider.StringVar(defaultBranch),
+		}
+
+		// Create a repository
+		repo, err := c.UserRepositories().Create(ctx, repoRef, repoInfo, &gitprovider.RepositoryCreateOptions{
 			AutoInit:        gitprovider.BoolVar(true),
 			LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateApache2),
 		})
 		Expect(err).ToNot(HaveOccurred())
 
-		// Should not be able to see the repo publicly
-		anonClient, err := NewClient(gitprovider.WithDomain(giteaDomain))
-		Expect(err).ToNot(HaveOccurred())
-		_, err = anonClient.UserRepositories().Get(ctx, userRepoRef)
+		getRepo, err := c.UserRepositories().Get(ctx, repoRef)
 		Expect(errors.Is(err, gitprovider.ErrNotFound)).To(BeTrue())
 
-		var getUserRepo gitprovider.UserRepository
-		Eventually(func() error {
-			getUserRepo, err = c.UserRepositories().Get(ctx, userRepoRef)
-			return err
-		}, 3*time.Second, 1*time.Second).ShouldNot(HaveOccurred())
+		validateUserRepo(repo, getRepo.Repository())
 
 		// Expect the two responses (one from POST and one from GET to have equal "spec")
-		getSpec := newGiteaRepositorySpec(getUserRepo.APIObject().(*gitea.Repository))
-		postSpec := newGiteaRepositorySpec(userRepo.APIObject().(*gitea.Repository))
+		getSpec := newGiteaRepositorySpec(getRepo.APIObject().(*gitea.Repository))
+		postSpec := newGiteaRepositorySpec(repo.APIObject().(*gitea.Repository))
 		Expect(getSpec.Equals(postSpec)).To(BeTrue())
 	})
 
 	It("should error at creation time if the repo already does exist", func() {
-		repoRef := newUserRepoRef(testUser, testUserRepoName)
+		repoRef := newUserRepoRef(giteaUser, testRepoName)
 		_, err := c.UserRepositories().Get(ctx, repoRef)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -111,7 +107,7 @@ var _ = Describe("Gitea Provider", func() {
 	})
 
 	It("should update if the repository already exists when reconciling", func() {
-		repoRef := newUserRepoRef(testUser, testUserRepoName)
+		repoRef := newUserRepoRef(giteaUser, testRepoName)
 		// No-op reconcile
 		resp, actionTaken, err := c.UserRepositories().Reconcile(ctx, repoRef, gitprovider.RepositoryInfo{
 			Description:   gitprovider.StringVar(defaultDescription),
@@ -189,24 +185,26 @@ var _ = Describe("Gitea Provider", func() {
 	})
 
 	It("should be possible to create a pr for a user repository", func() {
+		testRepoName = fmt.Sprintf("test-user-repo2-%03d", rand.Intn(1000))
+		repoRef := newUserRepoRef(giteaUser, testRepoName)
+		description := "test description"
+		// Create a new repo
+		userRepo, err := c.UserRepositories().Create(ctx, repoRef,
+			gitprovider.RepositoryInfo{
+				Description:   &description,
+				Visibility:    gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
+				DefaultBranch: gitprovider.StringVar(defaultBranch),
+			},
+			&gitprovider.RepositoryCreateOptions{
+				AutoInit: gitprovider.BoolVar(true),
+			})
+		Expect(err).ToNot(HaveOccurred())
 
-		userRepoRef := newUserRepoRef(testUser, testUserRepoName)
-
-		var userRepo gitprovider.UserRepository
+		var commits []gitprovider.Commit = []gitprovider.Commit{}
 		retryOp := testutils.NewRetry()
 		Eventually(func() bool {
 			var err error
-			userRepo, err = c.UserRepositories().Get(ctx, userRepoRef)
-			return retryOp.IsRetryable(err, fmt.Sprintf("get user repository: %s", userRepoRef.RepositoryName))
-		}, retryOp.Timeout(), retryOp.Interval()).Should(BeTrue())
-
-		defaultBranch := userRepo.Get().DefaultBranch
-
-		var commits []gitprovider.Commit = []gitprovider.Commit{}
-		retryOp = testutils.NewRetry()
-		Eventually(func() bool {
-			var err error
-			commits, err = userRepo.Commits().ListPage(ctx, *defaultBranch, 1, 0)
+			commits, err = userRepo.Commits().ListPage(ctx, defaultBranch, 1, 0)
 			if err == nil && len(commits) == 0 {
 				err = errors.New("empty commits list")
 			}
@@ -216,72 +214,81 @@ var _ = Describe("Gitea Provider", func() {
 		latestCommit := commits[0]
 
 		branchName := fmt.Sprintf("test-branch-%03d", rand.Intn(1000))
+		branchName2 := fmt.Sprintf("test-branch-%03d", rand.Intn(1000))
 
-		err := userRepo.Branches().Create(ctx, branchName, latestCommit.Get().Sha)
+		err = userRepo.Branches().Create(ctx, branchName, latestCommit.Get().Sha)
 		Expect(err).ToNot(HaveOccurred())
 
-		err = userRepo.Branches().Create(ctx, branchName, "wrong-sha")
+		err = userRepo.Branches().Create(ctx, branchName2, "wrong-sha")
 		Expect(err).To(HaveOccurred())
 
-		// Disabling commit creation/pr creation test until upstream support is enabled
 		// see issue https://github.com/go-gitea/gitea/issues/14619#
-		// path := "setup/config.txt"
-		// content := "yaml content"
-		// files := []gitprovider.CommitFile{
-		// 	{
-		// 		Path:    &path,
-		// 		Content: &content,
-		// 	},
-		// }
-		// _, err = userRepo.Commits().Create(ctx, branchName, "added config file", files)
-		// Expect(err).ToNot(HaveOccurred())
+		path := "setup/config.txt"
+		content := "yaml content"
+		files := []gitprovider.CommitFile{
+			{
+				Path:    &path,
+				Content: &content,
+			},
+		}
+		_, err = userRepo.Commits().Create(ctx, branchName, "added config file", files)
+		Expect(err).ToNot(HaveOccurred())
 
-		// pr, err := userRepo.PullRequests().Create(ctx, "Added config file", branchName, *defaultBranch, "added config file")
-		// Expect(err).ToNot(HaveOccurred())
-		// Expect(pr.Get().WebURL).ToNot(BeEmpty())
-		// Expect(pr.Get().Merged).To(BeFalse())
+		pr, err := userRepo.PullRequests().Create(ctx, "Added config file", branchName, defaultBranch, "added config file")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(pr.Get().WebURL).ToNot(BeEmpty())
+		Expect(pr.Get().Merged).To(BeFalse())
 
-		// prs, err := userRepo.PullRequests().List(ctx)
-		// Expect(len(prs)).To(Equal(1))
-		// Expect(prs[0].Get().WebURL).To(Equal(pr.Get().WebURL))
+		prs, err := userRepo.PullRequests().List(ctx)
+		Expect(len(prs)).To(Equal(1))
+		Expect(prs[0].Get().WebURL).To(Equal(pr.Get().WebURL))
 
-		// err = userRepo.PullRequests().Merge(ctx, pr.Get().Number, gitprovider.MergeMethodSquash, "squash merged")
-		// Expect(err).ToNot(HaveOccurred())
+		err = userRepo.PullRequests().Merge(ctx, pr.Get().Number, gitprovider.MergeMethodSquash, "squash merged")
+		Expect(err).ToNot(HaveOccurred())
 
-		// getPR, err := userRepo.PullRequests().Get(ctx, pr.Get().Number)
-		// Expect(err).ToNot(HaveOccurred())
+		getPR, err := userRepo.PullRequests().Get(ctx, pr.Get().Number)
+		Expect(err).ToNot(HaveOccurred())
 
-		// Expect(getPR.Get().Merged).To(BeTrue())
+		Expect(getPR.Get().Merged).To(BeTrue())
 
-		// path = "setup/config2.txt"
-		// content = "yaml content"
-		// files = []gitprovider.CommitFile{
-		// 	{
-		// 		Path:    &path,
-		// 		Content: &content,
-		// 	},
-		// }
+		path = "setup/config2.txt"
+		content = "yaml content"
+		files = []gitprovider.CommitFile{
+			{
+				Path:    &path,
+				Content: &content,
+			},
+		}
 
-		// _, err = userRepo.Commits().Create(ctx, branchName, "added second config file", files)
-		// Expect(err).ToNot(HaveOccurred())
+		_, err = userRepo.Commits().Create(ctx, branchName, "added second config file", files)
+		Expect(err).ToNot(HaveOccurred())
 
-		// pr, err = userRepo.PullRequests().Create(ctx, "Added second config file", branchName, *defaultBranch, "added second config file")
-		// Expect(err).ToNot(HaveOccurred())
-		// Expect(pr.Get().WebURL).ToNot(BeEmpty())
-		// Expect(pr.Get().Merged).To(BeFalse())
+		pr, err = userRepo.PullRequests().Create(ctx, "Added second config file", branchName, defaultBranch, "added second config file")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(pr.Get().WebURL).ToNot(BeEmpty())
+		Expect(pr.Get().Merged).To(BeFalse())
 
-		// err = userRepo.PullRequests().Merge(ctx, pr.Get().Number, gitprovider.MergeMethodMerge, "merged")
-		// Expect(err).ToNot(HaveOccurred())
+		err = userRepo.PullRequests().Merge(ctx, pr.Get().Number, gitprovider.MergeMethodMerge, "merged")
+		Expect(err).ToNot(HaveOccurred())
 
-		// getPR, err = userRepo.PullRequests().Get(ctx, pr.Get().Number)
-		// Expect(err).ToNot(HaveOccurred())
+		getPR, err = userRepo.PullRequests().Get(ctx, pr.Get().Number)
+		Expect(err).ToNot(HaveOccurred())
 
-		// Expect(getPR.Get().Merged).To(BeTrue())
+		Expect(getPR.Get().Merged).To(BeTrue())
 	})
 
 	It("should be possible to download files from path and branch specified", func() {
+		testRepoName = fmt.Sprintf("test-repo-tree-%03d", rand.Intn(1000))
+		userRepoRef := newUserRepoRef(giteaUser, testRepoName)
+		repo, err := c.UserRepositories().Create(ctx, userRepoRef, gitprovider.RepositoryInfo{
+			DefaultBranch: gitprovider.StringVar(defaultBranch),
+			Description:   gitprovider.StringVar(defaultDescription),
+		}, &gitprovider.RepositoryCreateOptions{
+			AutoInit: gitprovider.BoolVar(false),
+		})
+		Expect(err).ToNot(HaveOccurred())
 
-		userRepoRef := newUserRepoRef(testUser, testUserRepoName)
+		validateUserRepo(repo, userRepoRef)
 
 		userRepo, err := c.UserRepositories().Get(ctx, userRepoRef)
 		Expect(err).ToNot(HaveOccurred())
@@ -289,34 +296,32 @@ var _ = Describe("Gitea Provider", func() {
 		defaultBranch := userRepo.Get().DefaultBranch
 
 		// see commit/pr issue above https://github.com/go-gitea/gitea/issues/14619#
-		// path0 := "cluster/machine1.yaml"
-		// content0 := "machine1 yaml content"
-		// path1 := "cluster/machine2.yaml"
-		// content1 := "machine2 yaml content"
+		path0 := "cluster/machine1.yaml"
+		content0 := "machine1 yaml content"
+		path1 := "cluster/machine2.yaml"
+		content1 := "machine2 yaml content"
 
-		// files := []gitprovider.CommitFile{
-		// 	{
-		// 		Path:    &path0,
-		// 		Content: &content0,
-		// 	},
-		// 	{
-		// 		Path:    &path1,
-		// 		Content: &content1,
-		// 	},
-		// }
+		// first commit
+		cf := []gitprovider.CommitFile{
+			{
+				Path:    &path0,
+				Content: &content0,
+			},
+		}
 
-		// commitFiles := make([]gitprovider.CommitFile, 0)
-		// for _, file := range files {
-		// 	path := file.Path
-		// 	content := file.Content
-		// 	commitFiles = append(commitFiles, gitprovider.CommitFile{
-		// 		Path:    path,
-		// 		Content: content,
-		// 	})
-		// }
+		_, err = userRepo.Commits().Create(ctx, *defaultBranch, "added config files", cf)
+		Expect(err).ToNot(HaveOccurred())
 
-		// _, err = userRepo.Commits().Create(ctx, *defaultBranch, "added config files", commitFiles)
-		// Expect(err).ToNot(HaveOccurred())
+		// second commit
+		cf = []gitprovider.CommitFile{
+			{
+				Path:    &path1,
+				Content: &content1,
+			},
+		}
+
+		_, err = userRepo.Commits().Create(ctx, *defaultBranch, "added config files", cf)
+		Expect(err).ToNot(HaveOccurred())
 
 		downloadedFiles, err := userRepo.Files().Get(ctx, "cluster", *defaultBranch)
 		Expect(err).ToNot(HaveOccurred())

@@ -18,6 +18,7 @@ package gitea
 
 import (
 	"context"
+	"fmt"
 
 	"code.gitea.io/sdk/gitea"
 	"github.com/fluxcd/go-git-providers/gitprovider"
@@ -36,7 +37,6 @@ type PullRequestClient struct {
 func (c *PullRequestClient) List(ctx context.Context) ([]gitprovider.PullRequest, error) {
 	opts := gitea.ListPullRequestsOptions{}
 	prs, _, err := c.c.Client().ListRepoPullRequests(c.ref.GetIdentity(), c.ref.GetRepository(), opts)
-	// prs, _, err := c.c.Client().PullRequests.List(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,6 @@ func (c *PullRequestClient) List(ctx context.Context) ([]gitprovider.PullRequest
 
 // Create creates a pull request with the given specifications.
 func (c *PullRequestClient) Create(ctx context.Context, title, branch, baseBranch, description string) (gitprovider.PullRequest, error) {
-
 	prOpts := gitea.CreatePullRequestOption{
 		Title: title,
 	}
@@ -68,7 +67,6 @@ func (c *PullRequestClient) Create(ctx context.Context, title, branch, baseBranc
 // Get retrieves an existing pull request by number
 func (c *PullRequestClient) Get(ctx context.Context, number int) (gitprovider.PullRequest, error) {
 	pr, _, err := c.c.Client().GetPullRequest(c.ref.GetIdentity(), c.ref.GetRepository(), int64(number))
-	// pr, _, err := c.c.Client().PullRequests.Get()
 	if err != nil {
 		return nil, err
 	}
@@ -76,18 +74,31 @@ func (c *PullRequestClient) Get(ctx context.Context, number int) (gitprovider.Pu
 	return newPullRequest(c.clientContext, pr), nil
 }
 
+// Edit modifies an existing PR. Please refer to "EditOptions" for details on which data can be edited.
+func (c *PullRequestClient) Edit(ctx context.Context, number int, opts gitprovider.EditOptions) (gitprovider.PullRequest, error) {
+	editPR := gitea.EditPullRequestOption{}
+	editPR.Title = *opts.Title
+	editedPR, _, err := c.c.Client().EditPullRequest(c.ref.GetIdentity(), c.ref.GetRepository(), int64(number), editPR)
+	if err != nil {
+		return nil, err
+	}
+	return newPullRequest(c.clientContext, editedPR), nil
+}
+
 // Merge merges a pull request with the given specifications.
 func (c *PullRequestClient) Merge(ctx context.Context, number int, mergeMethod gitprovider.MergeMethod, message string) error {
-
 	mergeOpts := gitea.MergePullRequestOption{
 		Style:   gitea.MergeStyle(mergeMethod),
 		Message: message,
 	}
 
-	_, _, err := c.c.Client().MergePullRequest(c.ref.GetIdentity(), c.ref.GetRepository(), int64(number), mergeOpts)
-
+	done, resp, err := c.c.Client().MergePullRequest(c.ref.GetIdentity(), c.ref.GetRepository(), int64(number), mergeOpts)
 	if err != nil {
-		return err
+		return handleHTTPError(resp, err)
+	}
+
+	if !done {
+		return fmt.Errorf("merge failed")
 	}
 
 	return nil

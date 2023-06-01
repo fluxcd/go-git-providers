@@ -36,10 +36,12 @@ type commitType struct {
 	c *CommitClient
 }
 
+// Get returns the commit information.
 func (c *commitType) Get() gitprovider.CommitInfo {
 	return commitFromAPI(&c.k)
 }
 
+// APIObject returns the underlying API object.
 func (c *commitType) APIObject() interface{} {
 	return &c.k
 }

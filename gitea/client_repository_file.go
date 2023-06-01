@@ -18,6 +18,7 @@ package gitea
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
@@ -31,12 +32,39 @@ type FileClient struct {
 	ref gitprovider.RepositoryRef
 }
 
-// Get fetches and returns the contents of a file from a given branch and path
-func (c *FileClient) Get(ctx context.Context, path, branch string) ([]*gitprovider.CommitFile, error) {
+// Get fetches and returns the contents of a file or multiple files in a directory from a given branch and path.
+// If a file path is given, the contents of the file are returned
+// If a directory path is given, the contents of the files in the path's root are returned
+func (c *FileClient) Get(ctx context.Context, path, branch string, optFns ...gitprovider.FilesGetOption) ([]*gitprovider.CommitFile, error) {
+	fileOpts := gitprovider.FilesGetOptions{}
+	for _, opt := range optFns {
+		opt.ApplyFilesGetOptions(&fileOpts)
+	}
 
-	// TODO: Fix actual API
+	listFiles, _, err := c.c.Client().ListContents(c.ref.GetIdentity(), c.ref.GetRepository(), branch, path)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(listFiles) == 0 {
+		return nil, fmt.Errorf("no files found on this path[%s]", path)
+	}
 
 	files := make([]*gitprovider.CommitFile, 0)
-
+	for _, file := range listFiles {
+		if file.Type != "file" {
+			continue
+		}
+		filePath := file.Path
+		fileBytes, _, err := c.c.Client().GetFile(c.ref.GetIdentity(), c.ref.GetRepository(), branch, filePath)
+		if err != nil {
+			return nil, err
+		}
+		fileStr := string(fileBytes)
+		files = append(files, &gitprovider.CommitFile{
+			Path:    &filePath,
+			Content: &fileStr,
+		})
+	}
 	return files, nil
 }

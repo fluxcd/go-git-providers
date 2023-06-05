@@ -100,7 +100,7 @@ func (dk *deployKey) Delete(ctx context.Context) error {
 //
 // The internal API object will be overridden with the received server data if actionTaken == true.
 func (dk *deployKey) Reconcile(ctx context.Context) (bool, error) {
-	actual, err := dk.c.get(ctx, dk.k.Key)
+	actual, err := dk.c.get(ctx, dk.k.Title)
 	if err != nil {
 		// Create if not found
 		if errors.Is(err, gitprovider.ErrNotFound) {

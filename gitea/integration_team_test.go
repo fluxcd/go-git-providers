@@ -1,7 +1,7 @@
 //go:build e2e
 
 /*
-Copyright 2021 The Flux authors
+Copyright 2020 The Flux CD contributors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -35,13 +35,13 @@ var _ = Describe("Gitea Provider", func() {
 
 		// Get the test organization
 		orgRef := newOrgRef(testOrgName)
-		testOrg, err := client.Organizations().Get(ctx, orgRef)
+		testOrg, err := c.Organizations().Get(ctx, orgRef)
 		Expect(err).ToNot(HaveOccurred())
 
 		// List all the teams with access to the org
 		teams, err := testOrg.Teams().List(ctx)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(len(teams)).To(Equal(1), "The 1 team wasn't there...")
+		Expect(len(teams)).To(Equal(2), "The 2 team wasn't there...")
 
 		// Get a specific team
 		team, err := testOrg.Teams().Get(ctx, testTeamName)

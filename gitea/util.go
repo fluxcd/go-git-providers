@@ -119,6 +119,12 @@ func handleHTTPError(res *gitea.Response, err error) error {
 		if httpErr.Response.StatusCode == http.StatusConflict {
 			return validation.NewMultiError(err, gitprovider.ErrAlreadyExists)
 		}
+
+		// Check 422 Unprocessable Entity for already exists
+		if httpErr.Response.StatusCode == http.StatusUnprocessableEntity {
+			return validation.NewMultiError(err, gitprovider.ErrAlreadyExists)
+		}
+
 		return validation.NewMultiError(err, &httpErr)
 	}
 	// Do nothing, just pipe through the unknown err

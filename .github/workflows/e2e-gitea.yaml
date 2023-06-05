@@ -1,5 +1,5 @@
 ---
-name: e2e-gitlab
+name: e2e-gitea
 
 "on":
   workflow_dispatch:
@@ -28,9 +28,11 @@ jobs:
         with:
           go-version: 1.20.x
       - name: Start Provider instances
-        run: make start-provider-instances-gitlab GITLAB_VERSION=latest
-      - name: Run tests [gitlab]
-        run: make test-e2e-gitlab
+        run: make start-provider-instances-gitea GITEA_VERSION=latest
+      - name: Run tests [gitea]
+        run: |
+          export GITEA_TOKEN=$(cat /tmp/gitea-token)
+          make test-e2e-gitea
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
         with:

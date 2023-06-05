@@ -78,6 +78,10 @@ func (c *CommitClient) Create(ctx context.Context, branch string, message string
 
 	resp, err := c.c.CreateCommits(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), *files[0].Path, &gitea.CreateFileOptions{
 		Content: *files[0].Content,
+		FileOptions: gitea.FileOptions{
+			Message:    message,
+			BranchName: branch,
+		},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create commit: %w", err)

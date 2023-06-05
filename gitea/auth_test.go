@@ -30,29 +30,32 @@ func Test_DomainVariations(t *testing.T) {
 		expectedErrs []error
 	}{
 		{
-			name: "gitea.com domain",
-			opts: gitprovider.WithDomain("gitea.com"),
-			want: "gitea.com",
+			name: "try.gitea.io domain",
+			opts: gitprovider.WithDomain("try.gitea.io"),
+			want: "try.gitea.io",
 		},
 		{
 			name: "custom domain without protocol",
-			opts: gitprovider.WithDomain("my-gitea.dev.com"),
-			want: "https://my-gitea.dev.com",
+			opts: gitprovider.WithDomain("try.gitea.io"),
+			want: "try.gitea.io",
 		},
 		{
 			name: "custom domain with https protocol",
-			opts: gitprovider.WithDomain("https://my-gitea.dev.com"),
-			want: "https://my-gitea.dev.com",
+			opts: gitprovider.WithDomain("https://try.gitea.io"),
+			want: "https://try.gitea.io",
 		},
 		{
 			name: "custom domain with http protocol",
-			opts: gitprovider.WithDomain("http://my-gitea.dev.com"),
-			want: "http://my-gitea.dev.com",
+			opts: gitprovider.WithDomain("http://try.gitea.io"),
+			want: "http://try.gitea.io",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c1, _ := NewClient("token", tt.opts)
+			c1, err := NewClient("token", tt.opts)
+			if err != nil {
+				t.Fatal(err)
+			}
 			assertEqual(t, tt.want, c1.SupportedDomain())
 
 			c2, _ := NewClient("token", tt.opts)

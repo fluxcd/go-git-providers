@@ -33,13 +33,14 @@ type BranchClient struct {
 }
 
 // Create creates a branch with the given specifications.
+// Creating a branch from a commit is noy supported by Gitea.
+// see: https://github.com/go-gitea/gitea/issues/22139
 func (c *BranchClient) Create(ctx context.Context, branch, sha string) error {
 
 	// Doesn't seem to support specific sha?
 	opts := gitea.CreateBranchOption{
-		BranchName: branch,
-		// TODO: Explore branching from given SHA
-		// OldBranchName: sha,
+		BranchName:    branch,
+		OldBranchName: sha,
 	}
 	err := opts.Validate()
 	if err != nil {

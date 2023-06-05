@@ -1,3 +1,5 @@
+//go:build e2e
+
 /*
 Copyright 2020 The Flux CD contributors.
 
@@ -18,6 +20,7 @@ package gitea
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -87,7 +90,7 @@ var _ = Describe("Gitea Provider", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		getRepo, err := c.UserRepositories().Get(ctx, repoRef)
-		Expect(errors.Is(err, gitprovider.ErrNotFound)).To(BeTrue())
+		Expect(err).ToNot(HaveOccurred())
 
 		validateUserRepo(repo, getRepo.Repository())
 
@@ -212,19 +215,20 @@ var _ = Describe("Gitea Provider", func() {
 		}, retryOp.Timeout(), retryOp.Interval()).Should(BeTrue())
 
 		latestCommit := commits[0]
+		fmt.Println("latest commit sha: ", latestCommit.Get().Sha)
 
 		branchName := fmt.Sprintf("test-branch-%03d", rand.Intn(1000))
 		branchName2 := fmt.Sprintf("test-branch-%03d", rand.Intn(1000))
 
-		err = userRepo.Branches().Create(ctx, branchName, latestCommit.Get().Sha)
-		Expect(err).ToNot(HaveOccurred())
-
 		err = userRepo.Branches().Create(ctx, branchName2, "wrong-sha")
 		Expect(err).To(HaveOccurred())
 
+		err = userRepo.Branches().Create(ctx, branchName, defaultBranch)
+		Expect(err).ToNot(HaveOccurred())
+
 		// see issue https://github.com/go-gitea/gitea/issues/14619#
 		path := "setup/config.txt"
-		content := "yaml content"
+		content := base64.StdEncoding.EncodeToString([]byte("yaml content"))
 		files := []gitprovider.CommitFile{
 			{
 				Path:    &path,
@@ -240,6 +244,7 @@ var _ = Describe("Gitea Provider", func() {
 		Expect(pr.Get().Merged).To(BeFalse())
 
 		prs, err := userRepo.PullRequests().List(ctx)
+		Expect(err).ToNot(HaveOccurred())
 		Expect(len(prs)).To(Equal(1))
 		Expect(prs[0].Get().WebURL).To(Equal(pr.Get().WebURL))
 
@@ -252,7 +257,7 @@ var _ = Describe("Gitea Provider", func() {
 		Expect(getPR.Get().Merged).To(BeTrue())
 
 		path = "setup/config2.txt"
-		content = "yaml content"
+		content = base64.StdEncoding.EncodeToString([]byte("yaml content"))
 		files = []gitprovider.CommitFile{
 			{
 				Path:    &path,
@@ -297,9 +302,9 @@ var _ = Describe("Gitea Provider", func() {
 
 		// see commit/pr issue above https://github.com/go-gitea/gitea/issues/14619#
 		path0 := "cluster/machine1.yaml"
-		content0 := "machine1 yaml content"
+		content0 := base64.StdEncoding.EncodeToString([]byte("machine1 yaml content"))
 		path1 := "cluster/machine2.yaml"
-		content1 := "machine2 yaml content"
+		content1 := base64.StdEncoding.EncodeToString([]byte("machine2 yaml content"))
 
 		// first commit
 		cf := []gitprovider.CommitFile{
@@ -326,11 +331,11 @@ var _ = Describe("Gitea Provider", func() {
 		downloadedFiles, err := userRepo.Files().Get(ctx, "cluster", *defaultBranch)
 		Expect(err).ToNot(HaveOccurred())
 
-		for ind, downloadedFile := range downloadedFiles {
-			// Expect(*downloadedFile).To(Equal(files[ind]))
+		for _, downloadedFile := range downloadedFiles {
 			Expect(*downloadedFile).ToNot(BeNil())
-			Expect(ind).ToNot(BeZero())
 		}
+
+		Expect(len(downloadedFiles)).To(Equal(2))
 
 	})
 })

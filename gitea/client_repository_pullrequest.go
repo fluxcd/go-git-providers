@@ -53,7 +53,10 @@ func (c *PullRequestClient) List(ctx context.Context) ([]gitprovider.PullRequest
 // Create creates a pull request with the given specifications.
 func (c *PullRequestClient) Create(ctx context.Context, title, branch, baseBranch, description string) (gitprovider.PullRequest, error) {
 	prOpts := gitea.CreatePullRequestOption{
+		Base:  baseBranch,
 		Title: title,
+		Head:  branch,
+		Body:  description,
 	}
 	pr, _, err := c.c.Client().CreatePullRequest(c.ref.GetIdentity(), c.ref.GetRepository(), prOpts)
 
@@ -86,6 +89,7 @@ func (c *PullRequestClient) Edit(ctx context.Context, number int, opts gitprovid
 }
 
 // Merge merges a pull request with the given specifications.
+// Supported merge methods are: MergeMethodMerge, MergeMethodRebase, MergeMethodSquash
 func (c *PullRequestClient) Merge(ctx context.Context, number int, mergeMethod gitprovider.MergeMethod, message string) error {
 	mergeOpts := gitea.MergePullRequestOption{
 		Style:   gitea.MergeStyle(mergeMethod),

@@ -89,8 +89,6 @@ type giteaClient interface {
 	// RemoveTeam is a wrapper for "DELETE /repos/{owner}/{repo}/teams/{team_slug}".
 	// This function handles HTTP error wrapping.
 	RemoveTeam(ctx context.Context, orgName, repo, teamName string) error
-
-	//
 }
 
 type giteaClientImpl struct {
@@ -324,10 +322,20 @@ func (c *giteaClientImpl) ListCommits(_ context.Context, owner, repo, branch str
 		},
 		SHA: branch,
 	}
-	apiObjs, _, listErr := c.c.ListRepoCommits(owner, repo, opts)
-	if listErr != nil {
-		return nil, listErr
+	apiObjs := []*gitea.Commit{}
+	err := allPages(&opts.ListOptions, func() (*gitea.Response, error) {
+		pageObjs, resp, listErr := c.c.ListRepoCommits(owner, repo, opts)
+		if len(pageObjs) > 0 {
+			apiObjs = append(apiObjs, pageObjs...)
+			return resp, listErr
+		}
+		return nil, nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
+
 	return apiObjs, nil
 }
 
@@ -365,6 +373,9 @@ func (c *giteaClientImpl) GetTeamPermissions(_ context.Context, orgName, repo, t
 	if err != nil {
 		return nil, handleHTTPError(resp, err)
 	}
+	if apiObj == nil {
+		return nil, fmt.Errorf("team %s not found in repository %s/%s", teamName, orgName, repo)
+	}
 
 	return &apiObj.Permission, nil
 }
@@ -379,6 +390,8 @@ func (c *giteaClientImpl) ListRepoTeams(ctx context.Context, orgName, repo strin
 }
 
 // AddTeam adds the given team to the given repository.
+// We don't support setting permissions for Gitea, so we ignore the permission parameter.
+// see https://github.com/go-gitea/gitea/issues/14717
 func (c *giteaClientImpl) AddTeam(_ context.Context, orgName, repo, teamName string, permission gitprovider.RepositoryPermission) error {
 	res, err := c.c.AddRepoTeam(orgName, repo, teamName)
 	return handleHTTPError(res, err)

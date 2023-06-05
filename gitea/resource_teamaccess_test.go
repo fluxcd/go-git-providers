@@ -15,3 +15,43 @@ limitations under the License.
 */
 
 package gitea
+
+import (
+	"reflect"
+	"testing"
+
+	"code.gitea.io/sdk/gitea"
+	"github.com/fluxcd/go-git-providers/gitprovider"
+)
+
+func Test_getGitProviderPermission(t *testing.T) {
+	tests := []struct {
+		name       string
+		permission gitea.AccessMode
+		want       *gitprovider.RepositoryPermission
+	}{
+		{
+			name:       "pull",
+			permission: gitea.AccessModeRead,
+			want:       gitprovider.RepositoryPermissionVar(gitprovider.RepositoryPermissionPull),
+		},
+		{
+			name:       "push",
+			permission: gitea.AccessModeWrite,
+			want:       gitprovider.RepositoryPermissionVar(gitprovider.RepositoryPermissionPush),
+		},
+		{
+			name:       "admin",
+			permission: gitea.AccessModeAdmin,
+			want:       gitprovider.RepositoryPermissionVar(gitprovider.RepositoryPermissionAdmin),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotPermission := getProviderPermission(tt.permission)
+			if !reflect.DeepEqual(gotPermission, tt.want) {
+				t.Errorf("getPermissionFromMap() = %v, want %v", gotPermission, tt.want)
+			}
+		})
+	}
+}

@@ -1,3 +1,5 @@
+//go:build e2e
+
 /*
 Copyright 2020 The Flux CD contributors.
 
@@ -48,10 +50,11 @@ var (
 	c                   gitprovider.Client
 
 	giteaUser    string
-	giteaDomain  = "http://try.gitea.io"
-	testOrgName  = "go-git-provider-testing"
-	testTeamName = "fluxcd-test-team"
+	giteaBaseUrl = "http://try.gitea.io"
+	testOrgName  = "fluxcd-testing"
+	testTeamName = "fluxcd-testing-2"
 	// placeholders, will be randomized and created.
+	testSharedOrgRepoName string
 	testOrgRepoName       string
 	testRepoName          string
 )
@@ -146,8 +149,8 @@ var _ = Describe("Gitea Provider", func() {
 			giteaUser = gitProviderUser
 		}
 
-		if giteaDomainVar := os.Getenv("GITEA_DOMAIN"); giteaDomainVar != "" {
-			giteaDomain = giteaDomainVar
+		if giteaBaseUrlVar := os.Getenv("GITEA_BASE_URL"); giteaBaseUrlVar != "" {
+			giteaBaseUrl = giteaBaseUrlVar
 		}
 
 		if orgName := os.Getenv("GIT_PROVIDER_ORGANIZATION"); orgName != "" {
@@ -161,7 +164,7 @@ var _ = Describe("Gitea Provider", func() {
 		var err error
 		c, err = NewClient(
 			giteaToken,
-			gitprovider.WithDomain(giteaDomain),
+			gitprovider.WithDomain(giteaBaseUrl),
 			gitprovider.WithDestructiveAPICalls(true),
 			gitprovider.WithConditionalRequests(true),
 			gitprovider.WithPreChainTransportHook(customTransportFactory),
@@ -181,6 +184,7 @@ var _ = Describe("Gitea Provider", func() {
 		defer cleanupOrgRepos(ctx, "test-org-repo")
 		defer cleanupOrgRepos(ctx, "test-shared-org-repo")
 		defer cleanupUserRepos(ctx, "test-user-repo")
+		defer cleanupUserRepos(ctx, "test-repo-tree")
 	})
 })
 
@@ -220,7 +224,7 @@ func cleanupUserRepos(ctx context.Context, prefix string) {
 
 func newOrgRef(organizationName string) gitprovider.OrganizationRef {
 	return gitprovider.OrganizationRef{
-		Domain:       giteaDomain,
+		Domain:       giteaBaseUrl,
 		Organization: organizationName,
 	}
 }
@@ -234,7 +238,7 @@ func newOrgRepoRef(organizationName, repoName string) gitprovider.OrgRepositoryR
 
 func newUserRef(userLogin string) gitprovider.UserRef {
 	return gitprovider.UserRef{
-		Domain:    giteaDomain,
+		Domain:    giteaBaseUrl,
 		UserLogin: userLogin,
 	}
 }

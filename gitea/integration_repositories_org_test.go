@@ -1,3 +1,5 @@
+//go:build e2e
+
 /*
 Copyright 2020 The Flux CD contributors.
 
@@ -21,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 
 	"code.gitea.io/sdk/gitea"
@@ -35,6 +38,22 @@ var _ = Describe("Gitea Provider", func() {
 	var (
 		ctx context.Context = context.Background()
 	)
+
+	validateOrgRepo := func(repo gitprovider.OrgRepository, expectedRepo gitprovider.RepositoryRef) {
+		info := repo.Get()
+		// Expect certain fields to be set
+		Expect(repo.Repository()).To(Equal(expectedRepo))
+		Expect(*info.Description).To(Equal(defaultDescription))
+		Expect(*info.Visibility).To(Equal(gitprovider.RepositoryVisibilityPrivate))
+		Expect(*info.DefaultBranch).To(Equal(defaultBranch))
+
+		// Expect high-level fields to match their underlying data
+		internal := repo.APIObject().(*gitea.Repository)
+		Expect(repo.Repository().GetRepository()).To(Equal(internal.Name))
+		Expect(repo.Repository().GetIdentity()).To(Equal(testOrgName))
+		Expect(*info.Visibility).To(Equal(gitprovider.RepositoryVisibilityPrivate))
+		Expect(*info.DefaultBranch).To(Equal(defaultBranch))
+	}
 
 	It("should be possible to create an org repository", func() {
 		// First, check what repositories are available
@@ -169,5 +188,154 @@ var _ = Describe("Gitea Provider", func() {
 		}, retryOp.Timeout(), retryOp.Interval()).Should(BeTrue())
 
 		Expect(actionTaken).To(BeTrue())
+	})
+	It("should create, delete and reconcile deploy keys", func() {
+		// Get the test organization
+		orgRef := newOrgRef(testOrgName)
+		testOrg, err := c.Organizations().Get(ctx, orgRef)
+		Expect(err).ToNot(HaveOccurred())
+
+		testDeployKeyName := "test-deploy-key"
+		repoRef := newOrgRepoRef(*testOrg.Get().Name, testOrgRepoName)
+
+		orgRepo, err := c.OrgRepositories().Get(ctx, repoRef)
+		Expect(err).ToNot(HaveOccurred())
+
+		// List keys should return 0
+		keys, err := orgRepo.DeployKeys().List(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(len(keys)).To(Equal(0))
+
+		rsaGen := testutils.NewRSAGenerator(2154)
+		keyPair1, err := rsaGen.Generate()
+		Expect(err).ToNot(HaveOccurred())
+		pubKey := keyPair1.PublicKey
+
+		readOnly := false
+		testDeployKeyInfo := gitprovider.DeployKeyInfo{
+			Name:     testDeployKeyName,
+			Key:      pubKey,
+			ReadOnly: &readOnly,
+		}
+		_, err = orgRepo.DeployKeys().Create(ctx, testDeployKeyInfo)
+		Expect(err).ToNot(HaveOccurred())
+
+		// List keys should now return 1
+		keys, err = orgRepo.DeployKeys().List(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(len(keys)).To(Equal(1))
+
+		// Getting the key directly should return the same object
+		getKey, err := orgRepo.DeployKeys().Get(ctx, testDeployKeyName)
+		Expect(err).ToNot(HaveOccurred())
+
+		deployKeyStr := strings.TrimSpace(string(testDeployKeyInfo.Key))
+		key := strings.TrimSpace(string(getKey.Get().Key))
+		Expect(key).To(Equal(deployKeyStr))
+		Expect(getKey.Get().Name).To(Equal(testDeployKeyInfo.Name))
+
+		Expect(getKey.Set(getKey.Get())).ToNot(HaveOccurred())
+		actionTaken, err := getKey.Reconcile(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(actionTaken).To(BeFalse())
+
+		// Reconcile creates a new key if the title and key is different
+		title := "new-title"
+		req := getKey.Get()
+		req.Name = title
+
+		keyPair2, err := rsaGen.Generate()
+		Expect(err).ToNot(HaveOccurred())
+		anotherPubKey := keyPair2.PublicKey
+		req.Key = anotherPubKey
+
+		Expect(getKey.Set(req)).ToNot(HaveOccurred())
+		actionTaken, err = getKey.Reconcile(ctx)
+		// Expect the update to succeed, and modify the state
+		Expect(err).ToNot(HaveOccurred())
+		Expect(actionTaken).To(BeTrue())
+
+		getKey, err = orgRepo.DeployKeys().Get(ctx, title)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(getKey.Get().Name).To(Equal(title))
+
+		// Delete the keys
+		keys, err = orgRepo.DeployKeys().List(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		for _, key := range keys {
+			err = key.Delete(ctx)
+			Expect(err).ToNot(HaveOccurred())
+		}
+	})
+	It("should update teams with access and permissions when reconciling", func() {
+		// Get the test organization
+		orgRef := newOrgRef(testOrgName)
+		testOrg, err := c.Organizations().Get(ctx, orgRef)
+		Expect(err).ToNot(HaveOccurred())
+
+		// List all the teams with access to the org
+		// There should be 2 existing subgroup already
+		teams, err := testOrg.Teams().List(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(len(teams)).To(Equal(2), "The 2 team wasn't there...")
+
+		// First, check what repositories are available
+		repos, err := c.OrgRepositories().List(ctx, testOrg.Organization())
+		Expect(err).ToNot(HaveOccurred())
+
+		// Generate an org repo name which doesn't exist already
+		testSharedOrgRepoName = fmt.Sprintf("test-shared-org-repo-%03d", rand.Intn(1000))
+		for findOrgRepo(repos, testSharedOrgRepoName) != nil {
+			testSharedOrgRepoName = fmt.Sprintf("test-shared-org-repo-%03d", rand.Intn(1000))
+		}
+
+		// We know that a repo with this name doesn't exist in the organization, let's verify we get an
+		// ErrNotFound
+		sharedRepoRef := newOrgRepoRef(*testOrg.Get().Name, testSharedOrgRepoName)
+		_, err = c.OrgRepositories().Get(ctx, sharedRepoRef)
+		Expect(err).To(MatchError(gitprovider.ErrNotFound))
+
+		// Create a new repo
+		repo, err := c.OrgRepositories().Create(ctx, sharedRepoRef, gitprovider.RepositoryInfo{
+			Description: gitprovider.StringVar(defaultDescription),
+			// Default visibility is private, no need to set this at least now
+			Visibility:    gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
+			DefaultBranch: gitprovider.StringVar(defaultBranch),
+		}, &gitprovider.RepositoryCreateOptions{
+			AutoInit:        gitprovider.BoolVar(true),
+			LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateApache2),
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		getRepoRef, err := c.OrgRepositories().Get(ctx, sharedRepoRef)
+		Expect(err).ToNot(HaveOccurred())
+
+		validateOrgRepo(repo, getRepoRef.Repository())
+
+		// 1 teams should have access to the repo
+		projectTeams, err := repo.TeamAccess().List(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(len(projectTeams)).To(Equal(1))
+
+		// Add a team to the project
+		permission := gitprovider.RepositoryPermissionPull
+		_, err = repo.TeamAccess().Create(ctx, gitprovider.TeamAccessInfo{
+			Name:       testTeamName,
+			Permission: &permission,
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		// List all the teams with access to the project
+		// Only
+		projectTeams, err = repo.TeamAccess().List(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(len(projectTeams)).To(Equal(2), "Project teams didn't equal 2")
+		var firstTeam gitprovider.TeamAccess
+		for _, v := range projectTeams {
+			if v.Get().Name == testTeamName {
+				firstTeam = v
+			}
+		}
+		Expect(firstTeam.Get().Name).To(Equal(testTeamName))
 	})
 })

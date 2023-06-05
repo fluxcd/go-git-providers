@@ -214,9 +214,6 @@ var _ = Describe("Gitea Provider", func() {
 			return retryOp.IsRetryable(err, fmt.Sprintf("get commits, repository: %s", userRepo.Repository().GetRepository()))
 		}, retryOp.Timeout(), retryOp.Interval()).Should(BeTrue())
 
-		latestCommit := commits[0]
-		fmt.Println("latest commit sha: ", latestCommit.Get().Sha)
-
 		branchName := fmt.Sprintf("test-branch-%03d", rand.Intn(1000))
 		branchName2 := fmt.Sprintf("test-branch-%03d", rand.Intn(1000))
 

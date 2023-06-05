@@ -72,6 +72,12 @@ the following variables to your needs:
 | Test team (this is an ordinary group in GitLab) | fluxcd-testing-2              | `GITLAB_TEST_TEAM_NAME`     |
 | Test user                                       | fluxcd-gitprovider-bot        | `GIT_PROVIDER_USER`         |
 
+After the tests have finished, you can stop the ephemeral GitLab instance with:
+
+```
+make stop-provider-instances
+```
+
 #### Stash
 
 ```
@@ -98,8 +104,11 @@ make start-provider-instances-gitea
 As soon as the containers are up and Gitea is running, execute the tests:
 
 ```
+export GITEA_TOKEN=$(cat /tmp/gitea-token)
 make test-e2e-gitea
 ```
+
+The gitea token is stored in `/tmp/gitea-token` and is by the makefile.
 
 The Make target automatically runs the tests against the ephemeral instance. To change the test configuration, adjust
 the following variables to your needs:
@@ -110,6 +119,12 @@ the following variables to your needs:
 | Test group                                      | fluxcd-testing                | `GIT_PROVIDER_ORGANIZATION` |
 | Test team (this is an ordinary group in GitLab) | fluxcd-testing-2              | `GITEA_TEST_TEAM_NAME`      |
 | Test user                                       | fluxcd-gitprovider-bot        | `GITEA_USER`                |
+
+After the tests have finished, you can stop the ephemeral Gitea instance with:
+
+```
+make stop-provider-instances
+```
 
 ## Continuous Integration
 

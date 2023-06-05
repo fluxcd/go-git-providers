@@ -24,9 +24,8 @@ import (
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
-// giteaClientImpl is a wrapper around *gitea.Client, which implements higher-level methods,
-// operating on the gitea structs. TODO: Verify pagination is implemented for all List* methods,
-// all returned objects are validated, and HTTP errors are handled/wrapped using handleHTTPError.
+// giteaClient is a wrapper around *gitea.Client, which implements higher-level methods,
+// operating on the gitea structs.
 // This interface is also fakeable, in order to unit-test the client.
 type giteaClient interface {
 	// Client returns the underlying *gitea.Client

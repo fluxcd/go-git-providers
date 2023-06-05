@@ -21,3 +21,5 @@ echo
 
 # Keep token in tmp file for later use
 echo $GITEA_TOKEN > /tmp/gitea-token
+
+echo "Gitea token saved to /tmp/gitea-token"

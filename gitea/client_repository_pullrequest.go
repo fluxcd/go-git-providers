@@ -89,7 +89,7 @@ func (c *PullRequestClient) Edit(ctx context.Context, number int, opts gitprovid
 }
 
 // Merge merges a pull request with the given specifications.
-// Supported merge methods are: MergeMethodMerge, MergeMethodRebase, MergeMethodSquash
+// Supported merge methods are: MergeMethodMerge and MergeMethodSquash
 func (c *PullRequestClient) Merge(ctx context.Context, number int, mergeMethod gitprovider.MergeMethod, message string) error {
 	mergeOpts := gitea.MergePullRequestOption{
 		Style:   gitea.MergeStyle(mergeMethod),

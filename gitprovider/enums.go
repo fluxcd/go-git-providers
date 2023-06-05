@@ -182,7 +182,4 @@ const (
 
 	// MergeMethodSquash causes a pull request merge to first squash commits
 	MergeMethodSquash = MergeMethod("squash")
-
-	// MergeMethodRebase causes a pull request merge to first rebase commits
-	MergeMethodRebase = MergeMethod("rebase")
 )

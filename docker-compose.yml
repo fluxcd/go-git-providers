@@ -33,7 +33,7 @@ services:
     ports:
       - 3000:3000
     environment:
-      - USER_UID=${GITEA_USER_UID:-1000}
+      - USER_UID=1000
       - USER_GID=1000
       - GITEA__security__INSTALL_LOCK=${GITEA_INSTALL_LOCK:-true}
       - GIT_PROVIDER_ORGANIZATION=$GIT_PROVIDER_ORGANIZATION

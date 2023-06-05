@@ -86,6 +86,31 @@ make test-e2e-stash
 | Test organization | go-git-provider-testing      | `GIT_PROVIDER_ORGANIZATION` |
 | Test team         | fluxcd-test-team             | `STASH_TEST_TEAM_NAME`      |
 
+
+#### Gitea
+
+For the Gitea tests there is automation in place to spin up an ephemeral Gitea instance to run the test suite against:
+
+```
+make start-provider-instances-gitea
+```
+
+As soon as the containers are up and Gitea is running, execute the tests:
+
+```
+make test-e2e-gitea
+```
+
+The Make target automatically runs the tests against the ephemeral instance. To change the test configuration, adjust
+the following variables to your needs:
+
+| Setting                                         | Default value                 | Environment variable        |
+| ----------------------------------------------- | ----------------------------- | --------------------------- |
+| Access token                                    | read from `/tmp/gitea-token`  | `GITEA_TOKEN`               |
+| Test group                                      | fluxcd-testing                | `GIT_PROVIDER_ORGANIZATION` |
+| Test team (this is an ordinary group in GitLab) | fluxcd-testing-2              | `GITEA_TEST_TEAM_NAME`      |
+| Test user                                       | fluxcd-gitprovider-bot        | `GITEA_USER`                |
+
 ## Continuous Integration
 
 The e2e test suite runs in GitHub Actions on each commit to the main branch and on branches pushed to the repository, i.e. on PRs created from people with write access.

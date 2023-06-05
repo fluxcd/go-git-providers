@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Flux CD contributors.
+Copyright 2023 The Flux CD contributors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -55,7 +55,6 @@ func (o *organization) Get() gitprovider.OrganizationInfo {
 func (o *organization) APIObject() interface{} {
 	return &o.o
 }
-
 
 // Organization returns the organization reference.
 func (o *organization) Organization() gitprovider.OrganizationRef {

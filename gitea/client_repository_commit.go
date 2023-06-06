@@ -72,8 +72,12 @@ func (c *CommitClient) listPage(ctx context.Context, branch string, perPage, pag
 // This method creates a commit with a single file.
 // TODO: fix when gitea supports creating commits with multiple files
 func (c *CommitClient) Create(ctx context.Context, branch string, message string, files []gitprovider.CommitFile) (gitprovider.Commit, error) {
-	if len(files) == 0 || len(files) > 1 {
+	if len(files) == 0 {
 		return nil, fmt.Errorf("no files added")
+	}
+
+	if len(files) > 1 {
+		return nil, fmt.Errorf("creating commits with multiple files is not supported")
 	}
 
 	resp, err := c.createCommits(c.ref.GetIdentity(), c.ref.GetRepository(), *files[0].Path, &gitea.CreateFileOptions{

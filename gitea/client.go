@@ -18,13 +18,57 @@ package gitea
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"code.gitea.io/sdk/gitea"
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
-// ProviderID is the provider ID for Gitea.
-const ProviderID = gitprovider.ProviderID("gitea")
+const (
+	// DefaultDomain specifies the default domain used as the backend.
+	DefaultDomain = "gitea.com"
+	// ProviderID is the provider ID for Gitea.
+	ProviderID = gitprovider.ProviderID("gitea")
+)
+
+// NewClient creates a new gitprovider.Client instance for Gitea API endpoints.
+//
+// Gitea Selfhosted can be used if you specify the domain using WithDomain.
+func NewClient(token string, optFns ...gitprovider.ClientOption) (gitprovider.Client, error) {
+	// Complete the options struct
+	opts, err := gitprovider.MakeClientOptions(optFns...)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create a *http.Client using the transport chain
+	httpClient, err := gitprovider.BuildClientFromTransportChain(opts.GetTransportChain())
+	if err != nil {
+		return nil, err
+	}
+
+	domain := DefaultDomain
+	if opts.Domain != nil {
+		domain = *opts.Domain
+	}
+	baseURL := domain
+	if !strings.Contains(domain, "://") {
+		baseURL = fmt.Sprintf("https://%s/", domain)
+	}
+
+	gt, err := gitea.NewClient(baseURL, gitea.SetHTTPClient(httpClient), gitea.SetToken(token))
+	if err != nil {
+		return nil, err
+	}
+	// By default, turn destructive actions off. But allow overrides.
+	destructiveActions := false
+	if opts.EnableDestructiveAPICalls != nil {
+		destructiveActions = *opts.EnableDestructiveAPICalls
+	}
+
+	return newClient(gt, domain, destructiveActions), nil
+}
 
 func newClient(c *gitea.Client, domain string, destructiveActions bool) *Client {
 	ctx := &clientContext{c, domain, destructiveActions}

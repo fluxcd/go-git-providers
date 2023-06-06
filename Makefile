@@ -24,7 +24,7 @@ GITLAB_TEST_TEAM_NAME ?= fluxcd-testing-2
 
 # Gitea specific testing variables
 GITEA_BASE_URL ?= http://127.0.0.1:3000
-GITEA_TOKEN ?= not-set
+GITEA_TOKEN ?=
 GITEA_TEST_TEAM_NAME ?= fluxcd-testing-2
 
 start-provider-instances-gitlab:

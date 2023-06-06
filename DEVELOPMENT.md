@@ -104,11 +104,10 @@ make start-provider-instances-gitea
 As soon as the containers are up and Gitea is running, execute the tests:
 
 ```
-export GITEA_TOKEN=$(cat /tmp/gitea-token)
 make test-e2e-gitea
 ```
 
-The gitea token is stored in `/tmp/gitea-token` and is by the makefile.
+The Gitea token is stored in `/tmp/gitea-token` by default.
 
 The Make target automatically runs the tests against the ephemeral instance. To change the test configuration, adjust
 the following variables to your needs:

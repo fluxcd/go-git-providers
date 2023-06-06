@@ -139,7 +139,7 @@ var _ = Describe("Gitea Provider", func() {
 		if len(giteaToken) == 0 {
 			b, err := os.ReadFile(ghTokenFile)
 			if token := string(b); err == nil && len(token) != 0 {
-				giteaToken = token
+				giteaToken = strings.TrimSpace(token)
 			} else {
 				Fail("couldn't acquire GITEA_TOKEN env variable")
 			}

@@ -46,7 +46,7 @@ func (c *BranchClient) Create(ctx context.Context, branch, sha string) error {
 	if err != nil {
 		return err
 	}
-	if _, _, err := c.c.Client().CreateBranch(c.ref.GetIdentity(), c.ref.GetRepository(), opts); err != nil {
+	if _, _, err := c.c.CreateBranch(c.ref.GetIdentity(), c.ref.GetRepository(), opts); err != nil {
 		return err
 	}
 

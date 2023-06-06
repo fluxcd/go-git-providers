@@ -27,8 +27,7 @@ import (
 const ProviderID = gitprovider.ProviderID("gitea")
 
 func newClient(c *gitea.Client, domain string, destructiveActions bool) *Client {
-	gtClient := &giteaClientImpl{c, destructiveActions}
-	ctx := &clientContext{gtClient, domain, destructiveActions}
+	ctx := &clientContext{c, domain, destructiveActions}
 	return &Client{
 		clientContext: ctx,
 		orgs: &OrganizationsClient{
@@ -44,7 +43,7 @@ func newClient(c *gitea.Client, domain string, destructiveActions bool) *Client 
 }
 
 type clientContext struct {
-	c                  giteaClient
+	c                  *gitea.Client
 	domain             string
 	destructiveActions bool
 }
@@ -78,7 +77,7 @@ func (c *Client) ProviderID() gitprovider.ProviderID {
 // Raw returns the Gitea client (code.gitea.io/sdk/gitea *Client)
 // used under the hood for accessing Gitea.
 func (c *Client) Raw() interface{} {
-	return c.c.Client()
+	return c.c
 }
 
 // Organizations returns the OrganizationsClient handling sets of organizations.
@@ -94,11 +93,6 @@ func (c *Client) OrgRepositories() gitprovider.OrgRepositoriesClient {
 // UserRepositories returns the UserRepositoriesClient handling sets of repositories for a user.
 func (c *Client) UserRepositories() gitprovider.UserRepositoriesClient {
 	return c.userRepos
-}
-
-//nolint:gochecknoglobals
-var permissionScopes = map[gitprovider.TokenPermission]string{
-	gitprovider.TokenPermissionRWRepository: "repo",
 }
 
 // HasTokenPermission returns true if the given token has the given permissions.

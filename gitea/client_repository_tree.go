@@ -34,7 +34,7 @@ type TreeClient struct {
 
 // Get returns a tree
 func (c *TreeClient) Get(ctx context.Context, sha string, recursive bool) (*gitprovider.TreeInfo, error) {
-	tree, resp, err := c.c.Client().GetTrees(c.ref.GetIdentity(), c.ref.GetRepository(), sha, recursive)
+	tree, resp, err := c.c.GetTrees(c.ref.GetIdentity(), c.ref.GetRepository(), sha, recursive)
 	if err != nil {
 		return nil, handleHTTPError(resp, err)
 	}

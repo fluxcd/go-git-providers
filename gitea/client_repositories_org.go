@@ -19,6 +19,7 @@ package gitea
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"code.gitea.io/sdk/gitea"
 
@@ -48,7 +49,7 @@ func (c *OrgRepositoriesClient) Get(ctx context.Context, ref gitprovider.OrgRepo
 		return nil, err
 	}
 	// GET /repos/{owner}/{repo}
-	apiObj, err := c.c.GetRepo(ctx, ref.GetIdentity(), ref.GetRepository())
+	apiObj, err := getRepo(c.c, ref.GetIdentity(), ref.GetRepository())
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +66,7 @@ func (c *OrgRepositoriesClient) List(ctx context.Context, ref gitprovider.Organi
 	}
 
 	// GET /orgs/{org}/repos
-	apiObjs, err := c.c.ListOrgRepos(ctx, ref.Organization)
+	apiObjs, err := c.listOrgRepos(ref.Organization)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +127,33 @@ func (c *OrgRepositoriesClient) Reconcile(ctx context.Context, ref gitprovider.O
 	return actual, actionTaken, err
 }
 
-func createRepository(ctx context.Context, c giteaClient, ref gitprovider.RepositoryRef, orgName string, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryCreateOption) (*gitea.Repository, error) {
+// getRepo returns the repository of the given owner by name.
+func getRepo(c *gitea.Client, owner, repo string) (*gitea.Repository, error) {
+	apiObj, res, err := c.GetRepo(owner, repo)
+	return validateRepositoryAPIResp(apiObj, res, err)
+}
+
+// listOrgRepos returns all repositories of the given organization the user has access to.
+func (c *OrgRepositoriesClient) listOrgRepos(org string) ([]*gitea.Repository, error) {
+	opts := gitea.ListOrgReposOptions{}
+	apiObjs := []*gitea.Repository{}
+
+	err := allPages(&opts.ListOptions, func() (*gitea.Response, error) {
+		// GET /orgs/{org}/repos
+		pageObjs, resp, listErr := c.c.ListOrgRepos(org, opts)
+		if len(pageObjs) > 0 {
+			apiObjs = append(apiObjs, pageObjs...)
+			return resp, listErr
+		}
+		return nil, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return validateRepositoryObjects(apiObjs)
+}
+
+func createRepository(ctx context.Context, c *gitea.Client, ref gitprovider.RepositoryRef, orgName string, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryCreateOption) (*gitea.Repository, error) {
 	// First thing, validate and default the request to ensure a valid and fully-populated object
 	// (to minimize any possible diffs between desired and actual state)
 	if err := gitprovider.ValidateAndDefaultInfo(&req); err != nil {
@@ -148,7 +175,32 @@ func createRepository(ctx context.Context, c giteaClient, ref gitprovider.Reposi
 		apiOpts.License = knownLicenseTemplateMap[string(*o.LicenseTemplate)]
 	}
 
-	return c.CreateRepo(ctx, orgName, &apiOpts)
+	return createRepo(c, orgName, apiOpts)
+}
+
+func createRepo(c *gitea.Client, orgName string, apiOpts gitea.CreateRepoOption) (*gitea.Repository, error) {
+	if orgName != "" {
+		apiObj, res, err := c.CreateOrgRepo(orgName, apiOpts)
+		return validateRepositoryAPIResp(apiObj, res, err)
+	}
+	apiObj, res, err := c.CreateRepo(apiOpts)
+	return validateRepositoryAPIResp(apiObj, res, err)
+}
+
+// updateRepo updates the given repository.
+func updateRepo(c *gitea.Client, owner, repo string, req *gitea.EditRepoOption) (*gitea.Repository, error) {
+	apiObj, res, err := c.EditRepo(owner, repo, *req)
+	return validateRepositoryAPIResp(apiObj, res, err)
+}
+
+// deleteRepo deletes the given repository.
+func deleteRepo(c *gitea.Client, owner, repo string, destructiveActions bool) error {
+	// Don't allow deleting repositories if the user didn't explicitly allow dangerous API calls.
+	if !destructiveActions {
+		return fmt.Errorf("cannot delete repository: %w", gitprovider.ErrDestructiveCallDisallowed)
+	}
+	resp, err := c.DeleteRepo(owner, repo)
+	return handleHTTPError(resp, err)
 }
 
 func reconcileRepository(ctx context.Context, actual gitprovider.UserRepository, req gitprovider.RepositoryInfo) (bool, error) {
@@ -171,4 +223,26 @@ func toCreateOpts(opts ...gitprovider.RepositoryReconcileOption) []gitprovider.R
 		createOpts = append(createOpts, opt)
 	}
 	return createOpts
+}
+
+func validateRepositoryAPIResp(apiObj *gitea.Repository, res *gitea.Response, err error) (*gitea.Repository, error) {
+	// If the response contained an error, return
+	if err != nil {
+		return nil, handleHTTPError(res, err)
+	}
+	// Make sure apiObj is valid
+	if err := validateRepositoryAPI(apiObj); err != nil {
+		return nil, err
+	}
+	return apiObj, nil
+}
+
+func validateRepositoryObjects(apiObjs []*gitea.Repository) ([]*gitea.Repository, error) {
+	for _, apiObj := range apiObjs {
+		// Make sure apiObj is valid
+		if err := validateRepositoryAPI(apiObj); err != nil {
+			return nil, err
+		}
+	}
+	return apiObjs, nil
 }

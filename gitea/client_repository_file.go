@@ -41,7 +41,7 @@ func (c *FileClient) Get(ctx context.Context, path, branch string, optFns ...git
 		opt.ApplyFilesGetOptions(&fileOpts)
 	}
 
-	listFiles, _, err := c.c.Client().ListContents(c.ref.GetIdentity(), c.ref.GetRepository(), branch, path)
+	listFiles, _, err := c.c.ListContents(c.ref.GetIdentity(), c.ref.GetRepository(), branch, path)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +56,7 @@ func (c *FileClient) Get(ctx context.Context, path, branch string, optFns ...git
 			continue
 		}
 		filePath := file.Path
-		fileBytes, _, err := c.c.Client().GetFile(c.ref.GetIdentity(), c.ref.GetRepository(), branch, filePath)
+		fileBytes, _, err := c.c.GetFile(c.ref.GetIdentity(), c.ref.GetRepository(), branch, filePath)
 		if err != nil {
 			return nil, err
 		}

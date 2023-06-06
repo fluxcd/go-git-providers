@@ -167,7 +167,7 @@ func (r *userRepository) Update(ctx context.Context) error {
 	if r.r.Mirror == true {
 		opts.MirrorInterval = &r.r.MirrorInterval
 	}
-	apiObj, err := r.c.UpdateRepo(ctx, r.ref.GetIdentity(), r.ref.GetRepository(), &opts)
+	apiObj, err := updateRepo(r.c, r.ref.GetIdentity(), r.ref.GetRepository(), &opts)
 	if err != nil {
 		return err
 	}
@@ -191,7 +191,7 @@ func (r *userRepository) Reconcile(ctx context.Context) (bool, error) {
 		Template:      r.r.Template,
 		DefaultBranch: r.r.DefaultBranch,
 	}
-	apiObj, err := r.c.GetRepo(ctx, r.ref.GetIdentity(), r.ref.GetRepository())
+	apiObj, err := getRepo(r.c, r.ref.GetIdentity(), r.ref.GetRepository())
 	if err != nil {
 		// Create if not found
 		if errors.Is(err, gitprovider.ErrNotFound) {
@@ -199,7 +199,7 @@ func (r *userRepository) Reconcile(ctx context.Context) (bool, error) {
 			if orgRef, ok := r.ref.(gitprovider.OrgRepositoryRef); ok {
 				orgName = orgRef.Organization
 			}
-			repo, err := r.c.CreateRepo(ctx, orgName, &opts)
+			repo, err := createRepo(r.c, orgName, opts)
 			if err != nil {
 				return true, err
 			}
@@ -226,7 +226,7 @@ func (r *userRepository) Reconcile(ctx context.Context) (bool, error) {
 //
 // ErrNotFound is returned if the resource doesn't exist anymore.
 func (r *userRepository) Delete(ctx context.Context) error {
-	return r.c.DeleteRepo(ctx, r.ref.GetIdentity(), r.ref.GetRepository())
+	return deleteRepo(r.c, r.ref.GetIdentity(), r.ref.GetRepository(), r.destructiveActions)
 }
 
 func newOrgRepository(ctx *clientContext, apiObj *gitea.Repository, ref gitprovider.RepositoryRef) *orgRepository {

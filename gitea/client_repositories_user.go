@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 
+	"code.gitea.io/sdk/gitea"
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
@@ -40,7 +41,7 @@ func (c *UserRepositoriesClient) Get(ctx context.Context, ref gitprovider.UserRe
 		return nil, err
 	}
 	// GET /repos/{owner}/{repo}
-	apiObj, err := c.c.GetRepo(ctx, ref.GetIdentity(), ref.GetRepository())
+	apiObj, err := getRepo(c.c, ref.GetIdentity(), ref.GetRepository())
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +58,7 @@ func (c *UserRepositoriesClient) List(ctx context.Context, ref gitprovider.UserR
 	}
 
 	// GET /users/{username}/repos
-	apiObjs, err := c.c.ListUserRepos(ctx, ref.UserLogin)
+	apiObjs, err := c.listUserRepos(ref.UserLogin)
 	if err != nil {
 		return nil, err
 	}
@@ -72,6 +73,25 @@ func (c *UserRepositoriesClient) List(ctx context.Context, ref gitprovider.UserR
 		}))
 	}
 	return repos, nil
+}
+
+func (c *UserRepositoriesClient) listUserRepos(username string) ([]*gitea.Repository, error) {
+	opts := gitea.ListReposOptions{}
+	apiObjs := []*gitea.Repository{}
+
+	err := allPages(&opts.ListOptions, func() (*gitea.Response, error) {
+		// GET /users/{username}/repos
+		pageObjs, resp, listErr := c.c.ListUserRepos(username, opts)
+		if len(pageObjs) > 0 {
+			apiObjs = append(apiObjs, pageObjs...)
+			return resp, listErr
+		}
+		return nil, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return validateRepositoryObjects(apiObjs)
 }
 
 // Create creates a repository for the given organization, with the data and options

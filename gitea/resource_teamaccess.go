@@ -63,7 +63,7 @@ func (ta *teamAccess) Repository() gitprovider.RepositoryRef {
 // ErrNotFound is returned if the resource does not exist.
 func (ta *teamAccess) Delete(ctx context.Context) error {
 	// DELETE /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}
-	return ta.c.c.RemoveTeam(ctx, ta.c.ref.GetIdentity(), ta.c.ref.GetRepository(), ta.ta.Name)
+	return ta.c.removeTeam(ctx, ta.c.ref.GetIdentity(), ta.c.ref.GetRepository(), ta.ta.Name)
 }
 
 func (ta *teamAccess) Update(ctx context.Context) error {

@@ -19,6 +19,7 @@ package gitea
 import (
 	"context"
 
+	"code.gitea.io/sdk/gitea"
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
@@ -41,7 +42,7 @@ func (c *OrganizationsClient) Get(ctx context.Context, ref gitprovider.Organizat
 	}
 
 	// GET /orgs/{org}
-	apiObj, err := c.c.GetOrg(ctx, ref.Organization)
+	apiObj, err := c.getOrg(ref.Organization)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +55,7 @@ func (c *OrganizationsClient) Get(ctx context.Context, ref gitprovider.Organizat
 // List returns all available organizations, using multiple paginated requests if needed.
 func (c *OrganizationsClient) List(ctx context.Context) ([]gitprovider.Organization, error) {
 	// GET /user/orgs
-	apiObjs, err := c.c.ListOrgs(ctx)
+	apiObjs, err := c.listOrgs()
 	if err != nil {
 		return nil, err
 	}
@@ -69,6 +70,46 @@ func (c *OrganizationsClient) List(ctx context.Context) ([]gitprovider.Organizat
 	}
 
 	return orgs, nil
+}
+
+// getOrg returns a specific organization the user has access to.
+func (c *OrganizationsClient) getOrg(orgName string) (*gitea.Organization, error) {
+	apiObj, res, err := c.c.GetOrg(orgName)
+	if err != nil {
+		return nil, handleHTTPError(res, err)
+	}
+	// Validate the API object
+	if err := validateOrganizationAPI(apiObj); err != nil {
+		return nil, err
+	}
+	return apiObj, nil
+}
+
+// listOrgs returns all of current user's organizations.
+func (c *OrganizationsClient) listOrgs() ([]*gitea.Organization, error) {
+	opts := gitea.ListOrgsOptions{}
+	apiObjs := []*gitea.Organization{}
+
+	err := allPages(&opts.ListOptions, func() (*gitea.Response, error) {
+		// GET /user/orgs"
+		pageObjs, resp, listErr := c.c.ListMyOrgs(opts)
+		if len(pageObjs) > 0 {
+			apiObjs = append(apiObjs, pageObjs...)
+			return resp, listErr
+		}
+		return nil, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Validate the API objects
+	for _, apiObj := range apiObjs {
+		if err := validateOrganizationAPI(apiObj); err != nil {
+			return nil, err
+		}
+	}
+	return apiObjs, nil
 }
 
 // Children returns the immediate child-organizations for the specific OrganizationRef o.

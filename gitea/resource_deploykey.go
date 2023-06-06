@@ -88,7 +88,7 @@ func (dk *deployKey) Update(ctx context.Context) error {
 func (dk *deployKey) Delete(ctx context.Context) error {
 	// We can use the same DeployKey ID that we got from the GET calls. Make sure it's non-nil.
 	// This _should never_ happen, but just check for it anyways to avoid panicing.
-	return dk.c.c.DeleteKey(ctx, dk.c.ref.GetIdentity(), dk.c.ref.GetRepository(), dk.k.ID)
+	return dk.c.deleteKey(dk.c.ref.GetIdentity(), dk.c.ref.GetRepository(), dk.k.ID)
 }
 
 // Reconcile makes sure the desired state in this object (called "req" here) becomes
@@ -124,7 +124,7 @@ func (dk *deployKey) Reconcile(ctx context.Context) (bool, error) {
 }
 
 func (dk *deployKey) createIntoSelf(ctx context.Context) error {
-	apiObj, err := dk.c.c.CreateKey(ctx, dk.c.ref.GetIdentity(), dk.c.ref.GetRepository(), &dk.k)
+	apiObj, err := dk.c.createKey(dk.c.ref.GetIdentity(), dk.c.ref.GetRepository(), &dk.k)
 	if err != nil {
 		return err
 	}

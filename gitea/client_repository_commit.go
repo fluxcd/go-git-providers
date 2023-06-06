@@ -54,7 +54,7 @@ func (c *CommitClient) ListPage(ctx context.Context, branch string, perPage, pag
 
 func (c *CommitClient) listPage(ctx context.Context, branch string, perPage, page int) ([]*commitType, error) {
 	// GET /repos/{owner}/{repo}/commits
-	apiObjs, err := c.c.ListCommits(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), branch, perPage, page)
+	apiObjs, err := c.listCommits(c.ref.GetIdentity(), c.ref.GetRepository(), branch, perPage, page)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func (c *CommitClient) Create(ctx context.Context, branch string, message string
 		return nil, fmt.Errorf("no files added")
 	}
 
-	resp, err := c.c.CreateCommits(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), *files[0].Path, &gitea.CreateFileOptions{
+	resp, err := c.createCommits(c.ref.GetIdentity(), c.ref.GetRepository(), *files[0].Path, &gitea.CreateFileOptions{
 		Content: *files[0].Content,
 		FileOptions: gitea.FileOptions{
 			Message:    message,
@@ -102,4 +102,40 @@ func (c *CommitClient) Create(ctx context.Context, branch string, message string
 	commit.CommitMeta = &resp.Commit.CommitMeta
 
 	return newCommit(c, commit), nil
+}
+
+// listCommits lists all repository commits of the given branch.
+// It accepts a page size and page number to support pagination.
+func (c *CommitClient) listCommits(owner, repo, branch string, perPage int, page int) ([]*gitea.Commit, error) {
+	opts := gitea.ListCommitOptions{
+		ListOptions: gitea.ListOptions{
+			PageSize: perPage,
+			Page:     page,
+		},
+		SHA: branch,
+	}
+	apiObjs := []*gitea.Commit{}
+	err := allPages(&opts.ListOptions, func() (*gitea.Response, error) {
+		pageObjs, resp, listErr := c.c.ListRepoCommits(owner, repo, opts)
+		if len(pageObjs) > 0 {
+			apiObjs = append(apiObjs, pageObjs...)
+			return resp, listErr
+		}
+		return nil, nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return apiObjs, nil
+}
+
+// createCommits creates a new commit for the given repository.
+func (c *CommitClient) createCommits(owner, repo string, path string, req *gitea.CreateFileOptions) (*gitea.FileResponse, error) {
+	apiObj, res, err := c.c.CreateFile(owner, repo, path, *req)
+	if err != nil {
+		return nil, handleHTTPError(res, err)
+	}
+	return apiObj, nil
 }

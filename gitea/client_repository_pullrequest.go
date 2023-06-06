@@ -36,7 +36,7 @@ type PullRequestClient struct {
 // List lists all pull requests in the repository
 func (c *PullRequestClient) List(ctx context.Context) ([]gitprovider.PullRequest, error) {
 	opts := gitea.ListPullRequestsOptions{}
-	prs, _, err := c.c.Client().ListRepoPullRequests(c.ref.GetIdentity(), c.ref.GetRepository(), opts)
+	prs, _, err := c.c.ListRepoPullRequests(c.ref.GetIdentity(), c.ref.GetRepository(), opts)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +58,7 @@ func (c *PullRequestClient) Create(ctx context.Context, title, branch, baseBranc
 		Head:  branch,
 		Body:  description,
 	}
-	pr, _, err := c.c.Client().CreatePullRequest(c.ref.GetIdentity(), c.ref.GetRepository(), prOpts)
+	pr, _, err := c.c.CreatePullRequest(c.ref.GetIdentity(), c.ref.GetRepository(), prOpts)
 
 	if err != nil {
 		return nil, err
@@ -69,7 +69,7 @@ func (c *PullRequestClient) Create(ctx context.Context, title, branch, baseBranc
 
 // Get retrieves an existing pull request by number
 func (c *PullRequestClient) Get(ctx context.Context, number int) (gitprovider.PullRequest, error) {
-	pr, _, err := c.c.Client().GetPullRequest(c.ref.GetIdentity(), c.ref.GetRepository(), int64(number))
+	pr, _, err := c.c.GetPullRequest(c.ref.GetIdentity(), c.ref.GetRepository(), int64(number))
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func (c *PullRequestClient) Get(ctx context.Context, number int) (gitprovider.Pu
 func (c *PullRequestClient) Edit(ctx context.Context, number int, opts gitprovider.EditOptions) (gitprovider.PullRequest, error) {
 	editPR := gitea.EditPullRequestOption{}
 	editPR.Title = *opts.Title
-	editedPR, _, err := c.c.Client().EditPullRequest(c.ref.GetIdentity(), c.ref.GetRepository(), int64(number), editPR)
+	editedPR, _, err := c.c.EditPullRequest(c.ref.GetIdentity(), c.ref.GetRepository(), int64(number), editPR)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +96,7 @@ func (c *PullRequestClient) Merge(ctx context.Context, number int, mergeMethod g
 		Message: message,
 	}
 
-	done, resp, err := c.c.Client().MergePullRequest(c.ref.GetIdentity(), c.ref.GetRepository(), int64(number), mergeOpts)
+	done, resp, err := c.c.MergePullRequest(c.ref.GetIdentity(), c.ref.GetRepository(), int64(number), mergeOpts)
 	if err != nil {
 		return handleHTTPError(resp, err)
 	}

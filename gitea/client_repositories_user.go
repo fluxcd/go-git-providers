@@ -19,6 +19,7 @@ package gitea
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"code.gitea.io/sdk/gitea"
 	"github.com/fluxcd/go-git-providers/gitprovider"
@@ -111,6 +112,12 @@ func (c *UserRepositoriesClient) Create(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
+
+	if apiObj.Owner == nil {
+		return nil, fmt.Errorf("returned API object doesn't have an owner")
+	}
+	ref.UserLogin = apiObj.Owner.UserName
+
 	return newUserRepository(c.clientContext, apiObj, ref), nil
 }
 

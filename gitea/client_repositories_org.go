@@ -77,7 +77,7 @@ func (c *OrgRepositoriesClient) List(ctx context.Context, ref gitprovider.Organi
 		// apiObj is already validated at ListOrgRepos
 		repos = append(repos, newOrgRepository(c.clientContext, apiObj, gitprovider.OrgRepositoryRef{
 			OrganizationRef: ref,
-			RepositoryName:  *&apiObj.Name,
+			RepositoryName:  apiObj.Name,
 		}))
 	}
 	return repos, nil

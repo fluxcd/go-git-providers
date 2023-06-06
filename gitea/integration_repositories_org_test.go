@@ -61,9 +61,9 @@ var _ = Describe("Gitea Provider", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		// Generate a repository name which doesn't exist already
-		testOrgRepoName = fmt.Sprintf("test-repo-%03d", rand.Intn(1000))
+		testOrgRepoName = fmt.Sprintf("test-org-repo-%03d", rand.Intn(1000))
 		for findOrgRepo(repos, testOrgRepoName) != nil {
-			testOrgRepoName = fmt.Sprintf("test-repo-%03d", rand.Intn(1000))
+			testOrgRepoName = fmt.Sprintf("test-org-repo-%03d", rand.Intn(1000))
 		}
 
 		// We know that a repo with this name doesn't exist in the organization, let's verify we get an

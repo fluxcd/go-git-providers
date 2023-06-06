@@ -24,9 +24,6 @@ import (
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
-var giteaNewFileMode = "100644"
-var giteaBlobTypeFile = "blob"
-
 // CommitClient implements the gitprovider.CommitClient interface.
 var _ gitprovider.CommitClient = &CommitClient{}
 

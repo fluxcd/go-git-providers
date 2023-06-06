@@ -128,7 +128,7 @@ func (c *UserRepositoriesClient) Create(ctx context.Context,
 		return nil, err
 	}
 
-	apiObj, err := createRepository(ctx, c.client, addTilde(ref.UserLogin), ref, req, opts...)
+	apiObj, err := createRepository(ctx, c.client, addTilde(c.client.username), ref, req, opts...)
 	if err != nil {
 		if errors.Is(err, ErrAlreadyExists) {
 			return nil, gitprovider.ErrAlreadyExists
@@ -137,6 +137,7 @@ func (c *UserRepositoriesClient) Create(ctx context.Context,
 	}
 
 	ref.SetSlug(apiObj.Slug)
+	ref.UserLogin = apiObj.UserName
 
 	return newUserRepository(c.clientContext, apiObj, ref), nil
 }

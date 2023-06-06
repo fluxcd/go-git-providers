@@ -26,13 +26,6 @@ import (
 	"github.com/fluxcd/go-git-providers/validation"
 )
 
-const (
-	alreadyExistsMagicString = "name already exists on this account"
-)
-
-// TODO: Guard better against nil pointer dereference panics in this package, also
-// validate data coming from the server
-
 // validateUserRepositoryRef makes sure the UserRepositoryRef is valid for Gitea's usage.
 func validateUserRepositoryRef(ref gitprovider.UserRepositoryRef, expectedDomain string) error {
 	// Make sure the RepositoryRef fields are valid

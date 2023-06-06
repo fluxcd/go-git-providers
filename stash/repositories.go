@@ -229,7 +229,7 @@ func (s *RepositoriesService) Create(ctx context.Context, projectKey string, rep
 		return nil, fmt.Errorf("create respository failed: %w", err)
 	}
 
-	if resp != nil && resp.StatusCode == http.StatusBadRequest {
+	if resp != nil && resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("create repository failed: %s", resp.Status)
 	}
 

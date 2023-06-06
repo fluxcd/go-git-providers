@@ -164,7 +164,7 @@ func (r *userRepository) Update(ctx context.Context) error {
 		Archived:                  &r.r.Archived,
 		DefaultMergeStyle:         &r.r.DefaultMergeStyle,
 	}
-	if r.r.Mirror == true {
+	if r.r.Mirror {
 		opts.MirrorInterval = &r.r.MirrorInterval
 	}
 	apiObj, err := updateRepo(r.c, r.ref.GetIdentity(), r.ref.GetRepository(), &opts)
@@ -261,7 +261,7 @@ func validateRepositoryAPI(apiObj *gitea.Repository) error {
 			validator.Required("Name")
 		}
 		// Make sure visibility is valid if set
-		if apiObj.Private != true {
+		if !apiObj.Private {
 			v := gitprovider.RepositoryVisibility("public")
 			validator.Append(gitprovider.ValidateRepositoryVisibility(v), v, "Visibility")
 		} else {
@@ -276,7 +276,7 @@ func repositoryFromAPI(apiObj *gitea.Repository) gitprovider.RepositoryInfo {
 		Description:   &apiObj.Description,
 		DefaultBranch: &apiObj.DefaultBranch,
 	}
-	if apiObj.Private != true {
+	if !apiObj.Private {
 		repo.Visibility = gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibility("public"))
 	} else {
 		repo.Visibility = gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibility("private"))

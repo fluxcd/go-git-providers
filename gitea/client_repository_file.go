@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Flux CD contributors.
+Copyright 2023 The Flux CD contributors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,15 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package github
+package gitea
 
 import (
 	"context"
 	"fmt"
-	"io"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/google/go-github/v52/github"
 )
 
 // FileClient implements the gitprovider.FileClient interface.
@@ -34,49 +32,39 @@ type FileClient struct {
 	ref gitprovider.RepositoryRef
 }
 
-// Get fetches and returns the contents of a file or multiple files in a directory from a given branch and path with possible options of FilesGetOption
+// Get fetches and returns the contents of a file or multiple files in a directory from a given branch and path.
 // If a file path is given, the contents of the file are returned
 // If a directory path is given, the contents of the files in the path's root are returned
 func (c *FileClient) Get(ctx context.Context, path, branch string, optFns ...gitprovider.FilesGetOption) ([]*gitprovider.CommitFile, error) {
-	opts := &github.RepositoryContentGetOptions{
-		Ref: branch,
-	}
-
 	fileOpts := gitprovider.FilesGetOptions{}
 	for _, opt := range optFns {
 		opt.ApplyFilesGetOptions(&fileOpts)
 	}
 
-	_, directoryContent, _, err := c.c.Client().Repositories.GetContents(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), path, opts)
+	listFiles, _, err := c.c.ListContents(c.ref.GetIdentity(), c.ref.GetRepository(), branch, path)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(directoryContent) == 0 {
+	if len(listFiles) == 0 {
 		return nil, fmt.Errorf("no files found on this path[%s]", path)
 	}
 
 	files := make([]*gitprovider.CommitFile, 0)
-
-	for _, file := range directoryContent {
+	for _, file := range listFiles {
+		if file.Type != "file" {
+			continue
+		}
 		filePath := file.Path
-		output, _, err := c.c.Client().Repositories.DownloadContents(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), *filePath, opts)
+		fileBytes, _, err := c.c.GetFile(c.ref.GetIdentity(), c.ref.GetRepository(), branch, filePath)
 		if err != nil {
 			return nil, err
 		}
-		content, err := io.ReadAll(output)
-		if err != nil {
-			return nil, err
-		}
-		defer output.Close()
-
-		contentStr := string(content)
+		fileStr := string(fileBytes)
 		files = append(files, &gitprovider.CommitFile{
-			Path:    filePath,
-			Content: &contentStr,
+			Path:    &filePath,
+			Content: &fileStr,
 		})
-
 	}
-
 	return files, nil
 }

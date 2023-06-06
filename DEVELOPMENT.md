@@ -72,6 +72,12 @@ the following variables to your needs:
 | Test team (this is an ordinary group in GitLab) | fluxcd-testing-2              | `GITLAB_TEST_TEAM_NAME`     |
 | Test user                                       | fluxcd-gitprovider-bot        | `GIT_PROVIDER_USER`         |
 
+After the tests have finished, you can stop the ephemeral GitLab instance with:
+
+```
+make stop-provider-instances
+```
+
 #### Stash
 
 ```
@@ -85,6 +91,39 @@ make test-e2e-stash
 | Test user         |                              | `STASH_USER`                |
 | Test organization | go-git-provider-testing      | `GIT_PROVIDER_ORGANIZATION` |
 | Test team         | fluxcd-test-team             | `STASH_TEST_TEAM_NAME`      |
+
+
+#### Gitea
+
+For the Gitea tests there is automation in place to spin up an ephemeral Gitea instance to run the test suite against:
+
+```
+make start-provider-instances-gitea
+```
+
+As soon as the containers are up and Gitea is running, execute the tests:
+
+```
+make test-e2e-gitea
+```
+
+The Gitea token is stored in `/tmp/gitea-token` by default.
+
+The Make target automatically runs the tests against the ephemeral instance. To change the test configuration, adjust
+the following variables to your needs:
+
+| Setting                                         | Default value                 | Environment variable        |
+| ----------------------------------------------- | ----------------------------- | --------------------------- |
+| Access token                                    | read from `/tmp/gitea-token`  | `GITEA_TOKEN`               |
+| Test group                                      | fluxcd-testing                | `GIT_PROVIDER_ORGANIZATION` |
+| Test team (this is an ordinary group in GitLab) | fluxcd-testing-2              | `GITEA_TEST_TEAM_NAME`      |
+| Test user                                       | fluxcd-gitprovider-bot        | `GITEA_USER`                |
+
+After the tests have finished, you can stop the ephemeral Gitea instance with:
+
+```
+make stop-provider-instances
+```
 
 ## Continuous Integration
 

@@ -27,8 +27,30 @@ services:
       test: /healthcheck-and-setup.sh
       interval: 60s
       timeout: 10m
+  gitea:
+    image: gitea/gitea:${GITEA_VERSION:-latest}
+    platform: linux/amd64
+    ports:
+      - 3000:3000
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+      - GITEA__security__INSTALL_LOCK=${GITEA_INSTALL_LOCK:-true}
+      - GIT_PROVIDER_ORGANIZATION=$GIT_PROVIDER_ORGANIZATION
+      - GITEA_USER=$GITEA_USER
+      - GITEA_TEST_TEAM_NAME=$GITEA_TEST_TEAM_NAME
+    labels:
+      go-git-provider-gitea/owned: ""
+    volumes:
+      - gitea:/data
+      - ${PWD}/tests/gitea/healthcheck-and-setup.sh:/healthcheck-and-setup.sh:Z
+    healthcheck:
+      test: /healthcheck-and-setup.sh
+      interval: 60s
+      timeout: 10m
 
 volumes:
   gitlab-config:
   gitlab-logs:
   gitlab-data:
+  gitea:

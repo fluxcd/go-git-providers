@@ -22,11 +22,18 @@ GITLAB_TEST_REPO_NAME ?= fluxcd-testing-repo
 GITLAB_TEST_SUBGROUP ?= fluxcd-testing-sub-group
 GITLAB_TEST_TEAM_NAME ?= fluxcd-testing-2
 
+# Gitea specific testing variables
+GITEA_BASE_URL ?= http://127.0.0.1:3000
+GITEA_TOKEN ?=
+GITEA_TEST_TEAM_NAME ?= fluxcd-testing-2
+
 start-provider-instances-gitlab:
 	GITLAB_TOKEN=$(GITLAB_TOKEN) GIT_PROVIDER_USER=$(GIT_PROVIDER_USER) GIT_PROVIDER_ORGANIZATION=$(GIT_PROVIDER_ORGANIZATION) GITLAB_TEST_REPO_NAME=$(GITLAB_TEST_REPO_NAME) GITLAB_TEST_SUBGROUP=$(GITLAB_TEST_SUBGROUP) GITLAB_TEST_TEAM_NAME=$(GITLAB_TEST_TEAM_NAME) docker compose up -d gitlab
 	GITLAB_BASE_URL=$(GITLAB_BASE_URL) GITLAB_TOKEN=$(GITLAB_TOKEN) ./tests/gitlab/await-healthy.sh
 
-start-provider-instances: start-provider-instances-gitlab
+start-provider-instances-gitea:
+	GITEA_TEST_TEAM_NAME=$(GITEA_TEST_TEAM_NAME) GIT_PROVIDER_ORGANIZATION=$(GIT_PROVIDER_ORGANIZATION) GITEA_USER=$(GIT_PROVIDER_USER) docker compose up -d gitea
+	GITEA_USER=$(GIT_PROVIDER_USER) GITEA_BASE_URL=$(GITEA_BASE_URL) ./tests/gitea/await-healthy.sh
 
 stop-provider-instances:
 	docker compose down --volumes
@@ -43,3 +50,7 @@ test-e2e-gitlab: tidy fmt vet
 test-e2e-stash: tidy fmt vet
 	go test ${TEST_FLAGS} -race -coverprofile=coverage.txt -covermode=atomic -tags=e2e ./stash/...
 
+test-e2e-gitea: tidy fmt vet
+	GITEA_BASE_URL=$(GITEA_BASE_URL) GITEA_TOKEN=$(GITEA_TOKEN) GITEA_TEST_TEAM_NAME=$(GITEA_TEST_TEAM_NAME) \
+	GIT_PROVIDER_ORGANIZATION=$(GIT_PROVIDER_ORGANIZATION) GITEA_USER=$(GIT_PROVIDER_USER) \
+	go test ${TEST_FLAGS} -race -coverprofile=coverage.txt -covermode=atomic -tags=e2e ./gitea/...

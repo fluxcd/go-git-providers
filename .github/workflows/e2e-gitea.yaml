@@ -33,7 +33,3 @@ jobs:
         run: |
           export GITEA_TOKEN=$(cat /tmp/gitea-token)
           make test-e2e-gitea
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
-        with:
-          files: ./coverage.txt

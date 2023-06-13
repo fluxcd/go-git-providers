@@ -29,7 +29,3 @@ jobs:
           [ -n "${{ secrets.STASH_USER }}" ] && export STASH_USER=${{ secrets.STASH_USER }} || echo "using default STASH_USER"
           [ -n "${{ secrets.STASH_DOMAIN }}" ] && export STASH_DOMAIN=${{ secrets.STASH_DOMAIN }} || echo "using default STASH_DOMAIN"
           make test-e2e-stash
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
-        with:
-          files: ./coverage.txt

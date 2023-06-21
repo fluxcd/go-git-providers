@@ -70,7 +70,7 @@ var _ = Describe("Gitea Provider", func() {
 		}
 
 		fmt.Print("Creating repository ", testRepoName, "...")
-		repoRef := newUserRepoRef(giteaUser, testRepoName)
+		repoRef := newUserRepoRef(testRepoName)
 
 		// Check that the repository doesn't exist
 		_, err = c.UserRepositories().Get(ctx, repoRef)
@@ -100,8 +100,21 @@ var _ = Describe("Gitea Provider", func() {
 		Expect(getSpec.Equals(postSpec)).To(BeTrue())
 	})
 
+	It("should return correct repo info when creating a repository with wrong UserLogin", func() {
+		repoName := fmt.Sprintf("test-user-repo-creation-%03d", rand.Intn(1000))
+		repoRef := newUserRepoRef(repoName)
+		repoRef.UserLogin = "yadda-yadda-yada"
+
+		repo, err := c.UserRepositories().Create(ctx, repoRef, gitprovider.RepositoryInfo{})
+
+		Expect(err).To(BeNil())
+		Expect(
+			repo.Repository().GetCloneURL(gitprovider.TransportTypeHTTPS)).
+			To(Equal(fmt.Sprintf("%s/%s/%s.git", giteaBaseUrl, giteaUser, repoName)))
+	})
+
 	It("should error at creation time if the repo already does exist", func() {
-		repoRef := newUserRepoRef(giteaUser, testRepoName)
+		repoRef := newUserRepoRef(testRepoName)
 		_, err := c.UserRepositories().Get(ctx, repoRef)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -110,7 +123,7 @@ var _ = Describe("Gitea Provider", func() {
 	})
 
 	It("should update if the repository already exists when reconciling", func() {
-		repoRef := newUserRepoRef(giteaUser, testRepoName)
+		repoRef := newUserRepoRef(testRepoName)
 		// No-op reconcile
 		resp, actionTaken, err := c.UserRepositories().Reconcile(ctx, repoRef, gitprovider.RepositoryInfo{
 			Description:   gitprovider.StringVar(defaultDescription),
@@ -189,7 +202,7 @@ var _ = Describe("Gitea Provider", func() {
 
 	It("should be possible to create a pr for a user repository", func() {
 		testRepoName = fmt.Sprintf("test-user-repo2-%03d", rand.Intn(1000))
-		repoRef := newUserRepoRef(giteaUser, testRepoName)
+		repoRef := newUserRepoRef(testRepoName)
 		description := "test description"
 		// Create a new repo
 		userRepo, err := c.UserRepositories().Create(ctx, repoRef,
@@ -281,7 +294,7 @@ var _ = Describe("Gitea Provider", func() {
 
 	It("should be possible to download files from path and branch specified", func() {
 		testRepoName = fmt.Sprintf("test-repo-tree-%03d", rand.Intn(1000))
-		userRepoRef := newUserRepoRef(giteaUser, testRepoName)
+		userRepoRef := newUserRepoRef(testRepoName)
 		repo, err := c.UserRepositories().Create(ctx, userRepoRef, gitprovider.RepositoryInfo{
 			DefaultBranch: gitprovider.StringVar(defaultBranch),
 			Description:   gitprovider.StringVar(defaultDescription),

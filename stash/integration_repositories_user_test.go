@@ -107,6 +107,18 @@ var _ = Describe("Stash Provider", func() {
 		Expect(getSpec.Equals(postSpec)).To(BeTrue())
 	})
 
+	It("should return correct repo info when creating a repository with wrong UserLogin", func() {
+		repoName := fmt.Sprintf("test-user-repo-creation-%03d", rand.Intn(1000))
+		repoRef := newUserRepoRef("yadda-yadda-yadda", repoName)
+
+		repo, err := client.UserRepositories().Create(ctx, repoRef, gitprovider.RepositoryInfo{})
+
+		Expect(err).To(BeNil(), "repository with different UserLogin failed")
+		Expect(
+			repo.Repository().GetCloneURL(gitprovider.TransportTypeHTTPS)).
+			To(Equal(fmt.Sprintf("https://%s/%s/%s.git", stashDomain, stashUser, repoName)))
+	})
+
 	It("should error at creation time if the user repo already does exist", func() {
 		repoRef := newUserRepoRef(stashUser, testRepoName)
 		_, err := client.UserRepositories().Get(ctx, repoRef)

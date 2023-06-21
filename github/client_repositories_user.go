@@ -19,6 +19,7 @@ package github
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
@@ -91,6 +92,13 @@ func (c *UserRepositoriesClient) Create(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
+
+	owner := apiObj.GetOwner()
+	if owner == nil {
+		return nil, fmt.Errorf("returned API object doesn't have an owner")
+	}
+	ref.UserLogin = *owner.Login
+
 	return newUserRepository(c.clientContext, apiObj, ref), nil
 }
 

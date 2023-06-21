@@ -796,6 +796,18 @@ var _ = Describe("GitLab Provider", func() {
 		Expect(errors.Is(err, gitprovider.ErrAlreadyExists)).To(BeTrue())
 	})
 
+	It("should return correct repo info when creating a repository with wrong UserLogin", func() {
+		repoName := fmt.Sprintf("test-user-repo-creation-%03d", rand.Intn(1000))
+		repoRef := newUserRepoRef(testBaseUrl, "yadda-yadda-yada", repoName)
+
+		repo, err := c.UserRepositories().Create(ctx, repoRef, gitprovider.RepositoryInfo{})
+
+		Expect(err).To(BeNil())
+		Expect(
+			repo.Repository().GetCloneURL(gitprovider.TransportTypeHTTPS)).
+			To(Equal(fmt.Sprintf("%s/%s/%s.git", testBaseUrl, testUserName, repoName)))
+	})
+
 	It("should update if the user repo already exists when reconciling", func() {
 		repoRef := newUserRepoRef(testBaseUrl, testUserName, testRepoName)
 		// No-op reconcile

@@ -19,6 +19,7 @@ package gitlab
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
@@ -82,6 +83,7 @@ func (c *UserRepositoriesClient) Create(ctx context.Context,
 	req gitprovider.RepositoryInfo,
 	opts ...gitprovider.RepositoryCreateOption,
 ) (gitprovider.UserRepository, error) {
+
 	// Make sure the RepositoryRef is valid
 	if err := validateUserRepositoryRef(ref, c.domain); err != nil {
 		return nil, err
@@ -91,6 +93,12 @@ func (c *UserRepositoriesClient) Create(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
+
+	if apiObj.Owner == nil {
+		return nil, fmt.Errorf("returned API object doesn't have an owner")
+	}
+	ref.UserLogin = apiObj.Owner.Username
+
 	return newUserProject(c.clientContext, apiObj, ref), nil
 }
 

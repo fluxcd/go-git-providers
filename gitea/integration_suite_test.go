@@ -243,9 +243,9 @@ func newUserRef(userLogin string) gitprovider.UserRef {
 	}
 }
 
-func newUserRepoRef(userLogin, repoName string) gitprovider.UserRepositoryRef {
+func newUserRepoRef(repoName string) gitprovider.UserRepositoryRef {
 	return gitprovider.UserRepositoryRef{
-		UserRef:        newUserRef(userLogin),
+		UserRef:        newUserRef(giteaUser),
 		RepositoryName: repoName,
 	}
 }

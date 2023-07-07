@@ -47,12 +47,18 @@ func (c *commitType) APIObject() interface{} {
 }
 
 func commitFromAPI(apiObj *gitea.Commit) gitprovider.CommitInfo {
-	return gitprovider.CommitInfo{
+	info := gitprovider.CommitInfo{
 		Sha:       apiObj.SHA,
-		TreeSha:   apiObj.RepoCommit.Tree.SHA,
 		Author:    apiObj.Author.UserName,
-		Message:   apiObj.RepoCommit.Message,
 		CreatedAt: apiObj.Author.Created,
 		URL:       apiObj.URL,
 	}
+
+	if apiObj.RepoCommit != nil {
+		if apiObj.RepoCommit.Tree != nil {
+			info.TreeSha = apiObj.RepoCommit.Tree.SHA
+		}
+		info.Message = apiObj.RepoCommit.Message
+	}
+	return info
 }

@@ -245,8 +245,9 @@ var _ = Describe("Gitea Provider", func() {
 				Content: &content,
 			},
 		}
-		_, err = userRepo.Commits().Create(ctx, branchName, "added config file", files)
+		commit, err := userRepo.Commits().Create(ctx, branchName, "added config file", files)
 		Expect(err).ToNot(HaveOccurred())
+		Expect(commit.Get().Sha).ToNot(BeEmpty())
 
 		pr, err := userRepo.PullRequests().Create(ctx, "Added config file", branchName, defaultBranch, "added config file")
 		Expect(err).ToNot(HaveOccurred())

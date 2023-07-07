@@ -50,7 +50,7 @@ var (
 	c                   gitprovider.Client
 
 	giteaUser    string
-	giteaBaseUrl = "http://try.gitea.io"
+	giteaBaseUrl = "https://try.gitea.io"
 	testOrgName  = "fluxcd-testing"
 	testTeamName = "fluxcd-testing-2"
 	// placeholders, will be randomized and created.

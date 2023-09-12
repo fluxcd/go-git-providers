@@ -14,7 +14,7 @@ jobs:
       - name: Unshallow
         run: git fetch --prune --unshallow
       - name: Restore Go cache
-        uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
+        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
         with:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
@@ -35,7 +35,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.BOT_GITHUB_TOKEN }}
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@3fa32b8bb5620a2c1afe798654bbad59f9da4906 # v4.4.0
+        uses: goreleaser/goreleaser-action@7ec5c2b0c6cdda6e8bbb49444bc797dd33d74dd8 # v5.0.0
         with:
           version: latest
           args: release --release-notes=/tmp/release.txt --rm-dist

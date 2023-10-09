@@ -58,6 +58,13 @@ var _ = Describe("Gitea Provider", func() {
 		Expect(*info.DefaultBranch).To(Equal(defaultBranch))
 	}
 
+	It("should get the current user", func() {
+		user, err := c.UserRepositories().GetUserLogin(ctx)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(user.GetIdentity()).To(Equal(giteaUser))
+	})
+
 	It("should be possible to create a user repository", func() {
 		// First, check what repositories are available
 		repos, err := c.UserRepositories().List(ctx, newUserRef(giteaUser))
@@ -100,17 +107,15 @@ var _ = Describe("Gitea Provider", func() {
 		Expect(getSpec.Equals(postSpec)).To(BeTrue())
 	})
 
-	It("should return correct repo info when creating a repository with wrong UserLogin", func() {
+	It("should fail when creating a repository with wrong UserLogin", func() {
 		repoName := fmt.Sprintf("test-user-repo-creation-%03d", rand.Intn(1000))
 		repoRef := newUserRepoRef(repoName)
 		repoRef.UserLogin = "yadda-yadda-yada"
 
-		repo, err := c.UserRepositories().Create(ctx, repoRef, gitprovider.RepositoryInfo{})
+		_, err := c.UserRepositories().Create(ctx, repoRef, gitprovider.RepositoryInfo{})
 
-		Expect(err).To(BeNil())
-		Expect(
-			repo.Repository().GetCloneURL(gitprovider.TransportTypeHTTPS)).
-			To(Equal(fmt.Sprintf("%s/%s/%s.git", giteaBaseUrl, giteaUser, repoName)))
+		expectedErr := gitprovider.NewErrIncorrectUser(repoRef.UserLogin)
+		Expect(err).To(MatchError(expectedErr))
 	})
 
 	It("should error at creation time if the repo already does exist", func() {

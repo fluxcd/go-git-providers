@@ -76,6 +76,9 @@ type gitlabClient interface {
 	// DANGEROUS COMMAND: In order to use this, you must set destructiveActions to true.
 	DeleteProject(ctx context.Context, projectName string) error
 
+	// GetUser is a wrapper for "GET /user"
+	GetUser(ctx context.Context) (*gitlab.User, error)
+
 	// Deploy key methods
 
 	// ListKeys is a wrapper for "GET /projects/{project}/deploy_keys".
@@ -339,6 +342,12 @@ func (c *gitlabClientImpl) DeleteProject(ctx context.Context, projectName string
 	// DELETE /projects/{project}
 	_, err := c.c.Projects.DeleteProject(projectName, gitlab.WithContext(ctx))
 	return err
+}
+
+func (c *gitlabClientImpl) GetUser(ctx context.Context) (*gitlab.User, error) {
+	// GET /user
+	proj, _, err := c.c.Users.CurrentUser(gitlab.WithContext(ctx))
+	return proj, err
 }
 
 func (c *gitlabClientImpl) ListKeys(projectName string) ([]*gitlab.ProjectDeployKey, error) {

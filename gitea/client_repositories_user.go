@@ -95,6 +95,19 @@ func (c *UserRepositoriesClient) listUserRepos(username string) ([]*gitea.Reposi
 	return validateRepositoryObjects(apiObjs)
 }
 
+// GetUserLogin returns the authenticated user
+func (c *UserRepositoriesClient) GetUserLogin(ctx context.Context) (gitprovider.IdentityRef, error) {
+	// GET /user
+	user, _, err := c.c.GetMyUserInfo()
+	if err != nil {
+		return nil, err
+	}
+	return gitprovider.UserRef{
+		Domain:    c.domain,
+		UserLogin: user.UserName,
+	}, nil
+}
+
 // Create creates a repository for the given organization, with the data and options
 //
 // ErrAlreadyExists will be returned if the resource already exists.
@@ -106,6 +119,17 @@ func (c *UserRepositoriesClient) Create(ctx context.Context,
 	// Make sure the RepositoryRef is valid
 	if err := validateUserRepositoryRef(ref, c.domain); err != nil {
 		return nil, err
+	}
+
+	// extra validation to ensure we don't create a project when the wrong owner
+	// is passed in
+	idRef, err := c.GetUserLogin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get owner from API")
+	}
+
+	if ref.GetIdentity() != idRef.GetIdentity() {
+		return nil, gitprovider.NewErrIncorrectUser(ref.GetIdentity())
 	}
 
 	apiObj, err := createRepository(ctx, c.c, ref, "", req, opts...)

@@ -34,6 +34,15 @@ type UserRepositoriesClient struct {
 	*clientContext
 }
 
+// GetUserLogin returns the authenticated user.
+//
+// Stash currently doesn't have an endpoint for this, so this
+// is mostly to implement the interface.
+func (c *UserRepositoriesClient) GetUserLogin(ctx context.Context) (gitprovider.IdentityRef, error) {
+	// TODO: call API for stash
+	return gitprovider.UserRef{}, nil
+}
+
 // Get returns the repository at the given path.
 // ErrNotFound is returned if the resource does not exist.
 func (c *UserRepositoriesClient) Get(ctx context.Context, ref gitprovider.UserRepositoryRef) (gitprovider.UserRepository, error) {

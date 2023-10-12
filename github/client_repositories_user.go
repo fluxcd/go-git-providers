@@ -32,6 +32,19 @@ type UserRepositoriesClient struct {
 	*clientContext
 }
 
+// GetUserLogin returns the current authenticated user.
+func (c *UserRepositoriesClient) GetUserLogin(ctx context.Context) (gitprovider.IdentityRef, error) {
+	// GET /user
+	user, err := c.c.GetUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return gitprovider.UserRef{
+		Domain:    c.domain,
+		UserLogin: user.GetLogin(),
+	}, nil
+}
+
 // Get returns the repository at the given path.
 //
 // ErrNotFound is returned if the resource does not exist.
@@ -86,6 +99,17 @@ func (c *UserRepositoriesClient) Create(ctx context.Context,
 	// Make sure the RepositoryRef is valid
 	if err := validateUserRepositoryRef(ref, c.domain); err != nil {
 		return nil, err
+	}
+
+	// extra validation to ensure we don't create a project when the wrong owner
+	// is passed in
+	idRef, err := c.GetUserLogin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get owner from API")
+	}
+
+	if ref.GetIdentity() != idRef.GetIdentity() {
+		return nil, gitprovider.NewErrIncorrectUser(ref.GetIdentity())
 	}
 
 	apiObj, err := createRepository(ctx, c.c, ref, "", req, opts...)

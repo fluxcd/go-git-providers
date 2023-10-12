@@ -18,6 +18,7 @@ package gitprovider
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 )
@@ -130,4 +131,21 @@ type ValidationErrorItem struct {
 type InvalidCredentialsError struct {
 	// InvalidCredentialsError extends HTTPError.
 	HTTPError `json:",inline"`
+}
+
+// ErrIncorrectUser describes that the user provided was incorrect
+//
+// It is returned by `UserRepositories().Create` when an incorrect UserLogin is passed in
+type ErrIncorrectUser struct {
+	user string
+}
+
+// Error implements the error interface.
+func NewErrIncorrectUser(user string) *ErrIncorrectUser {
+	return &ErrIncorrectUser{user}
+}
+
+// Error implements the error interface.
+func (e *ErrIncorrectUser) Error() string {
+	return fmt.Sprintf("incorrect user '%s' provided", e.user)
 }

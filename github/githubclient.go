@@ -67,6 +67,9 @@ type githubClient interface {
 	// DANGEROUS COMMAND: In order to use this, you must set destructiveActions to true.
 	DeleteRepo(ctx context.Context, owner, repo string) error
 
+	// GetUser is a wrapper for "GET /user"
+	GetUser(ctx context.Context) (*github.User, error)
+
 	// ListKeys is a wrapper for "GET /repos/{owner}/{repo}/keys".
 	// This function handles pagination, HTTP error wrapping, and validates the server result.
 	ListKeys(ctx context.Context, owner, repo string) ([]*github.Key, error)
@@ -295,6 +298,12 @@ func (c *githubClientImpl) ListKeys(ctx context.Context, owner, repo string) ([]
 		}
 	}
 	return apiObjs, nil
+}
+
+func (c *githubClientImpl) GetUser(ctx context.Context) (*github.User, error) {
+	// GET /user
+	user, _, err := c.c.Users.Get(ctx, "")
+	return user, err
 }
 
 func (c *githubClientImpl) ListCommitsPage(ctx context.Context, owner, repo, branch string, perPage int, page int) ([]*github.Commit, error) {

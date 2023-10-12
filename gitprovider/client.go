@@ -123,6 +123,9 @@ type UserRepositoriesClient interface {
 	// ErrAlreadyExists will be returned if the resource already exists.
 	Create(ctx context.Context, r UserRepositoryRef, req RepositoryInfo, opts ...RepositoryCreateOption) (UserRepository, error)
 
+	// GetUserLogin returns the current authenticated user.
+	GetUserLogin(ctx context.Context) (IdentityRef, error)
+
 	// Reconcile makes sure the given desired state (req) becomes the actual state in the backing Git provider.
 	//
 	// If req doesn't exist under the hood, it is created (actionTaken == true).

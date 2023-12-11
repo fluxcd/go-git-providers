@@ -20,7 +20,7 @@ test -f $done || {
   
   su git -s /bin/bash -c "gitea admin user create --admin --username $GITEA_USER --password $GITEA_USER --email admin@example.com"
   
-  TOKEN=$(curl -H "Content-Type: application/json" -d '{"name":"fluxcd-1", "scopes":["sudo","repo","admin:org","admin:public_key","delete_repo"]}'  -u $GITEA_USER:$GITEA_USER http://127.0.0.1:3000/api/v1/users/$GITEA_USER/tokens \
+  TOKEN=$(curl -H "Content-Type: application/json" -d '{"name":"fluxcd-1", "scopes":["all"]}'  -u $GITEA_USER:$GITEA_USER http://127.0.0.1:3000/api/v1/users/$GITEA_USER/tokens \
   | sed -E 's/.*"sha1":"([^"]*).*/\1/')
 
   curl --silent --show-error --fail -v POST "http://127.0.0.1:3000/api/v1/admin/users/$GITEA_USER/orgs" \

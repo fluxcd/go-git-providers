@@ -20,7 +20,7 @@ import (
 	"context"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/google/go-github/v55/github"
+	"github.com/google/go-github/v57/github"
 )
 
 // PullRequestClient implements the gitprovider.PullRequestClient interface.

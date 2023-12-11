@@ -206,7 +206,7 @@ var _ = Describe("Gitea Provider", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(len(keys)).To(Equal(0))
 
-		rsaGen := testutils.NewRSAGenerator(2154)
+		rsaGen := testutils.NewRSAGenerator(3071)
 		keyPair1, err := rsaGen.Generate()
 		Expect(err).ToNot(HaveOccurred())
 		pubKey := keyPair1.PublicKey

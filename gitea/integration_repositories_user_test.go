@@ -264,8 +264,14 @@ var _ = Describe("Gitea Provider", func() {
 		Expect(len(prs)).To(Equal(1))
 		Expect(prs[0].Get().WebURL).To(Equal(pr.Get().WebURL))
 
-		err = userRepo.PullRequests().Merge(ctx, pr.Get().Number, gitprovider.MergeMethodSquash, "squash merged")
-		Expect(err).ToNot(HaveOccurred())
+		Eventually(func() bool {
+			var err error
+			err = userRepo.PullRequests().Merge(ctx, pr.Get().Number, gitprovider.MergeMethodSquash, "squash merged")
+			if err == nil && len(commits) == 0 {
+				err = errors.New("pull request not merged")
+			}
+			return retryOp.IsRetryable(err, fmt.Sprintf("merge pull request, repository: %s", userRepo.Repository().GetRepository()))
+		}, retryOp.Timeout(), retryOp.Interval()).Should(BeTrue())
 
 		getPR, err := userRepo.PullRequests().Get(ctx, pr.Get().Number)
 		Expect(err).ToNot(HaveOccurred())
@@ -281,8 +287,12 @@ var _ = Describe("Gitea Provider", func() {
 			},
 		}
 
-		_, err = userRepo.Commits().Create(ctx, branchName, "added second config file", files)
+		err = userRepo.Branches().Create(ctx, branchName2, defaultBranch)
 		Expect(err).ToNot(HaveOccurred())
+
+		commit, err = userRepo.Commits().Create(ctx, branchName2, "added second config file", files)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(commit.Get().Sha).ToNot(BeEmpty())
 
 		pr, err = userRepo.PullRequests().Create(ctx, "Added second config file", branchName, defaultBranch, "added second config file")
 		Expect(err).ToNot(HaveOccurred())

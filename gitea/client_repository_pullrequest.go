@@ -102,6 +102,9 @@ func (c *PullRequestClient) Merge(ctx context.Context, number int, mergeMethod g
 	}
 
 	if !done {
+		if resp.StatusCode != 200 {
+			return fmt.Errorf("merge failed: %s", resp.Status)
+		}
 		return fmt.Errorf("merge failed")
 	}
 

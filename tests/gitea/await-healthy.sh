@@ -12,7 +12,7 @@ done
 echo
 echo "Gitea is healthy at $GITEA_BASE_URL"
 
-export GITEA_TOKEN=$(curl -H "Content-Type: application/json" -d '{"name":"fluxcd-2", "scopes":["sudo","repo","admin:org","admin:public_key","delete_repo"]}' -u $GITEA_USER:$GITEA_USER $GITEA_BASE_URL/api/v1/users/$GITEA_USER/tokens \
+export GITEA_TOKEN=$(curl -H "Content-Type: application/json" -d '{"name":"fluxcd-2", "scopes":["all"]}' -u $GITEA_USER:$GITEA_USER $GITEA_BASE_URL/api/v1/users/$GITEA_USER/tokens \
 | sed -E 's/.*"sha1":"([^"]*).*/\1/')
 
 # Print the version, since it is useful debugging information.

@@ -28,10 +28,14 @@ import (
 )
 
 func Test_DomainVariations(t *testing.T) {
-
-	giteaBaseUrl = "http://try.gitea.io"
+	giteaBaseUrl := "http://try.gitea.io"
 	if giteaBaseUrlVar := os.Getenv("GITEA_BASE_URL"); giteaBaseUrlVar != "" {
 		giteaBaseUrl = giteaBaseUrlVar
+	}
+
+	token := ""
+	if giteaToken := os.Getenv("GITEA_TOKEN"); giteaToken != "" {
+		token = giteaToken
 	}
 
 	u, err := url.Parse(giteaBaseUrl)
@@ -58,7 +62,7 @@ func Test_DomainVariations(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c1, err := NewClient("token", tt.opts)
+			c1, err := NewClient(token, tt.opts)
 			if err != nil {
 				if tt.expectedErrPattern == "" {
 					t.Fatalf("unexpected error: %s", err)

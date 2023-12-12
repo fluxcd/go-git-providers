@@ -59,7 +59,7 @@ func NewClient(token string, optFns ...gitprovider.ClientOption) (gitprovider.Cl
 
 	gt, err := gitea.NewClient(baseURL, gitea.SetHTTPClient(httpClient), gitea.SetToken(token))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create Gitea client: %w", err)
 	}
 	// By default, turn destructive actions off. But allow overrides.
 	destructiveActions := false

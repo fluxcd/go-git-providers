@@ -21,7 +21,7 @@ import (
 	"fmt"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/google/go-github/v55/github"
+	"github.com/google/go-github/v57/github"
 )
 
 var githubNewFileMode = "100644"
@@ -106,7 +106,7 @@ func (c *CommitClient) Create(ctx context.Context, branch string, message string
 				SHA: &latestCommitSHA,
 			},
 		},
-	})
+	}, nil)
 	if err != nil {
 		return nil, err
 	}

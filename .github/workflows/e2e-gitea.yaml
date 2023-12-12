@@ -26,9 +26,9 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe # v4.1.0
         with:
-          go-version: 1.20.x
+          go-version: 1.21.x
       - name: Start Provider instances
-        run: make start-provider-instances-gitea GITEA_VERSION=1.19.3@sha256:b28e8f3089b52ebe6693295df142f8c12eff354e9a4a5bfbb5c10f296c3a537a
+        run: make start-provider-instances-gitea GITEA_VERSION=1.21.1@sha256:63165c64759c98e55f0afdb5fc3be64cbb27180d3474e951fa027228e6955029
       - name: Run tests [gitea]
         run: |
           export GITEA_TOKEN=$(cat /tmp/gitea-token)

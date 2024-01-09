@@ -68,7 +68,7 @@ func (c *FileClient) Get(ctx context.Context, path, branch string, optFns ...git
 		if err != nil {
 			return nil, err
 		}
-		defer output.Close()
+		output.Close()
 
 		contentStr := string(content)
 		files = append(files, &gitprovider.CommitFile{

@@ -299,7 +299,17 @@ var _ = Describe("Gitea Provider", func() {
 		Expect(pr.Get().WebURL).ToNot(BeEmpty())
 		Expect(pr.Get().Merged).To(BeFalse())
 
-		err = userRepo.PullRequests().Merge(ctx, pr.Get().Number, gitprovider.MergeMethodMerge, "merged")
+		Eventually(func() bool {
+			var err error
+			getPR, err = userRepo.PullRequests().Get(ctx, pr.Get().Number)
+			pr := getPR.APIObject().(*gitea.PullRequest)
+			if err != nil || !pr.Mergeable {
+				err = errors.New("pull request not ready to merge")
+			}
+			return retryOp.IsRetryable(err, fmt.Sprintf("get pull request, repository: %s", userRepo.Repository().GetRepository()))
+		}, retryOp.Timeout(), retryOp.Interval()).Should(BeTrue())
+
+		err = userRepo.PullRequests().Merge(ctx, getPR.Get().Number, gitprovider.MergeMethodMerge, "merged")
 		Expect(err).ToNot(HaveOccurred())
 
 		getPR, err = userRepo.PullRequests().Get(ctx, pr.Get().Number)

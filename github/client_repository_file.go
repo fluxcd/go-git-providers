@@ -18,6 +18,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 
@@ -58,6 +59,8 @@ func (c *FileClient) Get(ctx context.Context, path, branch string, optFns ...git
 
 	files := make([]*gitprovider.CommitFile, 0)
 
+	// For handling to close the output [io.ReadCloser] errors.
+	var errs error
 	for _, file := range directoryContent {
 		filePath := file.Path
 		output, _, err := c.c.Client().Repositories.DownloadContents(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), *filePath, opts)
@@ -68,14 +71,17 @@ func (c *FileClient) Get(ctx context.Context, path, branch string, optFns ...git
 		if err != nil {
 			return nil, err
 		}
-		defer output.Close()
+		// Don't use defer in the for loop. Checks errors lazily.
+		errs = errors.Join(errs, output.Close())
 
 		contentStr := string(content)
 		files = append(files, &gitprovider.CommitFile{
 			Path:    filePath,
 			Content: &contentStr,
 		})
-
+	}
+	if errs != nil {
+		return nil, errs
 	}
 
 	return files, nil

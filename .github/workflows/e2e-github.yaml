@@ -2,9 +2,11 @@ name: e2e-github
 
 on:
   workflow_dispatch:
+  pull_request:
   push:
-    branches: [ '*' ]
-    tags-ignore: [ '*' ]
+    branches:
+      - main
+    tags-ignore: ["*"]
 
 jobs:
   test:

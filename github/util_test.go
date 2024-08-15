@@ -23,7 +23,7 @@ import (
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/fluxcd/go-git-providers/validation"
-	"github.com/google/go-github/v61/github"
+	"github.com/google/go-github/v63/github"
 )
 
 func Test_validateAPIObject(t *testing.T) {

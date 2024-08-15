@@ -226,6 +226,11 @@ func handleHTTPError(err error) error {
 	if err == nil {
 		return nil
 	}
+
+	if err == gitlab.ErrNotFound {
+		return gitprovider.ErrNotFound
+	}
+
 	glErrorResponse := &gitlab.ErrorResponse{}
 	if errors.As(err, &glErrorResponse) {
 		httpErr := gitprovider.HTTPError{
@@ -239,10 +244,6 @@ func handleHTTPError(err error) error {
 			return validation.NewMultiError(err,
 				&gitprovider.InvalidCredentialsError{HTTPError: httpErr},
 			)
-		}
-		// Check for 404 Not Found
-		if glErrorResponse.Response.StatusCode == http.StatusNotFound {
-			return validation.NewMultiError(err, gitprovider.ErrNotFound)
 		}
 		// Check for already exists errors
 		if strings.Contains(glErrorResponse.Message, alreadyExistsMagicString) {

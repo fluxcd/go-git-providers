@@ -7,7 +7,7 @@
 
 ## Requirements
 
-- Go >= 1.18
+- Go >= 1.23
 - Make
 
 ## How to run the test suite locally

@@ -21,7 +21,7 @@ import (
 	"fmt"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/google/go-github/v63/github"
+	"github.com/google/go-github/v64/github"
 )
 
 var githubNewFileMode = "100644"

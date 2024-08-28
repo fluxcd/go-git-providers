@@ -21,7 +21,7 @@ import (
 	"fmt"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/google/go-github/v63/github"
+	"github.com/google/go-github/v64/github"
 )
 
 // githubClientImpl is a wrapper around *github.Client, which implements higher-level methods,

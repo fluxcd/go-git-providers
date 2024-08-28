@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/xanzy/go-gitlab"
+
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/fluxcd/go-git-providers/validation"
-	"github.com/xanzy/go-gitlab"
 )
 
 const (
@@ -226,6 +227,11 @@ func handleHTTPError(err error) error {
 	if err == nil {
 		return nil
 	}
+
+	if errors.Is(err, gitlab.ErrNotFound) {
+		return validation.NewMultiError(err, gitprovider.ErrNotFound)
+	}
+
 	glErrorResponse := &gitlab.ErrorResponse{}
 	if errors.As(err, &glErrorResponse) {
 		httpErr := gitprovider.HTTPError{

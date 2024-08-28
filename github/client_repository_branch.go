@@ -19,8 +19,9 @@ package github
 import (
 	"context"
 
+	"github.com/google/go-github/v64/github"
+
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/google/go-github/v61/github"
 )
 
 // BranchClient implements the gitprovider.BranchClient interface.

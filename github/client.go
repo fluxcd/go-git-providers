@@ -20,7 +20,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/google/go-github/v61/github"
+	"github.com/google/go-github/v64/github"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
@@ -111,7 +111,7 @@ func (c *Client) HasTokenPermission(ctx context.Context, permission gitprovider.
 	}
 
 	// The X-OAuth-Scopes header is returned for any API calls, using Meta here to keep things simple.
-	_, res, err := c.c.Client().APIMeta(ctx)
+	_, res, err := c.c.Client().Meta.Get(ctx)
 	if err != nil {
 		return false, err
 	}

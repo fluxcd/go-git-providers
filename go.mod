@@ -2,6 +2,9 @@ module github.com/fluxcd/go-git-providers
 
 go 1.22
 
+// Includes fix: https://github.com/google/go-github/pull/3249
+replace github.com/google/go-github/v64 => github.com/google/go-github/v64 v64.0.1-0.20240826145430-da7d01467641
+
 require (
 	code.gitea.io/sdk/gitea v0.19.0
 	github.com/ProtonMail/go-crypto v1.0.0

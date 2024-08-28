@@ -111,7 +111,7 @@ func (c *Client) HasTokenPermission(ctx context.Context, permission gitprovider.
 	}
 
 	// The X-OAuth-Scopes header is returned for any API calls, using Meta here to keep things simple.
-	_, res, err := c.c.Client().APIMeta(ctx)
+	_, res, err := c.c.Client().Meta.Get(ctx)
 	if err != nil {
 		return false, err
 	}

@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
@@ -108,7 +109,8 @@ func (c *UserRepositoriesClient) Create(ctx context.Context,
 		return nil, fmt.Errorf("unable to get owner from API")
 	}
 
-	if ref.GetIdentity() != idRef.GetIdentity() {
+	// GitHub usernames are case insensitive, so compare them with https://pkg.go.dev/strings#EqualFold
+	if strings.EqualFold(ref.GetIdentity(), idRef.GetIdentity()) {
 		return nil, gitprovider.NewErrIncorrectUser(ref.GetIdentity())
 	}
 

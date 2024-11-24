@@ -340,7 +340,7 @@ func (c *gitlabClientImpl) DeleteProject(ctx context.Context, projectName string
 		return fmt.Errorf("cannot delete repository: %w", gitprovider.ErrDestructiveCallDisallowed)
 	}
 	// DELETE /projects/{project}
-	_, err := c.c.Projects.DeleteProject(projectName, gitlab.WithContext(ctx))
+	_, err := c.c.Projects.DeleteProject(projectName, nil)
 	return err
 }
 

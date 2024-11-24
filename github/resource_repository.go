@@ -21,7 +21,7 @@ import (
 	"errors"
 	"reflect"
 
-	"github.com/google/go-github/v64/github"
+	"github.com/google/go-github/v66/github"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/fluxcd/go-git-providers/validation"

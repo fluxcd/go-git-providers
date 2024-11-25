@@ -110,7 +110,7 @@ func (c *UserRepositoriesClient) Create(ctx context.Context,
 	}
 
 	// GitHub usernames are case insensitive, so compare them with https://pkg.go.dev/strings#EqualFold
-	if strings.EqualFold(ref.GetIdentity(), idRef.GetIdentity()) {
+	if !strings.EqualFold(ref.GetIdentity(), idRef.GetIdentity()) {
 		return nil, gitprovider.NewErrIncorrectUser(ref.GetIdentity())
 	}
 

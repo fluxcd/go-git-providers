@@ -11,6 +11,7 @@ name: e2e-gitea
 
 jobs:
   test:
+    if: github.actor != 'dependabot[bot]'
     timeout-minutes: 60
     runs-on: ubuntu-latest
     steps:

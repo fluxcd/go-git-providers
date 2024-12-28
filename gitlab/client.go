@@ -22,7 +22,7 @@ import (
 	"net/url"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/xanzy/go-gitlab"
+	"gitlab.com/gitlab-org/api/client-go"
 )
 
 // ProviderID is the provider ID for GitLab.

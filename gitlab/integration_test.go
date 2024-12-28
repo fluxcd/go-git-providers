@@ -37,7 +37,7 @@ import (
 	"github.com/gregjones/httpcache"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/xanzy/go-gitlab"
+	"gitlab.com/gitlab-org/api/client-go"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	testutils "github.com/fluxcd/go-git-providers/gitprovider/testutils"

@@ -21,7 +21,7 @@ import (
 	"errors"
 
 	"github.com/google/go-cmp/cmp"
-	gogitlab "github.com/xanzy/go-gitlab"
+	gogitlab "gitlab.com/gitlab-org/api/client-go"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )

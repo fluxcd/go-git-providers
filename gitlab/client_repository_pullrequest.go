@@ -22,7 +22,7 @@ import (
 	"time"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/xanzy/go-gitlab"
+	"gitlab.com/gitlab-org/api/client-go"
 )
 
 // mergeStatusChecking indicates that gitlab has not yet asynchronously updated the merge status for a merge request

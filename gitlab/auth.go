@@ -18,7 +18,7 @@ package gitlab
 
 import (
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	gogitlab "github.com/xanzy/go-gitlab"
+	gogitlab "gitlab.com/gitlab-org/api/client-go"
 )
 
 const (

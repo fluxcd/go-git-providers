@@ -18,7 +18,7 @@ package gitlab
 
 import (
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/xanzy/go-gitlab"
+	"gitlab.com/gitlab-org/api/client-go"
 )
 
 // The value of the "State" field of a gitlab merge request after it has been merged"

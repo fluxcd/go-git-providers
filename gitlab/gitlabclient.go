@@ -22,7 +22,7 @@ import (
 	"strings"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/xanzy/go-gitlab"
+	"gitlab.com/gitlab-org/api/client-go"
 )
 
 // gitlabClientImpl is a wrapper around *github.Client, which implements higher-level methods,

@@ -25,12 +25,12 @@ import (
 	"gitlab.com/gitlab-org/api/client-go"
 )
 
-// gitlabClientImpl is a wrapper around *github.Client, which implements higher-level methods,
-// operating on the go-github structs. Pagination is implemented for all List* methods, all returned
+// gitlabClientImpl is a wrapper around *gitlab.Client, which implements higher-level methods,
+// operating on the go-gitlab structs. Pagination is implemented for all List* methods, all returned
 // objects are validated, and HTTP errors are handled/wrapped using handleHTTPError.
 // This interface is also fakeable, in order to unit-test the client.
 type gitlabClient interface {
-	// Client returns the underlying *github.Client
+	// Client returns the underlying *gitlab.Client
 	Client() *gitlab.Client
 
 	// Group methods

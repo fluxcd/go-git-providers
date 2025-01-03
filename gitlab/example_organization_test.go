@@ -35,7 +35,7 @@ func ExampleOrganizationsClient_Get() {
 
 	// Use .Get() to aquire a high-level gitprovider.OrganizationInfo struct
 	orgInfo := org.Get()
-	// Cast the internal object to a *gogithub.Organization to access custom data
+	// Cast the internal object to a *gogitlab.Group to access custom data
 	internalOrg := org.APIObject().(*gogitlab.Group)
 
 	fmt.Printf("Name: %s. Location: %s.", *orgInfo.Name, internalOrg.Path)

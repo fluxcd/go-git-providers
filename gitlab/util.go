@@ -130,7 +130,7 @@ func allDeployTokenPages(opts *gitlab.ListProjectDeployTokensOptions, fn func() 
 	}
 }
 
-// validateUserRepositoryRef makes sure the UserRepositoryRef is valid for GitHub's usage.
+// validateUserRepositoryRef makes sure the UserRepositoryRef is valid for GitLab's usage.
 func validateUserRepositoryRef(ref gitprovider.UserRepositoryRef, expectedDomain string) error {
 	// Make sure the RepositoryRef fields are valid
 	if err := validation.ValidateTargets("UserRepositoryRef", ref); err != nil {
@@ -140,7 +140,7 @@ func validateUserRepositoryRef(ref gitprovider.UserRepositoryRef, expectedDomain
 	return validateIdentityFields(ref, expectedDomain)
 }
 
-// validateOrgRepositoryRef makes sure the OrgRepositoryRef is valid for GitHub's usage.
+// validateOrgRepositoryRef makes sure the OrgRepositoryRef is valid for GitLab's usage.
 func validateOrgRepositoryRef(ref gitprovider.OrgRepositoryRef, expectedDomain string) error {
 	// Make sure the RepositoryRef fields are valid
 	if err := validation.ValidateTargets("OrgRepositoryRef", ref); err != nil {
@@ -150,7 +150,7 @@ func validateOrgRepositoryRef(ref gitprovider.OrgRepositoryRef, expectedDomain s
 	return validateIdentityFields(ref, expectedDomain)
 }
 
-// validateUserRef makes sure the UserRef is valid for GitHub's usage.
+// validateUserRef makes sure the UserRef is valid for GitLab's usage.
 func validateUserRef(ref gitprovider.UserRef, expectedDomain string) error {
 	// Make sure the OrganizationRef fields are valid
 	if err := validation.ValidateTargets("UserRef", ref); err != nil {
@@ -192,7 +192,7 @@ func validateProjectAPI(apiObj *gitlab.Project) error {
 	})
 }
 
-// validateOrganizationRef makes sure the OrganizationRef is valid for GitHub's usage.
+// validateOrganizationRef makes sure the OrganizationRef is valid for GitLab's usage.
 func validateOrganizationRef(ref gitprovider.OrganizationRef, expectedDomain string) error {
 	// Make sure the OrganizationRef fields are valid
 	if err := validation.ValidateTargets("OrganizationRef", ref); err != nil {

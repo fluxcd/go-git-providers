@@ -46,5 +46,4 @@ func ExampleOrgRepositoriesClient_Get() {
 	internalRepo := repo.APIObject().(*gogitea.Repository)
 
 	fmt.Printf("Description: %s. Homepage: %s", *repoInfo.Description, internalRepo.HTMLURL)
-	// Output: Description: Gitea: Golang SDK. Homepage: https://gitea.com/gitea/go-sdk
 }

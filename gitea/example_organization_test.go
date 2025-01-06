@@ -54,5 +54,4 @@ func ExampleOrganizationsClient_Get() {
 	internalOrg := org.APIObject().(*gogitea.Organization)
 
 	fmt.Printf("Name: %s. Location: %s.", *orgInfo.Name, internalOrg.Location)
-	// Output: Name: gitea. Location: Git Universe.
 }

@@ -1,12 +1,12 @@
 module github.com/fluxcd/go-git-providers
 
-go 1.22.7
+go 1.23.0
 
 require (
 	code.gitea.io/sdk/gitea v0.19.0
 	github.com/ProtonMail/go-crypto v1.1.3
-	github.com/go-git/go-billy/v5 v5.6.0
-	github.com/go-git/go-git/v5 v5.12.0
+	github.com/go-git/go-billy/v5 v5.6.1
+	github.com/go-git/go-git/v5 v5.13.1
 	github.com/go-logr/logr v1.4.2
 	github.com/go-logr/zapr v1.3.0
 	github.com/google/go-cmp v0.6.0
@@ -17,12 +17,12 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.7.7
 	github.com/ktrysmt/go-bitbucket v0.9.81
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.36.1
+	github.com/onsi/gomega v1.36.2
 	gitlab.com/gitlab-org/api/client-go v0.116.0
 	go.uber.org/zap v1.27.0
-	golang.org/x/crypto v0.30.0
-	golang.org/x/oauth2 v0.24.0
-	golang.org/x/time v0.8.0
+	golang.org/x/crypto v0.31.0
+	golang.org/x/oauth2 v0.25.0
+	golang.org/x/time v0.9.0
 	k8s.io/utils v0.0.0-20241104163129-6fe5fd82f078
 )
 
@@ -30,7 +30,7 @@ require (
 	dario.cat/mergo v1.0.1 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/cloudflare/circl v1.5.0 // indirect
-	github.com/cyphar/filepath-securejoin v0.3.5 // indirect
+	github.com/cyphar/filepath-securejoin v0.3.6 // indirect
 	github.com/davidmz/go-pageant v1.0.2 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
@@ -49,8 +49,8 @@ require (
 	github.com/skeema/knownhosts v1.3.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
-	golang.org/x/net v0.32.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/net v0.33.0 // indirect
+	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect

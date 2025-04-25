@@ -40,7 +40,7 @@ import (
 	"gitlab.com/gitlab-org/api/client-go"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	testutils "github.com/fluxcd/go-git-providers/gitprovider/testutils"
+	"github.com/fluxcd/go-git-providers/gitprovider/testutils"
 )
 
 const (
@@ -601,7 +601,7 @@ var _ = Describe("GitLab Provider", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(len(keys)).To(Equal(0))
 
-		rsaGen := testutils.NewRSAGenerator(256)
+		rsaGen := testutils.NewRSAGenerator(1024)
 		keyPair1, err := rsaGen.Generate()
 		Expect(err).ToNot(HaveOccurred())
 		pubKey := keyPair1.PublicKey

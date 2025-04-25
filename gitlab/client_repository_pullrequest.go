@@ -21,12 +21,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/fluxcd/go-git-providers/gitprovider"
 	"gitlab.com/gitlab-org/api/client-go"
-)
 
-// mergeStatusChecking indicates that gitlab has not yet asynchronously updated the merge status for a merge request
-const mergeStatusChecking = "checking"
+	"github.com/fluxcd/go-git-providers/gitprovider"
+)
 
 // PullRequestClient implements the gitprovider.PullRequestClient interface.
 var _ gitprovider.PullRequestClient = &PullRequestClient{}
@@ -46,7 +44,11 @@ func (c *PullRequestClient) List(_ context.Context) ([]gitprovider.PullRequest, 
 
 	requests := make([]gitprovider.PullRequest, len(mrs))
 
-	for idx, mr := range mrs {
+	for idx, basicMR := range mrs {
+		mr, _, err := c.c.Client().MergeRequests.GetMergeRequest(getRepoPath(c.ref), basicMR.IID, nil)
+		if err != nil {
+			return nil, err
+		}
 		requests[idx] = newPullRequest(c.clientContext, mr)
 	}
 
@@ -96,7 +98,8 @@ func (c *PullRequestClient) Get(_ context.Context, number int) (gitprovider.Pull
 
 // Merge merges a pull request with the given specifications.
 func (c *PullRequestClient) Merge(_ context.Context, number int, mergeMethod gitprovider.MergeMethod, message string) error {
-	if err := c.waitForMergeRequestToBeMergeable(number); err != nil {
+	status, err := c.waitForMergeRequestToBeMergeable(number)
+	if err != nil {
 		return err
 	}
 
@@ -124,25 +127,30 @@ func (c *PullRequestClient) Merge(_ context.Context, number int, mergeMethod git
 		SHA:                       nil,
 	}
 
-	_, _, err := c.c.Client().MergeRequests.AcceptMergeRequest(getRepoPath(c.ref), number, amrOpts)
+	_, _, err = c.c.Client().MergeRequests.AcceptMergeRequest(getRepoPath(c.ref), number, amrOpts)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to accept merge request with status '%s': %s", status, err)
 	}
 
 	return nil
 }
 
-func (c *PullRequestClient) waitForMergeRequestToBeMergeable(number int) error {
-	// gitlab says to poll for merge status
+func (c *PullRequestClient) waitForMergeRequestToBeMergeable(number int) (string, error) {
+	// poll for merge status to reach "mergeable" state
+	// docs: https://docs.gitlab.com/api/merge_requests/#merge-status
+	currentStatus := "unknown"
 	for retries := 0; retries < 10; retries++ {
 		mr, _, err := c.c.Client().MergeRequests.GetMergeRequest(getRepoPath(c.ref), number, &gitlab.GetMergeRequestsOptions{})
-		if err != nil || mr.MergeStatus == mergeStatusChecking {
+		if err != nil || mr.DetailedMergeStatus != "mergeable" {
+			if mr != nil {
+				currentStatus = mr.DetailedMergeStatus
+			}
 			time.Sleep(time.Second * 2)
 			continue
 		}
 
-		return nil
+		return mr.DetailedMergeStatus, nil
 	}
 
-	return fmt.Errorf("merge status unavailable for pull request number: %d", number)
+	return currentStatus, fmt.Errorf("merge status %s for pull request number: %d", currentStatus, number)
 }

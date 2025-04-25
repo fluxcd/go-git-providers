@@ -20,7 +20,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v71/github"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )

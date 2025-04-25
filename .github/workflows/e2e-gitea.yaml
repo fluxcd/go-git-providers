@@ -20,7 +20,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
         with:
-          go-version: 1.23.x
+          go-version: 1.24.x
           cache: true
       - name: Start Provider instances
         run: make start-provider-instances-gitea GITEA_VERSION=1.21.1@sha256:63165c64759c98e55f0afdb5fc3be64cbb27180d3474e951fa027228e6955029

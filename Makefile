@@ -4,7 +4,7 @@ TEST_PATTERN?=./...
 all: test
 
 tidy:
-	go mod tidy -compat=1.22
+	go mod tidy -compat=1.24
 
 fmt:
 	go fmt ./...

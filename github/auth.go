@@ -19,7 +19,7 @@ package github
 import (
 	"fmt"
 
-	"github.com/google/go-github/v71/github"
+	"github.com/google/go-github/v72/github"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )

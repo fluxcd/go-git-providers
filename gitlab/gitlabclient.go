@@ -21,8 +21,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/fluxcd/go-git-providers/gitprovider"
 	"gitlab.com/gitlab-org/api/client-go"
+
+	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
 // gitlabClientImpl is a wrapper around *gitlab.Client, which implements higher-level methods,
@@ -443,11 +444,11 @@ func (c *gitlabClientImpl) DeleteToken(projectName string, keyID int) error {
 }
 
 func (c *gitlabClientImpl) ShareProject(projectName string, groupIDObj, groupAccessObj int) error {
-	groupAccess := gitlab.AccessLevel(gitlab.AccessLevelValue(groupAccessObj))
+	groupAccess := gitlab.AccessLevelValue(groupAccessObj)
 	groupID := &groupIDObj
 	opt := &gitlab.ShareWithGroupOptions{
 		GroupID:     groupID,
-		GroupAccess: groupAccess,
+		GroupAccess: &groupAccess,
 	}
 
 	_, err := c.c.Projects.ShareProjectWithGroup(projectName, opt)

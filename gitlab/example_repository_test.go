@@ -7,9 +7,10 @@ import (
 	"fmt"
 	"os"
 
+	gogitlab "gitlab.com/gitlab-org/api/client-go"
+
 	"github.com/fluxcd/go-git-providers/gitlab"
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	gogitlab "gitlab.com/gitlab-org/api/client-go"
 )
 
 func ExampleOrgRepositoriesClient_Get() {
@@ -32,5 +33,4 @@ func ExampleOrgRepositoriesClient_Get() {
 	internalRepo := repo.APIObject().(*gogitlab.Project)
 
 	fmt.Printf("Description: %s. Homepage: %s", *repoInfo.Description, internalRepo.HTTPURLToRepo)
-	// Output: Description: GitLab FOSS is a read-only mirror of GitLab, with all proprietary code removed. This project was previously used to host GitLab Community Edition, but all development has now moved to https://gitlab.com/gitlab-org/gitlab.. Homepage: https://gitlab.com/gitlab-org/gitlab-foss.git
 }

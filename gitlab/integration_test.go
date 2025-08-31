@@ -1000,8 +1000,9 @@ var _ = Describe("GitLab Provider", func() {
 		expectPRToBeMerged(ctx, userRepo, pr.Get().Number)
 
 		gitlabClient := c.Raw().(*gitlab.Client)
+		ref := defaultBranchName
 		_, res, err := gitlabClient.RepositoryFiles.GetFile(testUserName+"/"+testRepoName, path, &gitlab.GetFileOptions{
-			Ref: gitlab.String(defaultBranchName),
+			Ref: &ref,
 		})
 		Expect(err).To(HaveOccurred())
 		Expect(res.StatusCode).To(Equal(404))

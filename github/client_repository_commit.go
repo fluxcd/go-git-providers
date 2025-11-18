@@ -21,7 +21,7 @@ import (
 	"fmt"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/google/go-github/v72/github"
+	"github.com/google/go-github/v75/github"
 )
 
 var githubNewFileMode = "100644"
@@ -98,7 +98,7 @@ func (c *CommitClient) Create(ctx context.Context, branch string, message string
 	}
 
 	latestCommitSHA := commits[0].Get().Sha
-	nCommit, _, err := c.c.Client().Git.CreateCommit(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), &github.Commit{
+	nCommit, _, err := c.c.Client().Git.CreateCommit(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), github.Commit{
 		Message: &message,
 		Tree:    tree,
 		Parents: []*github.Commit{
@@ -110,16 +110,18 @@ func (c *CommitClient) Create(ctx context.Context, branch string, message string
 	if err != nil {
 		return nil, err
 	}
-
-	ref := "refs/heads/" + branch
-	ghRef := &github.Reference{
-		Ref: &ref,
-		Object: &github.GitObject{
-			SHA: nCommit.SHA,
-		},
+	if nCommit.SHA == nil {
+		// The UpdateRef API requires a SHA.
+		return nil, fmt.Errorf("created commit has no SHA")
 	}
 
-	if _, _, err := c.c.Client().Git.UpdateRef(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), ghRef, true); err != nil {
+	ref := "refs/heads/" + branch
+	updateRef := github.UpdateRef{
+		SHA:   *nCommit.SHA,
+		Force: github.Ptr(true),
+	}
+
+	if _, _, err := c.c.Client().Git.UpdateRef(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), ref, updateRef); err != nil {
 		return nil, err
 	}
 

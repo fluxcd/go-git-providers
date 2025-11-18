@@ -19,7 +19,7 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v72/github"
+	"github.com/google/go-github/v75/github"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
@@ -38,11 +38,9 @@ func (c *BranchClient) Create(ctx context.Context, branch, sha string) error {
 
 	ref := "refs/heads/" + branch
 
-	reference := &github.Reference{
-		Ref: &ref,
-		Object: &github.GitObject{
-			SHA: &sha,
-		},
+	reference := github.CreateRef{
+		Ref: ref,
+		SHA: sha,
 	}
 
 	if _, _, err := c.c.Client().Git.CreateRef(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), reference); err != nil {

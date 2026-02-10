@@ -7,7 +7,7 @@ import (
 
 	"github.com/fluxcd/go-git-providers/github"
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	gogithub "github.com/google/go-github/v75/github"
+	gogithub "github.com/google/go-github/v82/github"
 )
 
 // checkErr is used for examples in this repository.

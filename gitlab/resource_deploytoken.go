@@ -21,10 +21,9 @@ import (
 	"fmt"
 	"reflect"
 
-	"gitlab.com/gitlab-org/api/client-go"
-
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/fluxcd/go-git-providers/validation"
+	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
 
 func newDeployToken(c *DeployTokenClient, token *gitlab.DeployToken) *deployToken {
@@ -88,7 +87,7 @@ func (dk *deployToken) Delete(_ context.Context) error {
 		return fmt.Errorf("didn't expect ID to be 0: %w", gitprovider.ErrUnexpectedEvent)
 	}
 
-	return dk.c.c.DeleteToken(getRepoPath(dk.c.ref), dk.k.ID)
+	return dk.c.c.DeleteToken(getRepoPath(dk.c.ref), int(dk.k.ID))
 }
 
 // Reconcile makes sure the desired state in this object (called "req" here) becomes
@@ -145,17 +144,6 @@ func deployTokenInfoToAPIObj(info *gitprovider.DeployTokenInfo, apiObj *gitlab.D
 	// Required fields, we assume info is validated, and hence these are set
 	apiObj.Name = info.Name
 	apiObj.Username = info.Username
-}
-
-// This function copies over the fields that are part of create request of a deploy
-// i.e. the desired spec of the deploy token. This allows us to separate "spec" from "status" fields.
-func newGitlabTokenSpec(token *gitlab.DeployToken) *gitlabTokenSpec {
-	return &gitlabTokenSpec{
-		&gitlab.DeployToken{
-			// Create-specific parameters
-			Name: token.Name,
-		},
-	}
 }
 
 type gitlabTokenSpec struct {

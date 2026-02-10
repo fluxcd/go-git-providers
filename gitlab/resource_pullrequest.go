@@ -18,7 +18,7 @@ package gitlab
 
 import (
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"gitlab.com/gitlab-org/api/client-go"
+	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
 
 // The value of the "State" field of a gitlab merge request after it has been merged"
@@ -52,7 +52,7 @@ func pullrequestFromAPI(apiObj *gitlab.MergeRequest) gitprovider.PullRequestInfo
 		Title:        apiObj.Title,
 		Description:  apiObj.Description,
 		Merged:       apiObj.State == mergedState,
-		Number:       apiObj.IID,
+		Number:       int(apiObj.IID),
 		WebURL:       apiObj.WebURL,
 		SourceBranch: apiObj.SourceBranch,
 	}

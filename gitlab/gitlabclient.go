@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"strings"
 
-	"gitlab.com/gitlab-org/api/client-go"
+	gitlab "gitlab.com/gitlab-org/api/client-go"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
@@ -306,7 +306,7 @@ func (c *gitlabClientImpl) CreateProject(ctx context.Context, req *gitlab.Projec
 		if err != nil {
 			return nil, err
 		}
-		namespaceID = group.ID
+		namespaceID = int(group.ID)
 	}
 
 	opts := extraOpts
@@ -318,7 +318,8 @@ func (c *gitlabClientImpl) CreateProject(ctx context.Context, req *gitlab.Projec
 	opts.Description = &req.Description
 	opts.Visibility = &req.Visibility
 	if namespaceID != 0 {
-		opts.NamespaceID = &namespaceID
+		var nsID int64 = int64(namespaceID)
+		opts.NamespaceID = &nsID
 	}
 
 	apiObj, _, err := c.c.Projects.CreateProject(opts, gitlab.WithContext(ctx))
@@ -391,7 +392,7 @@ func (c *gitlabClientImpl) CreateKey(projectName string, req *gitlab.ProjectDepl
 
 func (c *gitlabClientImpl) DeleteKey(projectName string, keyID int) error {
 	// DELETE /projects/{project}/deploy_keys
-	_, err := c.c.DeployKeys.DeleteDeployKey(projectName, keyID)
+	_, err := c.c.DeployKeys.DeleteDeployKey(projectName, int64(keyID))
 	return handleHTTPError(err)
 }
 
@@ -439,15 +440,15 @@ func (c *gitlabClientImpl) CreateToken(projectName string, req *gitlab.DeployTok
 
 func (c *gitlabClientImpl) DeleteToken(projectName string, keyID int) error {
 	// DELETE /projects/{project}/deploy_tokens/{deploy_token_id}
-	_, err := c.c.DeployTokens.DeleteProjectDeployToken(projectName, keyID)
+	_, err := c.c.DeployTokens.DeleteProjectDeployToken(projectName, int64(keyID))
 	return handleHTTPError(err)
 }
 
 func (c *gitlabClientImpl) ShareProject(projectName string, groupIDObj, groupAccessObj int) error {
 	groupAccess := gitlab.AccessLevelValue(groupAccessObj)
-	groupID := &groupIDObj
+	groupID := int64(groupIDObj)
 	opt := &gitlab.ShareWithGroupOptions{
-		GroupID:     groupID,
+		GroupID:     &groupID,
 		GroupAccess: &groupAccess,
 	}
 
@@ -456,7 +457,7 @@ func (c *gitlabClientImpl) ShareProject(projectName string, groupIDObj, groupAcc
 }
 
 func (c *gitlabClientImpl) UnshareProject(projectName string, groupID int) error {
-	_, err := c.c.Projects.DeleteSharedProjectFromGroup(projectName, groupID)
+	_, err := c.c.Projects.DeleteSharedProjectFromGroup(projectName, int64(groupID))
 	return handleHTTPError(err)
 }
 
@@ -465,8 +466,8 @@ func (c *gitlabClientImpl) ListCommitsPage(projectName string, branch string, pe
 
 	opts := gitlab.ListCommitsOptions{
 		ListOptions: gitlab.ListOptions{
-			PerPage: perPage,
-			Page:    page,
+			PerPage: int64(perPage),
+			Page:    int64(page),
 		},
 		RefName: &branch,
 	}

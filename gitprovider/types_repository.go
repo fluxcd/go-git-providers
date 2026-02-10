@@ -23,7 +23,7 @@ import (
 	"github.com/fluxcd/go-git-providers/validation"
 )
 
-const (
+var (
 	// the default repository visibility is private.
 	defaultRepositoryVisibility = RepositoryVisibilityPrivate
 	// the default repository permission is "pull" (or read).

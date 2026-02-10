@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.com/gitlab-org/api/client-go"
+	gitlab "gitlab.com/gitlab-org/api/client-go"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
@@ -78,7 +78,7 @@ func (c *PullRequestClient) Edit(ctx context.Context, number int, opts gitprovid
 	mrUpdate := &gitlab.UpdateMergeRequestOptions{
 		Title: opts.Title,
 	}
-	editedMR, _, err := c.c.Client().MergeRequests.UpdateMergeRequest(getRepoPath(c.ref), number, mrUpdate)
+	editedMR, _, err := c.c.Client().MergeRequests.UpdateMergeRequest(getRepoPath(c.ref), int64(number), mrUpdate)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func (c *PullRequestClient) Edit(ctx context.Context, number int, opts gitprovid
 // Get retrieves an existing pull request by number
 func (c *PullRequestClient) Get(_ context.Context, number int) (gitprovider.PullRequest, error) {
 
-	mr, _, err := c.c.Client().MergeRequests.GetMergeRequest(getRepoPath(c.ref), number, &gitlab.GetMergeRequestsOptions{})
+	mr, _, err := c.c.Client().MergeRequests.GetMergeRequest(getRepoPath(c.ref), int64(number), &gitlab.GetMergeRequestsOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +127,7 @@ func (c *PullRequestClient) Merge(_ context.Context, number int, mergeMethod git
 		SHA:                       nil,
 	}
 
-	_, _, err = c.c.Client().MergeRequests.AcceptMergeRequest(getRepoPath(c.ref), number, amrOpts)
+	_, _, err = c.c.Client().MergeRequests.AcceptMergeRequest(getRepoPath(c.ref), int64(number), amrOpts)
 	if err != nil {
 		return fmt.Errorf("failed to accept merge request with status '%s': %s", status, err)
 	}
@@ -140,7 +140,7 @@ func (c *PullRequestClient) waitForMergeRequestToBeMergeable(number int) (string
 	// docs: https://docs.gitlab.com/api/merge_requests/#merge-status
 	currentStatus := "unknown"
 	for retries := 0; retries < 10; retries++ {
-		mr, _, err := c.c.Client().MergeRequests.GetMergeRequest(getRepoPath(c.ref), number, &gitlab.GetMergeRequestsOptions{})
+		mr, _, err := c.c.Client().MergeRequests.GetMergeRequest(getRepoPath(c.ref), int64(number), &gitlab.GetMergeRequestsOptions{})
 		if err != nil || mr.DetailedMergeStatus != "mergeable" {
 			if mr != nil {
 				currentStatus = mr.DetailedMergeStatus

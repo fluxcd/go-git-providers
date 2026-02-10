@@ -17,7 +17,7 @@ limitations under the License.
 package github
 
 import (
-	"github.com/google/go-github/v75/github"
+	"github.com/google/go-github/v82/github"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/fluxcd/go-git-providers/validation"

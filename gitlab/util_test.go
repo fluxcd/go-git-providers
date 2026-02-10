@@ -23,7 +23,7 @@ import (
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/fluxcd/go-git-providers/validation"
-	"gitlab.com/gitlab-org/api/client-go"
+	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
 
 func Test_validateAPIObject(t *testing.T) {
@@ -121,7 +121,7 @@ func Test_allGroupPages(t *testing.T) {
 			tt.opts.Page = 1
 			err := allGroupPages(tt.opts, func() (*gitlab.Response, error) {
 				i++
-				if tt.opts.Page != i {
+				if tt.opts.Page != int64(i) {
 					t.Fatalf("page number is unexpected: got = %d want = %d", tt.opts.Page, i)
 				}
 				return tt.fn(i)

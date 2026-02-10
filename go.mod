@@ -3,27 +3,27 @@ module github.com/fluxcd/go-git-providers
 go 1.25.0
 
 require (
-	code.gitea.io/sdk/gitea v0.22.0
+	code.gitea.io/sdk/gitea v0.23.2
 	github.com/ProtonMail/go-crypto v1.3.0
-	github.com/go-git/go-billy/v5 v5.6.2
-	github.com/go-git/go-git/v5 v5.16.2
+	github.com/go-git/go-billy/v5 v5.7.0
+	github.com/go-git/go-git/v5 v5.16.5
 	github.com/go-logr/logr v1.4.3
 	github.com/go-logr/zapr v1.3.0
 	github.com/google/go-cmp v0.7.0
-	github.com/google/go-github/v75 v75.0.0
+	github.com/google/go-github/v82 v82.0.0
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-retryablehttp v0.7.8
-	github.com/ktrysmt/go-bitbucket v0.9.86
+	github.com/ktrysmt/go-bitbucket v0.9.91
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.38.2
-	gitlab.com/gitlab-org/api/client-go v0.142.5
-	go.uber.org/zap v1.27.0
-	golang.org/x/crypto v0.41.0
-	golang.org/x/oauth2 v0.30.0
-	golang.org/x/time v0.12.0
-	k8s.io/utils v0.0.0-20250820121507-0af2bda4dd1d
+	github.com/onsi/gomega v1.39.1
+	gitlab.com/gitlab-org/api/client-go v1.29.0
+	go.uber.org/zap v1.27.1
+	golang.org/x/crypto v0.48.0
+	golang.org/x/oauth2 v0.35.0
+	golang.org/x/time v0.14.0
+	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
 )
 
 require (
@@ -38,7 +38,7 @@ require (
 	github.com/go-fed/httpsig v1.1.0 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
-	github.com/google/go-querystring v1.1.0 // indirect
+	github.com/google/go-querystring v1.2.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-version v1.7.0 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
@@ -51,9 +51,9 @@ require (
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/net v0.43.0 // indirect
-	golang.org/x/sys v0.35.0 // indirect
-	golang.org/x/text v0.28.0 // indirect
+	golang.org/x/net v0.49.0 // indirect
+	golang.org/x/sys v0.41.0 // indirect
+	golang.org/x/text v0.34.0 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 )

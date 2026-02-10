@@ -76,7 +76,7 @@ func RepositoryVisibilityVar(r RepositoryVisibility) *RepositoryVisibility {
 // for a given repository.
 type RepositoryPermission string
 
-const (
+var (
 	// RepositoryPermissionPull ("pull") - team members can pull, but not push to or administer this repository
 	// This is called "guest" in GitLab.
 	RepositoryPermissionPull = RepositoryPermission("pull")

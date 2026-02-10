@@ -20,87 +20,90 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/google/go-github/v82/github"
+
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
 func Test_getPermissionFromMap(t *testing.T) {
+	trueValue := true
+	falseValue := false
+
 	tests := []struct {
 		name        string
-		permissions map[string]bool
+		permissions *github.RepositoryPermissions
 		want        *gitprovider.RepositoryPermission
 	}{
 		{
 			name: "pull",
-			permissions: map[string]bool{
-				"pull":     true,
-				"triage":   false,
-				"push":     false,
-				"maintain": false,
-				"admin":    false,
+			permissions: &github.RepositoryPermissions{
+				Pull:     &trueValue,
+				Triage:   &falseValue,
+				Push:     &falseValue,
+				Maintain: &falseValue,
+				Admin:    &falseValue,
 			},
 			want: gitprovider.RepositoryPermissionVar(gitprovider.RepositoryPermissionPull),
 		},
 		{
 			name: "push",
-			permissions: map[string]bool{
-				"triage":   false,
-				"push":     true,
-				"maintain": false,
-				"pull":     true,
-				"admin":    false,
+			permissions: &github.RepositoryPermissions{
+				Triage:   &falseValue,
+				Push:     &trueValue,
+				Maintain: &falseValue,
+				Pull:     &trueValue,
+				Admin:    &falseValue,
 			},
 			want: gitprovider.RepositoryPermissionVar(gitprovider.RepositoryPermissionPush),
 		},
 		{
 			name: "admin",
-			permissions: map[string]bool{
-				"admin":    true,
-				"pull":     true,
-				"triage":   true,
-				"maintain": true,
-				"push":     true,
+			permissions: &github.RepositoryPermissions{
+				Admin:    &trueValue,
+				Pull:     &trueValue,
+				Triage:   &trueValue,
+				Maintain: &trueValue,
+				Push:     &trueValue,
 			},
 			want: gitprovider.RepositoryPermissionVar(gitprovider.RepositoryPermissionAdmin),
 		},
 		{
 			name: "none",
-			permissions: map[string]bool{
-				"admin":    false,
-				"pull":     false,
-				"push":     false,
-				"maintain": false,
-				"triage":   false,
+			permissions: &github.RepositoryPermissions{
+				Admin:    &falseValue,
+				Pull:     &falseValue,
+				Push:     &falseValue,
+				Maintain: &falseValue,
+				Triage:   &falseValue,
 			},
 			want: nil,
 		},
 		{
 			name: "false data",
-			permissions: map[string]bool{
-				"pull":     false,
-				"triage":   false,
-				"push":     false,
-				"maintain": false,
-				"admin":    false,
-				"invalid":  true,
+			permissions: &github.RepositoryPermissions{
+				Pull:     &falseValue,
+				Triage:   &falseValue,
+				Push:     &falseValue,
+				Maintain: &falseValue,
+				Admin:    &falseValue,
 			},
 			want: nil,
 		},
 		{
 			name: "not all specifed",
-			permissions: map[string]bool{
-				"pull":     false,
-				"triage":   false,
-				"push":     false,
-				"maintain": false,
-				"admin":    false,
-				"invalid":  true,
+			permissions: &github.RepositoryPermissions{
+				Pull:     &falseValue,
+				Triage:   &falseValue,
+				Push:     &falseValue,
+				Maintain: &falseValue,
+				Admin:    &falseValue,
 			},
 			want: nil,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotPermission := getPermissionFromMap(tt.permissions)
+			gotPermission := getPermissionFromStruct(tt.permissions)
 			if !reflect.DeepEqual(gotPermission, tt.want) {
 				t.Errorf("getPermissionFromMap() = %v, want %v", gotPermission, tt.want)
 			}

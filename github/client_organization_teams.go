@@ -19,7 +19,7 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v75/github"
+	"github.com/google/go-github/v82/github"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )

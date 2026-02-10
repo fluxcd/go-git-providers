@@ -20,8 +20,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/go-github/v82/github"
+
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/google/go-github/v75/github"
 )
 
 // githubClientImpl is a wrapper around *github.Client, which implements higher-level methods,
@@ -85,7 +86,7 @@ type githubClient interface {
 
 	// GetTeamPermissions is a wrapper for "GET /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}".
 	// This function handles HTTP error wrapping, and validates the server result.
-	GetTeamPermissions(ctx context.Context, orgName, repo, teamName string) (map[string]bool, error)
+	GetTeamPermissions(ctx context.Context, orgName, repo, teamName string) (*github.RepositoryPermissions, error)
 	// ListRepoTeams is a wrapper for "GET /repos/{owner}/{repo}/teams".
 	// This function handles pagination, HTTP error wrapping, and validates the server result.
 	ListRepoTeams(ctx context.Context, orgName, repo string) ([]*github.Team, error)
@@ -354,7 +355,7 @@ func (c *githubClientImpl) DeleteKey(ctx context.Context, owner, repo string, id
 	return handleHTTPError(err)
 }
 
-func (c *githubClientImpl) GetTeamPermissions(ctx context.Context, orgName, repo, teamName string) (map[string]bool, error) {
+func (c *githubClientImpl) GetTeamPermissions(ctx context.Context, orgName, repo, teamName string) (*github.RepositoryPermissions, error) {
 	// GET /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}
 	apiObj, _, err := c.c.Teams.IsTeamRepoBySlug(ctx, orgName, teamName, orgName, repo)
 	if err != nil {

@@ -49,7 +49,7 @@ func (c *TeamAccessClient) Get(ctx context.Context, name string) (gitprovider.Te
 
 	return newTeamAccess(c, gitprovider.TeamAccessInfo{
 		Name:       name,
-		Permission: getPermissionFromMap(permissionMap),
+		Permission: getPermissionFromStruct(permissionMap),
 	}), nil
 }
 

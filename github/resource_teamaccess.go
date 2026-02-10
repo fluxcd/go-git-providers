@@ -20,6 +20,8 @@ import (
 	"context"
 	"errors"
 
+	"github.com/google/go-github/v82/github"
+
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
@@ -105,26 +107,21 @@ func (ta *teamAccess) Reconcile(ctx context.Context) (bool, error) {
 	return true, ta.Update(ctx)
 }
 
-//nolint:gochecknoglobals,gomnd
-var permissionPriority = map[gitprovider.RepositoryPermission]int{
-	gitprovider.RepositoryPermissionPull:     1,
-	gitprovider.RepositoryPermissionTriage:   2,
-	gitprovider.RepositoryPermissionPush:     3,
-	gitprovider.RepositoryPermissionMaintain: 4,
-	gitprovider.RepositoryPermissionAdmin:    5,
-}
-
-func getPermissionFromMap(permissionMap map[string]bool) (permission *gitprovider.RepositoryPermission) {
-	lastPriority := 0
-	for key, ok := range permissionMap {
-		if ok {
-			p := gitprovider.RepositoryPermission(key)
-			priority, ok := permissionPriority[p]
-			if ok && priority > lastPriority {
-				permission = &p
-				lastPriority = priority
-			}
-		}
+func getPermissionFromStruct(permissionMap *github.RepositoryPermissions) *gitprovider.RepositoryPermission {
+	if permissionMap.GetAdmin() {
+		return &gitprovider.RepositoryPermissionAdmin
 	}
-	return
+	if permissionMap.GetMaintain() {
+		return &gitprovider.RepositoryPermissionMaintain
+	}
+	if permissionMap.GetPush() {
+		return &gitprovider.RepositoryPermissionPush
+	}
+	if permissionMap.GetTriage() {
+		return &gitprovider.RepositoryPermissionTriage
+	}
+	if permissionMap.GetPull() {
+		return &gitprovider.RepositoryPermissionPull
+	}
+	return nil
 }

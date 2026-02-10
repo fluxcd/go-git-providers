@@ -53,7 +53,7 @@ func (c *TeamAccessClient) Get(ctx context.Context, teamName string) (gitprovide
 
 	for _, group := range project.SharedWithGroups {
 		if group.GroupID == teamObj.ID {
-			gitProviderPermission, err := getGitProviderPermission(group.GroupAccessLevel)
+			gitProviderPermission, err := getGitProviderPermission(int(group.GroupAccessLevel))
 			if err != nil {
 				return nil, err
 			}
@@ -63,9 +63,6 @@ func (c *TeamAccessClient) Get(ctx context.Context, teamName string) (gitprovide
 				Permission: gitProviderPermission,
 			}), nil
 		}
-	}
-	if err != nil {
-		return nil, err
 	}
 	return nil, gitprovider.ErrNotFound
 }
@@ -82,7 +79,7 @@ func (c *TeamAccessClient) List(ctx context.Context) ([]gitprovider.TeamAccess, 
 
 	result := []gitprovider.TeamAccess{}
 	for _, group := range project.SharedWithGroups {
-		gitProviderPermission, err := getGitProviderPermission(group.GroupAccessLevel)
+		gitProviderPermission, err := getGitProviderPermission(int(group.GroupAccessLevel))
 		if err != nil {
 			return nil, err
 		}
@@ -118,7 +115,7 @@ func (c *TeamAccessClient) Create(ctx context.Context, req gitprovider.TeamAcces
 	if err != nil {
 		return nil, err
 	}
-	if err := c.c.ShareProject(getRepoPath(c.ref), group.ID, gitlabPermission); err != nil {
+	if err := c.c.ShareProject(getRepoPath(c.ref), int(group.ID), gitlabPermission); err != nil {
 		return nil, err
 	}
 

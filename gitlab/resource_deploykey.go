@@ -22,10 +22,9 @@ import (
 	"fmt"
 	"reflect"
 
-	"gitlab.com/gitlab-org/api/client-go"
-
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/fluxcd/go-git-providers/validation"
+	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
 
 func newDeployKey(c *DeployKeyClient, key *gitlab.ProjectDeployKey) *deployKey {
@@ -91,7 +90,7 @@ func (dk *deployKey) Delete(_ context.Context) error {
 		return fmt.Errorf("didn't expect ID to be 0: %w", gitprovider.ErrUnexpectedEvent)
 	}
 
-	return dk.c.c.DeleteKey(getRepoPath(dk.c.ref), dk.k.ID)
+	return dk.c.c.DeleteKey(getRepoPath(dk.c.ref), int(dk.k.ID))
 }
 
 // Reconcile makes sure the desired state in this object (called "req" here) becomes

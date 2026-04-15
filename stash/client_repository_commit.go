@@ -107,6 +107,10 @@ func (c *CommitClient) Create(ctx context.Context, branch string, message string
 		WithURL(url),
 		WithFiles(f))
 
+	if err != nil {
+		return nil, fmt.Errorf("commit client failed to instantiate commit: %w", err)
+	}
+
 	result, err := c.client.Git.CreateCommit(dir, r, branch, commit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create commit: %w", err)

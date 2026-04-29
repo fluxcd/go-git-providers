@@ -362,6 +362,9 @@ func (s *PullRequestsService) Merge(ctx context.Context, projectKey, repositoryS
 func (s *PullRequestsService) Delete(ctx context.Context, projectKey, repositorySlug string, IDVersion IDVersion) error {
 	header := http.Header{"Content-Type": []string{"application/json"}}
 	body, err := marshallBody(IDVersion.Version)
+	if err != nil {
+		return fmt.Errorf("marshal ID version failed: %w", err)
+	}
 	req, err := s.Client.NewRequest(ctx, http.MethodDelete, newURI(projectsURI, projectKey, RepositoriesURI, repositorySlug, pullRequestsURI, strconv.Itoa(IDVersion.ID)), WithBody(body), WithHeader(header))
 	if err != nil {
 		return fmt.Errorf("delete pull request frequest creation failed: %w", err)

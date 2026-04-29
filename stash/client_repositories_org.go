@@ -256,7 +256,9 @@ func createRepository(ctx context.Context, c *Client, orgKey string, ref gitprov
 			return nil, fmt.Errorf("failed to create initial commit: %w", err)
 		}
 
-		err = initRepo(ctx, c, initCommit, repo)
+		if err := initRepo(ctx, c, initCommit, repo); err != nil {
+			return nil, fmt.Errorf("failed to initialize repository: %w", err)
+		}
 
 		if data.DefaultBranch != "" && data.DefaultBranch != legacyBranch {
 			//create default branch

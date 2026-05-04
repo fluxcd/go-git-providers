@@ -36,5 +36,5 @@ func ExampleOrganizationsClient_Get() {
 	internalOrg := org.APIObject().(*gogithub.Organization)
 
 	fmt.Printf("Name: %s. Description: %s.", *orgInfo.Name, internalOrg.GetDescription())
-	// Output: Name: Flux project. Description: Open and extensible continuous delivery solution for Kubernetes.
+	// Output: Name: Flux CD project. Description: Open and extensible continuous delivery solution for Kubernetes.
 }

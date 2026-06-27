@@ -18,7 +18,10 @@ package gitlab
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
+	"strings"
 	"time"
 
 	gitlab "gitlab.com/gitlab-org/api/client-go"
@@ -97,8 +100,8 @@ func (c *PullRequestClient) Get(_ context.Context, number int) (gitprovider.Pull
 }
 
 // Merge merges a pull request with the given specifications.
-func (c *PullRequestClient) Merge(_ context.Context, number int, mergeMethod gitprovider.MergeMethod, message string) error {
-	status, err := c.waitForMergeRequestToBeMergeable(number)
+func (c *PullRequestClient) Merge(ctx context.Context, number int, mergeMethod gitprovider.MergeMethod, message string) error {
+	status, err := c.waitForMergeRequestToBeMergeable(ctx, number)
 	if err != nil {
 		return err
 	}
@@ -127,25 +130,43 @@ func (c *PullRequestClient) Merge(_ context.Context, number int, mergeMethod git
 		SHA:                       nil,
 	}
 
-	_, _, err = c.c.Client().MergeRequests.AcceptMergeRequest(getRepoPath(c.ref), int64(number), amrOpts)
-	if err != nil {
-		return fmt.Errorf("failed to accept merge request with status '%s': %s", status, err)
+	for retries := 0; retries < 10; retries++ {
+		_, _, err = c.c.Client().MergeRequests.AcceptMergeRequest(getRepoPath(c.ref), int64(number), amrOpts, gitlab.WithContext(ctx))
+		if err == nil {
+			return nil
+		}
+		if !isRetryableMergeRequestAcceptError(err) {
+			return fmt.Errorf("failed to accept merge request with status '%s': %s", status, err)
+		}
+		if retries == 9 {
+			break
+		}
+
+		if err := sleepWithContext(ctx, time.Second*2); err != nil {
+			return err
+		}
+		status, err = c.waitForMergeRequestToBeMergeable(ctx, number)
+		if err != nil {
+			return err
+		}
 	}
 
-	return nil
+	return fmt.Errorf("failed to accept merge request with status '%s': %s", status, err)
 }
 
-func (c *PullRequestClient) waitForMergeRequestToBeMergeable(number int) (string, error) {
+func (c *PullRequestClient) waitForMergeRequestToBeMergeable(ctx context.Context, number int) (string, error) {
 	// poll for merge status to reach "mergeable" state
 	// docs: https://docs.gitlab.com/api/merge_requests/#merge-status
 	currentStatus := "unknown"
 	for retries := 0; retries < 10; retries++ {
-		mr, _, err := c.c.Client().MergeRequests.GetMergeRequest(getRepoPath(c.ref), int64(number), &gitlab.GetMergeRequestsOptions{})
+		mr, _, err := c.c.Client().MergeRequests.GetMergeRequest(getRepoPath(c.ref), int64(number), &gitlab.GetMergeRequestsOptions{}, gitlab.WithContext(ctx))
 		if err != nil || mr.DetailedMergeStatus != "mergeable" {
 			if mr != nil {
 				currentStatus = mr.DetailedMergeStatus
 			}
-			time.Sleep(time.Second * 2)
+			if err := sleepWithContext(ctx, time.Second*2); err != nil {
+				return currentStatus, err
+			}
 			continue
 		}
 
@@ -153,4 +174,30 @@ func (c *PullRequestClient) waitForMergeRequestToBeMergeable(number int) (string
 	}
 
 	return currentStatus, fmt.Errorf("merge status %s for pull request number: %d", currentStatus, number)
+}
+
+func isRetryableMergeRequestAcceptError(err error) bool {
+	var gitlabErr *gitlab.ErrorResponse
+	if !errors.As(err, &gitlabErr) {
+		return false
+	}
+
+	if !gitlabErr.HasStatusCode(http.StatusMethodNotAllowed) && !gitlabErr.HasStatusCode(http.StatusUnprocessableEntity) {
+		return false
+	}
+
+	return strings.Contains(gitlabErr.Message, "Branch cannot be merged") ||
+		strings.Contains(string(gitlabErr.Body), "Branch cannot be merged")
+}
+
+func sleepWithContext(ctx context.Context, duration time.Duration) error {
+	timer := time.NewTimer(duration)
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
 }

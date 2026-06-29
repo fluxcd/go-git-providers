@@ -31,7 +31,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v87/github"
 	"github.com/gregjones/httpcache"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -49,10 +49,8 @@ const (
 	defaultBranch = "main"
 )
 
-var (
-	// customTransportImpl is a shared instance of a customTransport, allowing counting of cache hits.
-	customTransportImpl *customTransport
-)
+// customTransportImpl is a shared instance of a customTransport, allowing counting of cache hits.
+var customTransportImpl *customTransport
 
 func init() {
 	// Call testing.Init() prior to tests.NewParams(), as otherwise -test.* will not be recognised. See also: https://golang.org/doc/go1.13#testing
@@ -285,7 +283,7 @@ var _ = Describe("GitHub Provider", func() {
 		repo, err := c.OrgRepositories().Create(ctx, repoRef, gitprovider.RepositoryInfo{
 			Description: gitprovider.StringVar(defaultDescription),
 			// Default visibility is private, no need to set this at least now
-			//Visibility:     gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
+			// Visibility:     gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
 		}, &gitprovider.RepositoryCreateOptions{
 			AutoInit:        gitprovider.BoolVar(true),
 			LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateApache2),
@@ -448,7 +446,6 @@ var _ = Describe("GitHub Provider", func() {
 	})
 
 	It("should be possible to create and edit a pr for a user repository", func() {
-
 		userRepoRef := newUserRepoRef(testUser, testUserRepoName)
 
 		var userRepo gitprovider.UserRepository
@@ -554,7 +551,6 @@ var _ = Describe("GitHub Provider", func() {
 	})
 
 	It("should be possible to download files from path and branch specified", func() {
-
 		userRepoRef := newUserRepoRef(testUser, testUserRepoName)
 
 		userRepo, err := c.UserRepositories().Get(ctx, userRepoRef)
@@ -597,11 +593,9 @@ var _ = Describe("GitHub Provider", func() {
 		for ind, downloadedFile := range downloadedFiles {
 			Expect(*downloadedFile).To(Equal(files[ind]))
 		}
-
 	})
 
 	It("should be possible to get and list repo tree", func() {
-
 		userRepoRef := newUserRepoRef(testUser, testUserRepoName)
 
 		userRepo, err := c.UserRepositories().Get(ctx, userRepoRef)
@@ -679,7 +673,7 @@ var _ = Describe("GitHub Provider", func() {
 			Expect(treeEntry.Path).To(Equal(*files[ind-2].Path))
 		}
 
-		//List tree items with path provided to filter on
+		// List tree items with path provided to filter on
 		treeEntries, err = userRepo.Trees().List(ctx, commitSha, "clustersDir/", true)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -688,7 +682,6 @@ var _ = Describe("GitHub Provider", func() {
 		for ind, treeEntry := range treeEntries {
 			Expect(treeEntry.Path).To(Equal(*files[ind].Path))
 		}
-
 	})
 
 	AfterSuite(func() {

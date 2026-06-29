@@ -21,11 +21,13 @@ import (
 	"fmt"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v87/github"
 )
 
-var githubNewFileMode = "100644"
-var githubBlobTypeFile = "blob"
+var (
+	githubNewFileMode  = "100644"
+	githubBlobTypeFile = "blob"
+)
 
 // CommitClient implements the gitprovider.CommitClient interface.
 var _ gitprovider.CommitClient = &CommitClient{}
@@ -70,7 +72,6 @@ func (c *CommitClient) listPage(ctx context.Context, branch string, perPage, pag
 
 // Create creates a commit with the given specifications.
 func (c *CommitClient) Create(ctx context.Context, branch string, message string, files []gitprovider.CommitFile) (gitprovider.Commit, error) {
-
 	if len(files) == 0 {
 		return nil, fmt.Errorf("no files added")
 	}

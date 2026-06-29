@@ -19,7 +19,7 @@ package github
 import (
 	"fmt"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v87/github"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
@@ -69,17 +69,25 @@ func NewClient(optFns ...gitprovider.ClientOption) (gitprovider.Client, error) {
 	if opts.Domain == nil || *opts.Domain == DefaultDomain {
 		// No domain or the default github.com used
 		domain = DefaultDomain
-		gh = github.NewClient(httpClient)
+		gh, err = github.NewClient(github.WithHTTPClient(httpClient))
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		// GitHub Enterprise is used
 		domain = *opts.Domain
 		baseURL := fmt.Sprintf("https://%s/api/v3/", domain)
 		uploadURL := fmt.Sprintf("https://%s/api/uploads/", domain)
 
-		if gh, err = github.NewEnterpriseClient(baseURL, uploadURL, httpClient); err != nil {
+		gh, err = github.NewClient(
+			github.WithHTTPClient(httpClient),
+			github.WithEnterpriseURLs(baseURL, uploadURL),
+		)
+		if err != nil {
 			return nil, err
 		}
 	}
+
 	// By default, turn destructive actions off. But allow overrides.
 	destructiveActions := false
 	if opts.EnableDestructiveAPICalls != nil {

@@ -20,7 +20,7 @@ import (
 	"context"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v87/github"
 )
 
 // PullRequestClient implements the gitprovider.PullRequestClient interface.
@@ -50,7 +50,6 @@ func (c *PullRequestClient) List(ctx context.Context) ([]gitprovider.PullRequest
 
 // Create creates a pull request with the given specifications.
 func (c *PullRequestClient) Create(ctx context.Context, title, branch, baseBranch, description string) (gitprovider.PullRequest, error) {
-
 	prOpts := &github.NewPullRequest{
 		Title: &title,
 		Head:  &branch,
@@ -79,7 +78,6 @@ func (c *PullRequestClient) Edit(ctx context.Context, number int, opts gitprovid
 
 // Get retrieves an existing pull request by number
 func (c *PullRequestClient) Get(ctx context.Context, number int) (gitprovider.PullRequest, error) {
-
 	pr, _, err := c.c.Client().PullRequests.Get(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), number)
 	if err != nil {
 		return nil, err
@@ -90,7 +88,6 @@ func (c *PullRequestClient) Get(ctx context.Context, number int) (gitprovider.Pu
 
 // Merge merges a pull request with the given specifications.
 func (c *PullRequestClient) Merge(ctx context.Context, number int, mergeMethod gitprovider.MergeMethod, message string) error {
-
 	prOpts := &github.PullRequestOptions{
 		CommitTitle: "",
 		SHA:         "",

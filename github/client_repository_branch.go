@@ -19,7 +19,7 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v87/github"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
@@ -35,7 +35,6 @@ type BranchClient struct {
 
 // Create creates a branch with the given specifications.
 func (c *BranchClient) Create(ctx context.Context, branch, sha string) error {
-
 	ref := "refs/heads/" + branch
 
 	reference := github.CreateRef{

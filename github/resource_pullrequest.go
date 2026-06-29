@@ -18,7 +18,7 @@ package github
 
 import (
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/google/go-github/v82/github"
+	"github.com/google/go-github/v87/github"
 )
 
 func newPullRequest(ctx *clientContext, apiObj *github.PullRequest) *pullrequest {

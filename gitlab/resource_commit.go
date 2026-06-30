@@ -17,9 +17,8 @@ limitations under the License.
 package gitlab
 
 import (
-	"gitlab.com/gitlab-org/api/client-go"
-
 	"github.com/fluxcd/go-git-providers/gitprovider"
+	gitlab "gitlab.com/gitlab-org/api/client-go/v2"
 )
 
 func newCommit(c *CommitClient, commit *gitlab.Commit) *commitType {

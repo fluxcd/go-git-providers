@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"gitlab.com/gitlab-org/api/client-go"
+	gitlab "gitlab.com/gitlab-org/api/client-go/v2"
 )
 
 // FileClient implements the gitprovider.FileClient interface.
@@ -39,7 +39,6 @@ type FileClient struct {
 // If a file path is given, the contents of the file are returned
 // If a directory path is given, the contents of the files in the path's root are returned
 func (c *FileClient) Get(ctx context.Context, path, branch string, optFns ...gitprovider.FilesGetOption) ([]*gitprovider.CommitFile, error) {
-
 	filesGetOpts := gitprovider.FilesGetOptions{}
 
 	for _, opt := range optFns {

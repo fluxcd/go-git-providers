@@ -22,7 +22,7 @@ import (
 	"net/url"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"gitlab.com/gitlab-org/api/client-go"
+	gitlab "gitlab.com/gitlab-org/api/client-go/v2"
 )
 
 // ProviderID is the provider ID for GitLab.
@@ -90,7 +90,7 @@ func (c *Client) ProviderID() gitprovider.ProviderID {
 	return ProviderID
 }
 
-// Raw returns the Go GitLab client (gitlab.com/gitlab-org/api/client-go *Client)
+// Raw returns the Go GitLab client (gitlab.com/gitlab-org/api/client-go/v2 *Client)
 // used under the hood for accessing GitLab.
 func (c *Client) Raw() interface{} {
 	return c.c.Client()

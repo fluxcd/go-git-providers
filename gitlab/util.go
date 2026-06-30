@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"gitlab.com/gitlab-org/api/client-go"
+	gitlab "gitlab.com/gitlab-org/api/client-go/v2"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/fluxcd/go-git-providers/validation"
@@ -242,7 +242,8 @@ func handleHTTPError(err error) error {
 		// Check for invalid credentials, and return a typed error in that case
 		if glErrorResponse.Response.StatusCode == http.StatusForbidden ||
 			glErrorResponse.Response.StatusCode == http.StatusUnauthorized {
-			return validation.NewMultiError(err,
+			return validation.NewMultiError(
+				err,
 				&gitprovider.InvalidCredentialsError{HTTPError: httpErr},
 			)
 		}

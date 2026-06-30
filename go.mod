@@ -18,7 +18,7 @@ require (
 	github.com/ktrysmt/go-bitbucket v0.10.0
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.42.1
-	gitlab.com/gitlab-org/api/client-go v1.46.0
+	gitlab.com/gitlab-org/api/client-go/v2 v2.44.0
 	go.uber.org/zap v1.28.0
 	golang.org/x/crypto v0.53.0
 	golang.org/x/oauth2 v0.36.0

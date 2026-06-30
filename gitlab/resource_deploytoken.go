@@ -23,7 +23,7 @@ import (
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/fluxcd/go-git-providers/validation"
-	gitlab "gitlab.com/gitlab-org/api/client-go"
+	gitlab "gitlab.com/gitlab-org/api/client-go/v2"
 )
 
 func newDeployToken(c *DeployTokenClient, token *gitlab.DeployToken) *deployToken {

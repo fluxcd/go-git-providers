@@ -21,7 +21,7 @@ import (
 	"fmt"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"gitlab.com/gitlab-org/api/client-go"
+	gitlab "gitlab.com/gitlab-org/api/client-go/v2"
 )
 
 // CommitClient implements the gitprovider.CommitClient interface.
@@ -65,7 +65,6 @@ func (c *CommitClient) listPage(branch string, perPage, page int) ([]*commitType
 
 // Create creates a commit with the given specifications.
 func (c *CommitClient) Create(_ context.Context, branch string, message string, files []gitprovider.CommitFile) (gitprovider.Commit, error) {
-
 	if len(files) == 0 {
 		return nil, fmt.Errorf("no files added")
 	}

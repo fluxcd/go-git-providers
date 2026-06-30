@@ -21,7 +21,7 @@ import (
 	"errors"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"gitlab.com/gitlab-org/api/client-go"
+	gitlab "gitlab.com/gitlab-org/api/client-go/v2"
 )
 
 // OrgRepositoriesClient implements the gitprovider.OrgRepositoriesClient interface.

@@ -17,8 +17,10 @@ limitations under the License.
 package gitlab
 
 import (
+	"golang.org/x/oauth2"
+
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	gogitlab "gitlab.com/gitlab-org/api/client-go"
+	gogitlab "gitlab.com/gitlab-org/api/client-go/v2"
 )
 
 const (
@@ -44,16 +46,19 @@ func NewClient(token string, tokenType string, optFns ...gitprovider.ClientOptio
 	}
 
 	if tokenType == "oauth2" {
+		ts := oauth2.StaticTokenSource(
+			&oauth2.Token{AccessToken: token},
+		)
 		if opts.Domain == nil || *opts.Domain == DefaultDomain {
 			// No domain set or the default gitlab.com used
 			domain = DefaultDomain
-			gl, err = gogitlab.NewOAuthClient(token, gogitlab.WithHTTPClient(httpClient))
+			gl, err = gogitlab.NewAuthSourceClient(gogitlab.OAuthTokenSource{TokenSource: ts}, gogitlab.WithHTTPClient(httpClient))
 			if err != nil {
 				return nil, err
 			}
 		} else {
 			domain = *opts.Domain
-			gl, err = gogitlab.NewOAuthClient(token, gogitlab.WithHTTPClient(httpClient), gogitlab.WithBaseURL(domain))
+			gl, err = gogitlab.NewAuthSourceClient(gogitlab.OAuthTokenSource{TokenSource: ts}, gogitlab.WithHTTPClient(httpClient), gogitlab.WithBaseURL(domain))
 			if err != nil {
 				return nil, err
 			}

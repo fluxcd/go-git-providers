@@ -17,7 +17,7 @@ limitations under the License.
 package gitlab
 
 import (
-	"gitlab.com/gitlab-org/api/client-go"
+	gitlab "gitlab.com/gitlab-org/api/client-go/v2"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/fluxcd/go-git-providers/validation"

@@ -69,8 +69,6 @@ github.com/google/go-github/v87 v87.0.0 h1:9Ck3dcOxWJyfsN8tzdah4YvmqB/7ZsstMglv/
 github.com/google/go-github/v87 v87.0.0/go.mod h1:hGUoT5pwm/ck5uLL+wroSVQfg8mpe+buxllCcGV4VaM=
 github.com/google/go-querystring v1.2.0 h1:yhqkPbu2/OH+V9BfpCVPZkNmUXhb2gBxJArfhIxNtP0=
 github.com/google/go-querystring v1.2.0/go.mod h1:8IFJqpSRITyJ8QhQ13bmbeMBDfmeEJZD5A0egEOmkqU=
-github.com/graph-gophers/graphql-go v1.9.0 h1:yu0ucKHLc5qGpRwLYKIWtr9bOoxovkWasuBrPQwlHls=
-github.com/graph-gophers/graphql-go v1.9.0/go.mod h1:23olKZ7duEvHlF/2ELEoSZaY1aNPfShjP782SOoNTyM=
 github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 h1:+ngKgrYPPJrOjhax5N+uePQ0Fh1Z7PheYoUI/0nzkPA=
 github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79/go.mod h1:FecbI9+v66THATjSRHfNgh1IVFe/9kFxbXtjV0ctIMA=
 github.com/hashicorp/errwrap v1.0.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
@@ -142,8 +140,8 @@ github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD
 github.com/xanzy/ssh-agent v0.3.3 h1:+/15pJfg/RsTxqYcX6fHqOXZwwMP+2VyYWJeWM2qQFM=
 github.com/xanzy/ssh-agent v0.3.3/go.mod h1:6dzNDKs0J9rVPHPhaGCukekBHKqfl+L3KghI1Bc68Uw=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
-gitlab.com/gitlab-org/api/client-go v1.46.0 h1:YxBWFZIFYKcGESCb9fpkwzouo+apyB9pr/XTWzNoL24=
-gitlab.com/gitlab-org/api/client-go v1.46.0/go.mod h1:FtgyU6g2HS5+fMhw6nLK96GBEEBx5MzntOiJWfIaiN8=
+gitlab.com/gitlab-org/api/client-go/v2 v2.44.0 h1:Vtv2WKC8p9BAygu5VCZlZUwDhTQ7UMlS3PErXyjUmeY=
+gitlab.com/gitlab-org/api/client-go/v2 v2.44.0/go.mod h1:pTbeBowtVA+0/ZExWEZYUGOrpu5qlRN5ZyOUf27BnVY=
 go.uber.org/goleak v1.3.0 h1:2K3zAYmnTNqV73imy9J1T3WC+gmCePx2hEGkimedGto=
 go.uber.org/goleak v1.3.0/go.mod h1:CoHD4mav9JJNrW/WLlf7HGZPjdw8EucARQHekz1X6bE=
 go.uber.org/multierr v1.11.0 h1:blXXJkSxSSfBVBlC76pxqeO+LN3aDfLQo+309xJstO0=

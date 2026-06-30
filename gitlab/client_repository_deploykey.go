@@ -22,7 +22,7 @@ import (
 	"fmt"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"gitlab.com/gitlab-org/api/client-go"
+	gitlab "gitlab.com/gitlab-org/api/client-go/v2"
 )
 
 // DeployKeyClient implements the gitprovider.DeployKeyClient interface.

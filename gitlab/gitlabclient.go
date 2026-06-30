@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"strings"
 
-	gitlab "gitlab.com/gitlab-org/api/client-go"
+	gitlab "gitlab.com/gitlab-org/api/client-go/v2"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
@@ -318,7 +318,7 @@ func (c *gitlabClientImpl) CreateProject(ctx context.Context, req *gitlab.Projec
 	opts.Description = &req.Description
 	opts.Visibility = &req.Visibility
 	if namespaceID != 0 {
-		var nsID int64 = int64(namespaceID)
+		nsID := int64(namespaceID)
 		opts.NamespaceID = &nsID
 	}
 

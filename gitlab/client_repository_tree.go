@@ -21,7 +21,7 @@ import (
 	"fmt"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"gitlab.com/gitlab-org/api/client-go"
+	gitlab "gitlab.com/gitlab-org/api/client-go/v2"
 )
 
 // TreeClient implements the gitprovider.TreeClient interface.
@@ -36,7 +36,6 @@ type TreeClient struct {
 // Get returns a tree
 func (c *TreeClient) Get(ctx context.Context, sha string, recursive bool) (*gitprovider.TreeInfo, error) {
 	return nil, fmt.Errorf("error getting tree %s. not implemented in gitlab yet", sha)
-
 }
 
 // List files (blob) in a tree, sha is represented by the branch name

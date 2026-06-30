@@ -37,7 +37,7 @@ import (
 	"github.com/gregjones/httpcache"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"gitlab.com/gitlab-org/api/client-go"
+	gitlab "gitlab.com/gitlab-org/api/client-go/v2"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/fluxcd/go-git-providers/gitprovider/testutils"
@@ -50,10 +50,8 @@ const (
 	defaultBranch      = "main"
 )
 
-var (
-	// customTransportImpl is a shared instance of a customTransport, allowing counting of cache hits.
-	customTransportImpl *customTransport
-)
+// customTransportImpl is a shared instance of a customTransport, allowing counting of cache hits.
+var customTransportImpl *customTransport
 
 func init() {
 	// Call testing.Init() prior to tests.NewParams(), as otherwise -test.* will not be recognised. See also: https://golang.org/doc/go1.13#testing
@@ -117,7 +115,7 @@ func (t *customTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		if resp != nil && resp.Body != nil {
 			responseBody = getBodyFromReaderWithoutConsuming(&resp.Body)
 		}
-		if (err != nil && (strings.Contains(err.Error(), ConnectionResetByPeer))) ||
+		if (err != nil && strings.Contains(err.Error(), ConnectionResetByPeer)) ||
 			strings.Contains(string(responseBody), ProjectStillBeingDeleted) {
 			time.Sleep(2 * time.Second)
 			if req != nil && req.Body != nil {
@@ -405,7 +403,7 @@ var _ = Describe("GitLab Provider", func() {
 		repo, err := c.OrgRepositories().Create(ctx, repoRef, gitprovider.RepositoryInfo{
 			Description: gitprovider.StringVar(defaultDescription),
 			// Default visibility is private, no need to set this at least now
-			//Visibility:     gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
+			// Visibility:     gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
 		}, &gitprovider.RepositoryCreateOptions{
 			AutoInit:        gitprovider.BoolVar(true),
 			LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateApache2),
@@ -477,7 +475,6 @@ var _ = Describe("GitLab Provider", func() {
 	})
 
 	It("should update teams with access and permissions when reconciling", func() {
-
 		// Get the test organization
 		orgRef := newOrgRef(testBaseUrl, testOrgName)
 		testOrg, err := c.Organizations().Get(ctx, orgRef)
@@ -509,7 +506,7 @@ var _ = Describe("GitLab Provider", func() {
 		repo, err := c.OrgRepositories().Create(ctx, repoRef, gitprovider.RepositoryInfo{
 			Description: gitprovider.StringVar(defaultDescription),
 			// Default visibility is private, no need to set this at least now
-			//Visibility:     gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
+			// Visibility:     gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
 		}, &gitprovider.RepositoryCreateOptions{
 			AutoInit:        gitprovider.BoolVar(true),
 			LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateApache2),
@@ -666,7 +663,8 @@ var _ = Describe("GitLab Provider", func() {
 		orgRepo := createRepo(ctx, newOrgRepoRef(
 			testBaseUrl,
 			testOrgName,
-			fmt.Sprintf("deploy-key-spec-repo-%03d", rand.Intn(1000))))
+			fmt.Sprintf("deploy-key-spec-repo-%03d", rand.Intn(1000)),
+		))
 		testDeployTokenName := "test-deploy-token"
 
 		dts, err := orgRepo.DeployTokens()
@@ -778,7 +776,6 @@ var _ = Describe("GitLab Provider", func() {
 		f, resp, err := gitlabClient.RepositoryFiles.GetFile(testUserName+"/"+testRepoName, "README.md", &gitlab.GetFileOptions{
 			Ref: &db,
 		})
-
 		if err != nil {
 			if resp.StatusCode == http.StatusNotFound {
 				// This is a known issue with gitlab, see https://gitlab.com/gitlab-org/gitlab/-/issues/372092
@@ -863,7 +860,6 @@ var _ = Describe("GitLab Provider", func() {
 	})
 
 	It("should be possible to create and edit a pr for a user repository", func() {
-
 		testRepoName = fmt.Sprintf("test-repo2-%03d", rand.Intn(1000))
 		repoRef := newUserRepoRef(testBaseUrl, testUserName, testRepoName)
 
@@ -1017,7 +1013,7 @@ var _ = Describe("GitLab Provider", func() {
 			DefaultBranch: &db,
 			Description:   gitprovider.StringVar(defaultDescription),
 			// Default visibility is private, no need to set this at least now
-			//Visibility:     gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
+			// Visibility:     gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate),
 		}, &gitprovider.RepositoryCreateOptions{
 			AutoInit: gitprovider.BoolVar(false),
 		})
@@ -1065,7 +1061,6 @@ var _ = Describe("GitLab Provider", func() {
 		for ind, downloadedFile := range downloadedFiles {
 			Expect(*downloadedFile).To(Equal(files[ind]))
 		}
-
 	})
 
 	It("should be possible to download files from path and branch specified with nested directory", func() {
@@ -1117,7 +1112,6 @@ var _ = Describe("GitLab Provider", func() {
 		for ind, downloadedFile := range downloadedFiles {
 			Expect(*downloadedFile).To(Equal(files[ind]))
 		}
-
 	})
 	It("should be possible list repo tree files", func() {
 		userRepoRef := newUserRepoRef(testBaseUrl, testUserName, testTreeRepoName)
@@ -1158,7 +1152,6 @@ var _ = Describe("GitLab Provider", func() {
 		for ind, treeEntry := range treeEntries {
 			Expect(treeEntry.Path).To(Equal(*files[ind].Path))
 		}
-
 	})
 
 	AfterSuite(func() {
@@ -1212,7 +1205,6 @@ var _ = Describe("GitLab Provider", func() {
 			Expect(repo.Delete(ctx)).ToNot(HaveOccurred(), "failed to delete repo %s", ref)
 		}
 	})
-
 })
 
 func expectPRToBeMerged(ctx context.Context, userRepo gitprovider.UserRepository, prNumber int) {

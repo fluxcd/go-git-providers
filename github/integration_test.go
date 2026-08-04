@@ -303,6 +303,42 @@ var _ = Describe("GitHub Provider", func() {
 		Expect(getSpec.Equals(postSpec)).To(BeTrue())
 	})
 
+	It("should be possible to create an org repository with a custom default branch", func() {
+		// First, check what repositories are available
+		repos, err := c.OrgRepositories().List(ctx, newOrgRef(testOrgName))
+		Expect(err).ToNot(HaveOccurred())
+
+		// Generate a repository name which doesn't exist already
+		repoName := fmt.Sprintf("test-repo-deploy-%03d", rand.Intn(1000))
+		for findOrgRepo(repos, repoName) != nil {
+			repoName = fmt.Sprintf("test-repo-deploy-%03d", rand.Intn(1000))
+		}
+
+		repoRef := newOrgRepoRef(testOrgName, repoName)
+		customBranch := "deploy"
+
+		// Create a new repo with DefaultBranch set to "deploy"
+		repo, err := c.OrgRepositories().Create(ctx, repoRef, gitprovider.RepositoryInfo{
+			Description:   gitprovider.StringVar("foo"),
+			DefaultBranch: gitprovider.StringVar(customBranch),
+		}, &gitprovider.RepositoryCreateOptions{
+			AutoInit:        gitprovider.BoolVar(true),
+			LicenseTemplate: gitprovider.LicenseTemplateVar(gitprovider.LicenseTemplateApache2),
+		})
+		Expect(err).ToNot(HaveOccurred())
+		Expect(*repo.Get().DefaultBranch).To(Equal(customBranch))
+
+		var getRepo gitprovider.OrgRepository
+		Eventually(func() error {
+			getRepo, err = c.OrgRepositories().Get(ctx, repoRef)
+			return err
+		}, 3*time.Second, 1*time.Second).ShouldNot(HaveOccurred())
+		Expect(*getRepo.Get().DefaultBranch).To(Equal(customBranch))
+
+		// Clean up this repo immediately; it is not the shared suite fixture
+		Expect(getRepo.Delete(ctx)).ToNot(HaveOccurred())
+	})
+
 	It("should be possible to create a user repository", func() {
 		// First, check what repositories are available
 		repos, err := c.UserRepositories().List(ctx, newUserRef(testUser))

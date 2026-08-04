@@ -245,6 +245,12 @@ type CommitClient interface {
 	ListPage(ctx context.Context, branch string, perPage int, page int) ([]Commit, error)
 	// Create creates a commit with the given specifications.
 	Create(ctx context.Context, branch string, message string, files []CommitFile) (Commit, error)
+
+	// Get returns the commit at the given reference.
+	// ref can be a commit SHA, branch name, or tag name.
+	//
+	// ErrNotFound is returned if the resource does not exist.
+	Get(ctx context.Context, ref string) (Commit, error)
 }
 
 // BranchClient operates on the branches for a specific repository.

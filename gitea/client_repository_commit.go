@@ -65,6 +65,23 @@ func (c *CommitClient) listPage(ctx context.Context, branch string, perPage, pag
 	return keys, nil
 }
 
+// Get returns the commit for the given ref (branch, tag, or SHA).
+func (c *CommitClient) Get(ctx context.Context, ref string) (gitprovider.Commit, error) {
+	apiObj, res, err := c.c.GetSingleCommit(c.ref.GetIdentity(), c.ref.GetRepository(), ref)
+	if err == nil {
+		return newCommit(c, apiObj), nil
+	}
+	// Fall back to listing the first commit for branch/tag refs.
+	commits, listErr := c.ListPage(ctx, ref, 1, 0)
+	if listErr != nil {
+		return nil, handleHTTPError(res, err)
+	}
+	if len(commits) == 0 {
+		return nil, handleHTTPError(res, err)
+	}
+	return commits[0], nil
+}
+
 // Create creates a commit with the given specifications.
 // This method creates a commit with a single file.
 // TODO: fix when gitea supports creating commits with multiple files

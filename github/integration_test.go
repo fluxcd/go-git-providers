@@ -471,9 +471,14 @@ var _ = Describe("GitHub Provider", func() {
 
 		latestCommit := commits[0]
 
+		// Verify Commits().Get resolves a branch ref to the same HEAD commit
+		gotCommit, err := userRepo.Commits().Get(ctx, *defaultBranch)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(gotCommit.Get().Sha).To(Equal(latestCommit.Get().Sha))
+
 		branchName := fmt.Sprintf("test-branch-%03d", rand.Intn(1000))
 
-		err := userRepo.Branches().Create(ctx, branchName, latestCommit.Get().Sha)
+		err = userRepo.Branches().Create(ctx, branchName, latestCommit.Get().Sha)
 		Expect(err).ToNot(HaveOccurred())
 
 		err = userRepo.Branches().Create(ctx, branchName, "wrong-sha")

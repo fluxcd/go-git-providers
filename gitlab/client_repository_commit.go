@@ -63,6 +63,17 @@ func (c *CommitClient) listPage(branch string, perPage, page int) ([]*commitType
 	return keys, nil
 }
 
+// Get returns the commit for the given ref (branch, tag, or SHA).
+func (c *CommitClient) Get(_ context.Context, ref string) (gitprovider.Commit, error) {
+	// GET /projects/{id}/repository/commits/{sha}
+	// GitLab accepts a commit hash, branch name, or tag name as sha.
+	commit, _, err := c.c.Client().Commits.GetCommit(getRepoPath(c.ref), ref, nil)
+	if err != nil {
+		return nil, err
+	}
+	return newCommit(c, commit), nil
+}
+
 // Create creates a commit with the given specifications.
 func (c *CommitClient) Create(_ context.Context, branch string, message string, files []gitprovider.CommitFile) (gitprovider.Commit, error) {
 	if len(files) == 0 {

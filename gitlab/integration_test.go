@@ -906,10 +906,15 @@ var _ = Describe("GitLab Provider", func() {
 
 		latestCommit := commits[0]
 
+		// Verify Commits().Get resolves a branch ref to the same HEAD commit
+		gotCommit, err := userRepo.Commits().Get(ctx, defaultBranch)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(gotCommit.Get().Sha).To(Equal(latestCommit.Get().Sha))
+
 		branchName := fmt.Sprintf("test-branch-%03d", rand.Intn(1000))
 		branchName2 := fmt.Sprintf("test-branch-%03d", rand.Intn(1000))
 
-		err := userRepo.Branches().Create(ctx, branchName2, "wrong-sha")
+		err = userRepo.Branches().Create(ctx, branchName2, "wrong-sha")
 		Expect(err).To(HaveOccurred())
 
 		err = userRepo.Branches().Create(ctx, branchName, latestCommit.Get().Sha)

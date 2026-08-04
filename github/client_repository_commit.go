@@ -19,6 +19,7 @@ package github
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/google/go-github/v87/github"
@@ -68,6 +69,50 @@ func (c *CommitClient) listPage(ctx context.Context, branch string, perPage, pag
 	}
 
 	return keys, nil
+}
+
+// Get returns the commit for the given ref (branch, tag, or SHA).
+// Branch and tag refs are resolved via the Git References API.
+func (c *CommitClient) Get(ctx context.Context, ref string) (gitprovider.Commit, error) {
+	owner := c.ref.GetIdentity()
+	repo := c.ref.GetRepository()
+
+	sha := ref
+	for _, candidate := range gitRefCandidates(strings.TrimPrefix(ref, "refs/")) {
+		r, _, err := c.c.Client().Git.GetRef(ctx, owner, repo, candidate)
+		if err != nil || r.Object == nil || r.Object.SHA == nil {
+			continue
+		}
+		sha = *r.Object.SHA
+		// Annotated tags point at a tag object; resolve to the target commit SHA.
+		if r.Object.Type != nil && *r.Object.Type == "tag" {
+			tag, _, err := c.c.Client().Git.GetTag(ctx, owner, repo, sha)
+			if err != nil {
+				return nil, err
+			}
+			if tag.Object == nil || tag.Object.SHA == nil {
+				return nil, fmt.Errorf("annotated tag %q has no target SHA", ref)
+			}
+			sha = *tag.Object.SHA
+		}
+		break
+	}
+
+	// GET /repos/{owner}/{repo}/git/commits/{sha}
+	commit, _, err := c.c.Client().Git.GetCommit(ctx, owner, repo, sha)
+	if err != nil {
+		return nil, err
+	}
+	return newCommit(c, commit), nil
+}
+
+// gitRefCandidates returns GitHub git ref paths to try for the given ref.
+// The ref must already have any "refs/" prefix trimmed.
+func gitRefCandidates(ref string) []string {
+	if strings.HasPrefix(ref, "heads/") || strings.HasPrefix(ref, "tags/") {
+		return []string{ref}
+	}
+	return []string{"heads/" + ref, "tags/" + ref}
 }
 
 // Create creates a commit with the given specifications.

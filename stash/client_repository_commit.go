@@ -68,6 +68,32 @@ func (c *CommitClient) listPage(ctx context.Context, branch string, perPage, pag
 	return commits, nil
 }
 
+// Get returns the commit for the given ref (branch, tag, or SHA).
+func (c *CommitClient) Get(ctx context.Context, ref string) (gitprovider.Commit, error) {
+	projectKey, repoSlug := getStashRefs(c.ref)
+
+	// check if it is a user repository
+	// if yes, we need to add a tilde to the user login and use it as the project key
+	if r, ok := c.ref.(gitprovider.UserRepositoryRef); ok {
+		projectKey = addTilde(r.UserLogin)
+	}
+
+	apiObj, err := c.client.Commits.Get(ctx, projectKey, repoSlug, ref)
+	if err == nil {
+		return newCommit(apiObj), nil
+	}
+
+	// Fall back to listing the first commit for branch/tag refs.
+	commits, listErr := c.ListPage(ctx, ref, 1, 0)
+	if listErr != nil {
+		return nil, fmt.Errorf("failed to get commit %q: %w", ref, err)
+	}
+	if len(commits) == 0 {
+		return nil, gitprovider.ErrNotFound
+	}
+	return commits[0], nil
+}
+
 // Create creates a commit with the given specifications.
 func (c *CommitClient) Create(ctx context.Context, branch string, message string, files []gitprovider.CommitFile) (gitprovider.Commit, error) {
 	projectKey, repoSlug := getStashRefs(c.ref)

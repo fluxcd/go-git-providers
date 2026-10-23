@@ -20,7 +20,7 @@ import (
 	"context"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/google/go-github/v87/github"
+	"github.com/google/go-github/v93/github"
 )
 
 // PullRequestClient implements the gitprovider.PullRequestClient interface.
@@ -50,10 +50,10 @@ func (c *PullRequestClient) List(ctx context.Context) ([]gitprovider.PullRequest
 
 // Create creates a pull request with the given specifications.
 func (c *PullRequestClient) Create(ctx context.Context, title, branch, baseBranch, description string) (gitprovider.PullRequest, error) {
-	prOpts := &github.NewPullRequest{
+	prOpts := github.CreatePullRequest{
 		Title: &title,
-		Head:  &branch,
-		Base:  &baseBranch,
+		Head:  branch,
+		Base:  baseBranch,
 		Body:  &description,
 	}
 

@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-github/v87/github"
+	"github.com/google/go-github/v93/github"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
@@ -260,8 +260,41 @@ func (c *githubClientImpl) CreateRepo(ctx context.Context, orgName string, req *
 	if *req.Visibility == "private" {
 		req.Private = &setPrivate
 	}
-	apiObj, _, err := c.c.Repositories.Create(ctx, orgName, req)
+	apiObj, _, err := c.c.Repositories.Create(ctx, orgName, repositoryToCreateRequest(req))
 	return validateRepositoryAPIResp(apiObj, err)
+}
+
+// repositoryToCreateRequest maps the create-specific fields of a repository object
+// to the request type expected by the GitHub API.
+func repositoryToCreateRequest(repo *github.Repository) github.CreateRepositoryRequest {
+	return github.CreateRepositoryRequest{
+		Name:                      repo.GetName(),
+		Description:               repo.Description,
+		Homepage:                  repo.Homepage,
+		Private:                   repo.Private,
+		Visibility:                repo.Visibility,
+		HasIssues:                 repo.HasIssues,
+		HasProjects:               repo.HasProjects,
+		HasWiki:                   repo.HasWiki,
+		HasDiscussions:            repo.HasDiscussions,
+		IsTemplate:                repo.IsTemplate,
+		TeamID:                    repo.TeamID,
+		AutoInit:                  repo.AutoInit,
+		GitignoreTemplate:         repo.GitignoreTemplate,
+		LicenseTemplate:           repo.LicenseTemplate,
+		AllowSquashMerge:          repo.AllowSquashMerge,
+		AllowMergeCommit:          repo.AllowMergeCommit,
+		AllowRebaseMerge:          repo.AllowRebaseMerge,
+		AllowUpdateBranch:         repo.AllowUpdateBranch,
+		AllowAutoMerge:            repo.AllowAutoMerge,
+		AllowForking:              repo.AllowForking,
+		DeleteBranchOnMerge:       repo.DeleteBranchOnMerge,
+		UseSquashPRTitleAsDefault: repo.UseSquashPRTitleAsDefault,
+		SquashMergeCommitTitle:    repo.SquashMergeCommitTitle,
+		SquashMergeCommitMessage:  repo.SquashMergeCommitMessage,
+		MergeCommitTitle:          repo.MergeCommitTitle,
+		MergeCommitMessage:        repo.MergeCommitMessage,
+	}
 }
 
 func (c *githubClientImpl) UpdateRepo(ctx context.Context, owner, repo string, req *github.Repository) (*github.Repository, error) {
@@ -339,7 +372,11 @@ func (c *githubClientImpl) ListCommitsPage(ctx context.Context, owner, repo, bra
 
 func (c *githubClientImpl) CreateKey(ctx context.Context, owner, repo string, req *github.Key) (*github.Key, error) {
 	// POST /repos/{owner}/{repo}/keys
-	apiObj, _, err := c.c.Repositories.CreateKey(ctx, owner, repo, req)
+	apiObj, _, err := c.c.Repositories.CreateKey(ctx, owner, repo, github.CreateDeployKeyRequest{
+		Title:    req.Title,
+		Key:      req.GetKey(),
+		ReadOnly: req.ReadOnly,
+	})
 	if err != nil {
 		return nil, handleHTTPError(err)
 	}
@@ -393,8 +430,8 @@ func (c *githubClientImpl) ListRepoTeams(ctx context.Context, orgName, repo stri
 
 func (c *githubClientImpl) AddTeam(ctx context.Context, orgName, repo, teamName string, permission gitprovider.RepositoryPermission) error {
 	// PUT /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}
-	_, err := c.c.Teams.AddTeamRepoBySlug(ctx, orgName, teamName, orgName, repo, &github.TeamAddTeamRepoOptions{
-		Permission: string(permission),
+	_, err := c.c.Teams.AddTeamRepoBySlug(ctx, orgName, teamName, orgName, repo, github.AddTeamRepoRequest{
+		Permission: gitprovider.StringVar(string(permission)),
 	})
 	return handleHTTPError(err)
 }

@@ -443,8 +443,13 @@ func (s *GitService) InitRepository(c *CreateCommit, createRemote bool) (r *git.
 		return nil, "", err
 	}
 
-	gitDir := osfs.New(dir + "/.git")
+	// Derive the git dir from the worktree filesystem so both share the same
+	// resolved root (e.g. macOS /var -> /private/var symlink).
 	fs := osfs.New(dir)
+	gitDir, err := fs.Chroot(git.GitDirName)
+	if err != nil {
+		return nil, "", err
+	}
 	r, err = git.Init(filesystem.NewStorage(gitDir, cache.NewObjectLRUDefault()), fs)
 	if err != nil {
 		return nil, "", err

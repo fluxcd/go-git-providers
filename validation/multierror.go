@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -62,11 +63,11 @@ type MultiError struct {
 // Error implements the error interface on the pointer type of MultiError.Error.
 // This enforces callers to always return &MultiError{} for consistency.
 func (e *MultiError) Error() string {
-	errStr := ""
+	var errStr strings.Builder
 	for _, err := range e.Errors {
-		errStr += fmt.Sprintf("\n- %s", err.Error())
+		errStr.WriteString(fmt.Sprintf("\n- %s", err.Error()))
 	}
-	return fmt.Sprintf("multiple errors occurred: %s", errStr)
+	return fmt.Sprintf("multiple errors occurred: %s", errStr.String())
 }
 
 // Is implements the interface used by errors.Is in order to check if two errors are the same.
@@ -89,7 +90,7 @@ func (e *MultiError) Is(target error) bool {
 
 // As implements the interface used by errors.As in order to get the value of an embedded
 // struct error of this MultiError.
-func (e *MultiError) As(target interface{}) bool {
+func (e *MultiError) As(target any) bool {
 	// There is no need to check for if target is a MultiError, as it it would be, this function
 	// wouldn't be called.
 
@@ -128,7 +129,7 @@ func TestExpectErrors(t testing.TB, funcName string, err error, expectedErrs ...
 		_, nameDisallowed := disallowedCompareAsErrorNames[expectedTypeName]
 		_, isMultiError := err.(*MultiError)
 		if (expectedType == reflect.TypeOf(err) || isMultiError) && !nameDisallowed {
-			target := expectedErr.(interface{})
+			target := expectedErr.(any)
 			if errors.As(err, &target) {
 				continue
 			}

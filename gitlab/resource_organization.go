@@ -50,7 +50,7 @@ func (o *organization) Get() gitprovider.OrganizationInfo {
 	return organizationFromAPI(&o.g)
 }
 
-func (o *organization) APIObject() interface{} {
+func (o *organization) APIObject() any {
 	return &o.g
 }
 

@@ -42,7 +42,7 @@ func (c *commitType) Get() gitprovider.CommitInfo {
 }
 
 // APIObject returns the underlying API object.
-func (c *commitType) APIObject() interface{} {
+func (c *commitType) APIObject() any {
 	return &c.k
 }
 

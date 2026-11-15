@@ -78,11 +78,9 @@ func (c *CommitClient) Create(ctx context.Context, branch string, message string
 	}
 
 	resp, err := c.createCommits(c.ref.GetIdentity(), c.ref.GetRepository(), *files[0].Path, &gitea.CreateFileOptions{
-		Content: *files[0].Content,
-		FileOptions: gitea.FileOptions{
-			Message:    message,
-			BranchName: branch,
-		},
+		Content:    *files[0].Content,
+		Message:    message,
+		BranchName: branch,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create commit: %w", err)
@@ -109,11 +107,9 @@ func (c *CommitClient) Create(ctx context.Context, branch string, message string
 // It accepts a page size and page number to support pagination.
 func (c *CommitClient) listCommits(owner, repo, branch string, perPage int, page int) ([]*gitea.Commit, error) {
 	opts := gitea.ListCommitOptions{
-		ListOptions: gitea.ListOptions{
-			PageSize: perPage,
-			Page:     page,
-		},
-		SHA: branch,
+		PageSize: perPage,
+		Page:     page,
+		SHA:      branch,
 	}
 	apiObjs := []*gitea.Commit{}
 	err := allPages(&opts.ListOptions, func() (*gitea.Response, error) {

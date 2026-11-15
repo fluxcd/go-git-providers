@@ -117,7 +117,7 @@ func (r *userRepository) Set(info gitprovider.RepositoryInfo) error {
 	return nil
 }
 
-func (r *userRepository) APIObject() interface{} {
+func (r *userRepository) APIObject() any {
 	return &r.r
 }
 
@@ -266,14 +266,14 @@ func repositoryFromAPI(apiObj *github.Repository) gitprovider.RepositoryInfo {
 		DefaultBranch: apiObj.DefaultBranch,
 	}
 	if apiObj.Visibility != nil {
-		repo.Visibility = gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibility(*apiObj.Visibility))
+		repo.Visibility = new(gitprovider.RepositoryVisibility(*apiObj.Visibility))
 	}
 	return repo
 }
 
 func repositoryToAPI(repo *gitprovider.RepositoryInfo, ref gitprovider.RepositoryRef) github.Repository {
 	apiObj := github.Repository{
-		Name: gitprovider.StringVar(ref.GetRepository()),
+		Name: new(ref.GetRepository()),
 	}
 	repositoryInfoToAPIObj(repo, &apiObj)
 	return apiObj
@@ -287,7 +287,7 @@ func repositoryInfoToAPIObj(repo *gitprovider.RepositoryInfo, apiObj *github.Rep
 		apiObj.DefaultBranch = repo.DefaultBranch
 	}
 	if repo.Visibility != nil {
-		apiObj.Visibility = gitprovider.StringVar(string(*repo.Visibility))
+		apiObj.Visibility = new(string(*repo.Visibility))
 	}
 }
 
@@ -302,7 +302,7 @@ func updateApiObjWithRepositoryInfo(repo *gitprovider.RepositoryInfo, apiObj *gi
 		desired.DefaultBranch = repo.DefaultBranch
 	}
 	if repo.Visibility != nil {
-		desired.Visibility = gitprovider.StringVar(string(*repo.Visibility))
+		desired.Visibility = new(string(*repo.Visibility))
 	}
 
 	// create the update repository
@@ -312,7 +312,7 @@ func updateApiObjWithRepositoryInfo(repo *gitprovider.RepositoryInfo, apiObj *gi
 func applyRepoCreateOptions(apiObj *github.Repository, opts gitprovider.RepositoryCreateOptions) {
 	apiObj.AutoInit = opts.AutoInit
 	if opts.LicenseTemplate != nil {
-		apiObj.LicenseTemplate = gitprovider.StringVar(string(*opts.LicenseTemplate))
+		apiObj.LicenseTemplate = new(string(*opts.LicenseTemplate))
 	}
 }
 

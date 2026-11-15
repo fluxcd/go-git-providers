@@ -55,7 +55,7 @@ type Participant struct {
 	// Status indicates the status of the participant
 	Status string `json:"status,omitempty"`
 	// User is the participant
-	User `json:"user,omitempty"`
+	User `json:"user"`
 }
 
 // Ref represents a git reference
@@ -67,7 +67,7 @@ type Ref struct {
 	// LatestCommit is the latest commit of the reference
 	LatestCommit string `json:"latestCommit,omitempty"`
 	// Repository is the repository of the reference
-	Repository `json:"repository,omitempty"`
+	Repository `json:"repository"`
 	// Type is the type of the reference
 	Type string `json:"type,omitempty"`
 }
@@ -80,7 +80,7 @@ type CreatePullRequest struct {
 	// Description is the description of the pull request
 	Description string `json:"description,omitempty"`
 	// FromRef is the source branch or tag
-	FromRef Ref `json:"fromRef,omitempty"`
+	FromRef Ref `json:"fromRef"`
 	// Locked indicates if the pull request is locked
 	Locked bool `json:"locked,omitempty"`
 	// Open indicates if the pull request is open
@@ -90,7 +90,7 @@ type CreatePullRequest struct {
 	// Title is the title of the pull request
 	Title string `json:"title,omitempty"`
 	// ToRef is the target branch
-	ToRef Ref `json:"toRef,omitempty"`
+	ToRef Ref `json:"toRef"`
 	// Reviewers is the list of reviewers
 	Reviewers []User `json:"reviewers,omitempty"`
 }
@@ -106,7 +106,7 @@ type IDVersion struct {
 // PullRequest is a pull request
 type PullRequest struct {
 	// Session is the session of the pull request
-	Session `json:"sessionInfo,omitempty"`
+	Session `json:"sessionInfo"`
 	// Author is the author of the pull request
 	Author *Participant `json:"author,omitempty"`
 	// Closed indicates if the pull request is closed
@@ -116,10 +116,10 @@ type PullRequest struct {
 	// Description is the description of the pull request
 	Description string `json:"description,omitempty"`
 	// FromRef is the source branch or tag
-	FromRef Ref `json:"fromRef,omitempty"`
+	FromRef Ref `json:"fromRef"`
 	IDVersion
 	// Links is a set of hyperlinks that link to other related resources.
-	Links `json:"links,omitempty"`
+	Links `json:"links"`
 	// Locked indicates if the pull request is locked
 	Locked bool `json:"locked,omitempty"`
 	// Open indicates if the pull request is open
@@ -127,7 +127,7 @@ type PullRequest struct {
 	// Participants are the participants of the pull request
 	Participants []Participant `json:"participants,omitempty"`
 	// Properties are the properties of the pull request
-	Properties Properties `json:"properties,omitempty"`
+	Properties Properties `json:"properties"`
 	// Reviewers are the reviewers of the pull request
 	Reviewers []Participant `json:"reviewers,omitempty"`
 	// State is the state of the pull request
@@ -135,7 +135,7 @@ type PullRequest struct {
 	// Title is the title of the pull request
 	Title string `json:"title,omitempty"`
 	// ToRef is the target branch
-	ToRef Ref `json:"toRef,omitempty"`
+	ToRef Ref `json:"toRef"`
 	// UpdatedDate is the update date of the pull request
 	UpdatedDate int64 `json:"updatedDate,omitempty"`
 }
@@ -143,7 +143,7 @@ type PullRequest struct {
 // Properties are the properties of a pull request
 type Properties struct {
 	// MergeResult is the merge result of the pull request
-	MergeResult MergeResult `json:"mergeResult,omitempty"`
+	MergeResult MergeResult `json:"mergeResult"`
 	// OpenTaskCount is the number of open tasks
 	OpenTaskCount float64 `json:"openTaskCount,omitempty"`
 	// ResolvedTaskCount is the number of resolved tasks

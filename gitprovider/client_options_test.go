@@ -84,7 +84,7 @@ func Test_makeOptions(t *testing.T) {
 		{
 			name: "withDomain",
 			opts: []commonClientOption{withDomain("foo")},
-			want: &CommonClientOptions{Domain: StringVar("foo")},
+			want: &CommonClientOptions{Domain: new("foo")},
 		},
 		{
 			name:         "withDomain, empty",
@@ -99,7 +99,7 @@ func Test_makeOptions(t *testing.T) {
 		{
 			name: "withDestructiveAPICalls",
 			opts: []commonClientOption{withDestructiveAPICalls(true)},
-			want: &CommonClientOptions{EnableDestructiveAPICalls: BoolVar(true)},
+			want: &CommonClientOptions{EnableDestructiveAPICalls: new(true)},
 		},
 		{
 			name:         "withDestructiveAPICalls, duplicate",
@@ -195,12 +195,10 @@ func Test_clientOptions_getTransportChain(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			dummy := "dummy"
 			opts := &ClientOptions{
-				CommonClientOptions: CommonClientOptions{
-					Domain:                 &dummy,
-					PreChainTransportHook:  tt.preChain,
-					PostChainTransportHook: tt.postChain,
-				},
-				authTransport: tt.auth,
+				Domain:                 &dummy,
+				PreChainTransportHook:  tt.preChain,
+				PostChainTransportHook: tt.postChain,
+				authTransport:          tt.auth,
 			}
 			gotChain := opts.GetTransportChain()
 			for i := range tt.wantChain {
@@ -230,7 +228,7 @@ func Test_makeCientOptions(t *testing.T) {
 		{
 			name: "WithDomain",
 			opts: []ClientOption{WithDomain("foo")},
-			want: buildCommonOption(CommonClientOptions{Domain: StringVar("foo")}),
+			want: buildCommonOption(CommonClientOptions{Domain: new("foo")}),
 		},
 		{
 			name:         "WithDomain, empty",
@@ -240,7 +238,7 @@ func Test_makeCientOptions(t *testing.T) {
 		{
 			name: "WithDestructiveAPICalls",
 			opts: []ClientOption{WithDestructiveAPICalls(true)},
-			want: buildCommonOption(CommonClientOptions{EnableDestructiveAPICalls: BoolVar(true)}),
+			want: buildCommonOption(CommonClientOptions{EnableDestructiveAPICalls: new(true)}),
 		},
 		{
 			name: "WithPreChainTransportHook",
@@ -285,7 +283,7 @@ func Test_makeCientOptions(t *testing.T) {
 		{
 			name: "WithConditionalRequests",
 			opts: []ClientOption{WithConditionalRequests(true)},
-			want: &ClientOptions{enableConditionalRequests: BoolVar(true)},
+			want: &ClientOptions{enableConditionalRequests: new(true)},
 		},
 		{
 			name:         "WithConditionalRequests, exclusive",

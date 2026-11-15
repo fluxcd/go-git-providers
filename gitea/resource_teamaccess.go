@@ -50,7 +50,7 @@ func (ta *teamAccess) Set(info gitprovider.TeamAccessInfo) error {
 	return nil
 }
 
-func (ta *teamAccess) APIObject() interface{} {
+func (ta *teamAccess) APIObject() any {
 	return nil
 }
 

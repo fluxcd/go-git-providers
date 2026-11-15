@@ -231,14 +231,10 @@ func deployKeyInfoToAPIObj(info *gitprovider.DeployKeyInfo, apiObj *DeployKey) {
 
 func deployKeyToAPI(orgKey, repoSlug string, info *gitprovider.DeployKeyInfo) *DeployKey {
 	k := &DeployKey{
-		Key: Key{
-			Text: string(info.Key),
-		},
-		Repository: Repository{
-			Slug: repoSlug,
-			Project: Project{
-				Key: orgKey,
-			},
+		Text: string(info.Key),
+		Slug: repoSlug,
+		Project: Project{
+			Key: orgKey,
 		},
 	}
 	setKeyName(info)

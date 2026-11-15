@@ -131,7 +131,7 @@ func (g *Ed25519Generator) Generate() (*KeyPair, error) {
 	}, nil
 }
 
-func generatePublicKey(pk interface{}) ([]byte, error) {
+func generatePublicKey(pk any) ([]byte, error) {
 	b, err := ssh.NewPublicKey(pk)
 	if err != nil {
 		return nil, err
@@ -143,7 +143,7 @@ func generatePublicKey(pk interface{}) ([]byte, error) {
 // encodePrivateKeyToPEM encodes the given private key to a PEM block.
 // The encoded format is PKCS#8 for universal support of the most
 // common key types (rsa, ecdsa, ed25519).
-func encodePrivateKeyToPEM(pk interface{}) ([]byte, error) {
+func encodePrivateKeyToPEM(pk any) ([]byte, error) {
 	b, err := x509.MarshalPKCS8PrivateKey(pk)
 	if err != nil {
 		return nil, err

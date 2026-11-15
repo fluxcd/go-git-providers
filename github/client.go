@@ -79,7 +79,7 @@ func (c *Client) ProviderID() gitprovider.ProviderID {
 
 // Raw returns the Go GitHub client (github.com/google/go-github/v93/github *Client)
 // used under the hood for accessing GitHub.
-func (c *Client) Raw() interface{} {
+func (c *Client) Raw() any {
 	return c.c.Client()
 }
 
@@ -121,7 +121,7 @@ func (c *Client) HasTokenPermission(ctx context.Context, permission gitprovider.
 		return false, gitprovider.ErrMissingHeader
 	}
 
-	for _, s := range strings.Split(scopes, ",") {
+	for s := range strings.SplitSeq(scopes, ",") {
 		scope := strings.TrimSpace(s)
 		if scope == requestedScope {
 			return true, nil

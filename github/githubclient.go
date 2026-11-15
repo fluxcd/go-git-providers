@@ -343,11 +343,9 @@ func (c *githubClientImpl) GetUser(ctx context.Context) (*github.User, error) {
 func (c *githubClientImpl) ListCommitsPage(ctx context.Context, owner, repo, branch string, perPage int, page int) ([]*github.Commit, error) {
 	apiObjs := make([]*github.Commit, 0)
 	lcOpts := &github.CommitsListOptions{
-		ListOptions: github.ListOptions{
-			PerPage: perPage,
-			Page:    page,
-		},
-		SHA: branch,
+		PerPage: perPage,
+		Page:    page,
+		SHA:     branch,
 	}
 
 	// GET /repos/{owner}/{repo}/commits
@@ -431,7 +429,7 @@ func (c *githubClientImpl) ListRepoTeams(ctx context.Context, orgName, repo stri
 func (c *githubClientImpl) AddTeam(ctx context.Context, orgName, repo, teamName string, permission gitprovider.RepositoryPermission) error {
 	// PUT /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}
 	_, err := c.c.Teams.AddTeamRepoBySlug(ctx, orgName, teamName, orgName, repo, github.AddTeamRepoRequest{
-		Permission: gitprovider.StringVar(string(permission)),
+		Permission: new(string(permission)),
 	})
 	return handleHTTPError(err)
 }

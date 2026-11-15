@@ -12,6 +12,11 @@ fmt:
 vet:
 	go vet ./...
 
+# fix modernizes the code with the current toolchain, as `tidy` does for go.mod
+# files.
+fix:
+	go fix ./...
+
 GIT_PROVIDER_ORGANIZATION ?= fluxcd-testing
 GIT_PROVIDER_USER ?= fluxcd-gitprovider-bot
 
@@ -40,7 +45,7 @@ start-provider-instances-gitea:
 stop-provider-instances:
 	docker compose down --volumes
 
-test: tidy fmt vet
+test: tidy fmt vet fix
 	go test ${TEST_FLAGS} -race -coverprofile=coverage.txt -covermode=atomic ${TEST_PATTERN}
 
 test-e2e-github: tidy fmt vet

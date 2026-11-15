@@ -38,7 +38,7 @@ func (c *commitType) Get() gitprovider.CommitInfo {
 	return commitFromAPI(c.k)
 }
 
-func (c *commitType) APIObject() interface{} {
+func (c *commitType) APIObject() any {
 	return &c.k
 }
 

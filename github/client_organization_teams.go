@@ -101,7 +101,7 @@ func (t *team) Get() gitprovider.TeamInfo {
 	return t.info
 }
 
-func (t *team) APIObject() interface{} {
+func (t *team) APIObject() any {
 	return t.users
 }
 

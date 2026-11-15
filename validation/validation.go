@@ -35,12 +35,12 @@ var (
 type Validator interface {
 	// Append registers a validation error in the internal list, capturing the value and the field that
 	// caused the problem.
-	Append(err error, value interface{}, fieldPaths ...string)
+	Append(err error, value any, fieldPaths ...string)
 
 	// Invalid is a helper method for Append, registering ErrFieldInvalid as the cause, along with what field
 	// caused the error. fieldPaths should contain the names of all nested sub-fields (of the struct) that caused
 	// the error. Specifying the value that was invalid is also supported
-	Invalid(value interface{}, fieldPaths ...string)
+	Invalid(value any, fieldPaths ...string)
 
 	// Required is a helper method for Append, registering ErrFieldRequired as the cause, along with what field
 	// caused the error. fieldPaths should contain the names of all nested sub-fields (of the struct) that caused
@@ -99,13 +99,13 @@ func (v *validator) Required(fieldPaths ...string) {
 // Invalid is a helper method for Append, registering ErrFieldInvalid as the cause, along with what field
 // caused the error. fieldPaths should contain the names of all nested sub-fields (of the struct) that caused
 // the error. Specifying the value that was invalid is also supported.
-func (v *validator) Invalid(value interface{}, fieldPaths ...string) {
+func (v *validator) Invalid(value any, fieldPaths ...string) {
 	v.Append(ErrFieldInvalid, value, fieldPaths...)
 }
 
 // Append registers a validation error in the internal list, capturing the value and the field that
 // caused the problem.
-func (v *validator) Append(err error, value interface{}, fieldPaths ...string) {
+func (v *validator) Append(err error, value any, fieldPaths ...string) {
 	// If there wasn't an error, just return directly
 	if err == nil {
 		return

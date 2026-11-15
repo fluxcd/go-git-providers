@@ -92,7 +92,7 @@ func (c *Client) ProviderID() gitprovider.ProviderID {
 
 // Raw returns the Go GitLab client (gitlab.com/gitlab-org/api/client-go/v2 *Client)
 // used under the hood for accessing GitLab.
-func (c *Client) Raw() interface{} {
+func (c *Client) Raw() any {
 	return c.c.Client()
 }
 

@@ -57,13 +57,9 @@ func TestGetPR(t *testing.T) {
 					if path.Base(r.URL.String()) == substr {
 						w.WriteHeader(http.StatusOK)
 						c := &PullRequest{
-							IDVersion: IDVersion{
-								ID: 101,
-							},
+							ID: 101,
 							Author: &Participant{
-								User: User{
-									Name: "test",
-								},
+								Name: "test",
 								Role: "AUTHOR",
 							},
 							FromRef: Ref{
@@ -110,10 +106,10 @@ func TestGetPR(t *testing.T) {
 
 func TestListPRs(t *testing.T) {
 	prIDs := []*PullRequest{
-		{IDVersion: IDVersion{ID: 101}},
-		{IDVersion: IDVersion{ID: 102}},
-		{IDVersion: IDVersion{ID: 103}},
-		{IDVersion: IDVersion{ID: 104}},
+		{ID: 101},
+		{ID: 102},
+		{ID: 103},
+		{ID: 104},
 	}
 
 	mux, client := setup(t)
@@ -264,10 +260,8 @@ func TestCreatePR(t *testing.T) {
 			if req.FromRef.ID != req.ToRef.ID {
 				w.WriteHeader(http.StatusOK)
 				r := &PullRequest{
-					IDVersion: IDVersion{
-						ID:      1,
-						Version: 1,
-					},
+					ID:          1,
+					Version:     1,
 					CreatedDate: time.Now().Unix(),
 					UpdatedDate: time.Now().Unix(),
 					Title:       req.Title,
@@ -279,9 +273,7 @@ func TestCreatePR(t *testing.T) {
 					ToRef:       req.ToRef,
 					Locked:      req.Locked,
 					Author: &Participant{
-						User: User{
-							Name: "Rob",
-						},
+						Name: "Rob",
 					},
 					Reviewers: []Participant{
 						{
@@ -376,10 +368,8 @@ func TestUpdatePR(t *testing.T) {
 			req := &PullRequest{}
 			json.NewDecoder(r.Body).Decode(req)
 			r := &PullRequest{
-				IDVersion: IDVersion{
-					ID:      req.ID,
-					Version: req.Version,
-				},
+				ID:          req.ID,
+				Version:     req.Version,
 				CreatedDate: time.Now().Unix(),
 				UpdatedDate: time.Now().Unix(),
 				Title:       req.Title,
@@ -395,15 +385,11 @@ func TestUpdatePR(t *testing.T) {
 				},
 				ToRef: req.ToRef,
 				Author: &Participant{
-					User: User{
-						Name: "Rob",
-					},
+					Name: "Rob",
 				},
 				Reviewers: []Participant{
 					{
-						User: User{
-							Name: "Charlie",
-						},
+						Name:     "Charlie",
 						Role:     "REVIEWER",
 						Approved: false,
 						Status:   "UNAPPROVED",

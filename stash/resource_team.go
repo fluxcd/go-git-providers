@@ -36,7 +36,7 @@ func (t *Team) Get() gitprovider.TeamInfo {
 }
 
 // APIObject returns the Users that ware part of this team.
-func (t *Team) APIObject() interface{} {
+func (t *Team) APIObject() any {
 	return t.users
 }
 

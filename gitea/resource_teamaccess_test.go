@@ -33,17 +33,17 @@ func Test_getGitProviderPermission(t *testing.T) {
 		{
 			name:       "pull",
 			permission: gitea.AccessModeRead,
-			want:       gitprovider.RepositoryPermissionVar(gitprovider.RepositoryPermissionPull),
+			want:       new(gitprovider.RepositoryPermissionPull),
 		},
 		{
 			name:       "push",
 			permission: gitea.AccessModeWrite,
-			want:       gitprovider.RepositoryPermissionVar(gitprovider.RepositoryPermissionPush),
+			want:       new(gitprovider.RepositoryPermissionPush),
 		},
 		{
 			name:       "admin",
 			permission: gitea.AccessModeAdmin,
-			want:       gitprovider.RepositoryPermissionVar(gitprovider.RepositoryPermissionAdmin),
+			want:       new(gitprovider.RepositoryPermissionAdmin),
 		},
 	}
 	for _, tt := range tests {

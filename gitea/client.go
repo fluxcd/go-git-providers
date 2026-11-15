@@ -120,7 +120,7 @@ func (c *Client) ProviderID() gitprovider.ProviderID {
 
 // Raw returns the Gitea client (code.gitea.io/sdk/gitea *Client)
 // used under the hood for accessing Gitea.
-func (c *Client) Raw() interface{} {
+func (c *Client) Raw() any {
 	return c.c
 }
 

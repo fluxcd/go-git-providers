@@ -49,7 +49,7 @@ type UsersService service
 // User represents a Stash user.
 type User struct {
 	// Session is the session information for the user.
-	Session Session `json:"sessionInfo,omitempty"`
+	Session Session `json:"sessionInfo"`
 	// Active is true if the user is active.
 	Active bool `json:"active,omitempty"`
 	// Deletable is true if the user is deletable.
@@ -65,7 +65,7 @@ type User struct {
 	// LastAuthenticationTimestamp is the last authentication timestamp of the user.
 	LastAuthenticationTimestamp int64 `json:"lastAuthenticationTimestamp,omitempty"`
 	// Links is the links to other resources.
-	Links `json:"links,omitempty"`
+	Links `json:"links"`
 	// MutableDetails is true if the user is mutable.
 	MutableDetails bool `json:"mutableDetails,omitempty"`
 	// MutableGroups is true if the groups are mutable.

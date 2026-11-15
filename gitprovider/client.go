@@ -38,7 +38,7 @@ type Client interface {
 	HasTokenPermission(ctx context.Context, permission TokenPermission) (bool, error)
 
 	// Raw returns the Go client used under the hood to access the Git provider.
-	Raw() interface{}
+	Raw() any
 }
 
 // ResourceClient allows access to resource-specific sub-clients.

@@ -18,7 +18,6 @@ package stash
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -123,9 +122,9 @@ func Test_Do(t *testing.T) {
 		path   string
 		query  url.Values
 		method string
-		body   interface{}
+		body   any
 		header http.Header
-		output interface{}
+		output any
 	}{
 		{
 			name: "test GET method",
@@ -226,8 +225,7 @@ func Test_Do(t *testing.T) {
 			c.BaseURL = url
 			c.Client.HTTPClient = server.Client()
 
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
+			ctx := t.Context()
 
 			var bodyReader io.ReadCloser
 			jsonBody, err := json.Marshal(tt.body)
@@ -315,8 +313,7 @@ func Test_DoWithRetry(t *testing.T) {
 				return nil
 			})
 
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
+			ctx := t.Context()
 			request, err := c.NewRequest(ctx, http.MethodGet, "")
 			if err != nil {
 				t.Fatalf("failed to create request: %v", err)

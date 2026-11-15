@@ -36,7 +36,7 @@ func (o *Organization) Get() gitprovider.OrganizationInfo {
 }
 
 // APIObject returns the underlying value that was returned from the server.
-func (o *Organization) APIObject() interface{} {
+func (o *Organization) APIObject() any {
 	return &o.p
 }
 

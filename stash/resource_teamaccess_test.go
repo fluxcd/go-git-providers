@@ -32,17 +32,17 @@ func Test_getGitProviderPermission(t *testing.T) {
 		{
 			name:       "pull",
 			permission: stashPermissionRead,
-			want:       gitprovider.RepositoryPermissionVar(gitprovider.RepositoryPermissionPull),
+			want:       new(gitprovider.RepositoryPermissionPull),
 		},
 		{
 			name:       "push",
 			permission: stashPermissionWrite,
-			want:       gitprovider.RepositoryPermissionVar(gitprovider.RepositoryPermissionPush),
+			want:       new(gitprovider.RepositoryPermissionPush),
 		},
 		{
 			name:       "admin",
 			permission: stashPermissionAdmin,
-			want:       gitprovider.RepositoryPermissionVar(gitprovider.RepositoryPermissionAdmin),
+			want:       new(gitprovider.RepositoryPermissionAdmin),
 		},
 		{
 			name:       "false data",
@@ -70,17 +70,17 @@ func Test_getStashPermission(t *testing.T) {
 	}{
 		{
 			name:       "pull",
-			permission: gitprovider.RepositoryPermissionVar(gitprovider.RepositoryPermissionPull),
+			permission: new(gitprovider.RepositoryPermissionPull),
 			want:       "REPO_READ",
 		},
 		{
 			name:       "push",
-			permission: gitprovider.RepositoryPermissionVar(gitprovider.RepositoryPermissionPush),
+			permission: new(gitprovider.RepositoryPermissionPush),
 			want:       "REPO_WRITE",
 		},
 		{
 			name:       "admin",
-			permission: gitprovider.RepositoryPermissionVar(gitprovider.RepositoryPermissionAdmin),
+			permission: new(gitprovider.RepositoryPermissionAdmin),
 			want:       "REPO_ADMIN",
 		},
 	}

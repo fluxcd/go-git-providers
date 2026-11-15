@@ -597,24 +597,18 @@ func TestUpdateRepositoryGroupsPermission(t *testing.T) {
 func TestListRepositoryUsersPermission(t *testing.T) {
 	tests := []*RepositoryUserPermission{
 		{
-			User: User{
-				Name: "Jane Citizen",
-				Slug: "jcitizen",
-			},
+			Name:       "Jane Citizen",
+			Slug:       "jcitizen",
 			Permission: "REPO_READ",
 		},
 		{
-			User: User{
-				Name: "James Cook",
-				Slug: "jcook",
-			},
+			Name:       "James Cook",
+			Slug:       "jcook",
 			Permission: "REPO_WRITE",
 		},
 		{
-			User: User{
-				Name: "Jack Sparrow",
-				Slug: "jsparrow",
-			},
+			Name:       "Jack Sparrow",
+			Slug:       "jsparrow",
 			Permission: "REPO_ADMIN",
 		},
 	}

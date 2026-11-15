@@ -114,8 +114,8 @@ func TestRepository_Validate(t *testing.T) {
 		{
 			name: "valid create and update, with valid enum and description",
 			repo: RepositoryInfo{
-				Description: StringVar("foo-description"),
-				Visibility:  RepositoryVisibilityVar(RepositoryVisibilityPublic),
+				Description: new("foo-description"),
+				Visibility:  new(RepositoryVisibilityPublic),
 			},
 		},
 		{
@@ -161,7 +161,7 @@ func TestTeamAccess_Validate(t *testing.T) {
 			name: "valid create, with valid enum",
 			ta: TeamAccessInfo{
 				Name:       "foo-team",
-				Permission: RepositoryPermissionVar(RepositoryPermissionPull),
+				Permission: new(RepositoryPermissionPull),
 			},
 		},
 		{

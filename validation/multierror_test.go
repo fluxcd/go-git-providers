@@ -37,7 +37,7 @@ func TestMultiError_As(t *testing.T) {
 	tests := []struct {
 		name        string
 		errors      []error
-		expectedVal interface{}
+		expectedVal any
 		expectedOk  bool
 	}{
 		{
@@ -67,7 +67,7 @@ func TestMultiError_As(t *testing.T) {
 			// exact type of the error it should be casted into (not behind a generic interface{}),
 			// so hence we need to split this up per-case
 			var got bool
-			var target interface{}
+			var target any
 			switch i {
 			case 0:
 				localTarget := &MultiError{}
@@ -234,6 +234,6 @@ type fakeT struct {
 	calledErrorf uint8
 }
 
-func (t *fakeT) Errorf(_ string, _ ...interface{}) {
+func (t *fakeT) Errorf(_ string, _ ...any) {
 	t.calledErrorf++
 }

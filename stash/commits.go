@@ -43,13 +43,13 @@ type CommitsService service
 // CommitObject represents a commit in stash
 type CommitObject struct {
 	// Session is the session object for the branch.
-	Session `json:"sessionInfo,omitempty"`
+	Session `json:"sessionInfo"`
 	// Author is the author of the commit.
-	Author User `json:"author,omitempty"`
+	Author User `json:"author"`
 	// AuthorTimestamp is the timestamp of the author of the commit.
 	AuthorTimestamp int64 `json:"authorTimestamp,omitempty"`
 	// Committer is the committer of the commit.
-	Committer User `json:"committer,omitempty"`
+	Committer User `json:"committer"`
 	// CommitterTimestamp is the timestamp of the committer of the commit.
 	CommitterTimestamp int64 `json:"committerTimestamp,omitempty"`
 	// DisplayID is the display ID of the commit.

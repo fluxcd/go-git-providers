@@ -71,7 +71,7 @@ type RepositoriesService service
 // Repository represents a stash repository
 type Repository struct {
 	// Session is the session information for the request.
-	Session `json:"sessionInfo,omitempty"`
+	Session `json:"sessionInfo"`
 	// Description is the repository description.
 	Description string `json:"description,omitempty"`
 	// Forkable is true if the repository is forkable.
@@ -81,11 +81,11 @@ type Repository struct {
 	// ID is the unique ID of the repository.
 	ID float64 `json:"id,omitempty"`
 	// Links is the links to other resources.
-	Links `json:"links,omitempty"`
+	Links `json:"links"`
 	// Name is the repository name.
 	Name string `json:"name,omitempty"`
 	// Project is the project the repository belongs to.
-	Project Project `json:"project,omitempty"`
+	Project Project `json:"project"`
 	// Public is true if the repository is public.
 	Public bool `json:"public,omitempty"`
 	// ScmID is the unique ID of the repository's SCM.
@@ -197,7 +197,7 @@ func (s *RepositoriesService) Get(ctx context.Context, projectKey, repoSlug stri
 	return repo, nil
 }
 
-func marshallBody(b interface{}) (io.ReadCloser, error) {
+func marshallBody(b any) (io.ReadCloser, error) {
 	var body io.ReadCloser
 	jsonBody, err := json.Marshal(b)
 	if err != nil {
@@ -301,11 +301,11 @@ func (s *RepositoriesService) Delete(ctx context.Context, projectKey, repoSlug s
 // The permission can be either read, write, or admin.
 type RepositoryGroupPermission struct {
 	// Session is the session information for the request.
-	Session `json:"sessionInfo,omitempty"`
+	Session `json:"sessionInfo"`
 	// Group is the group to which the permission applies.
 	Group struct {
 		Name string `json:"name,omitempty"`
-	} `json:"group,omitempty"`
+	} `json:"group"`
 	// Permission denotes a group's permission level. Available repository permissions are:
 	// REPO_READ
 	// REPO_WRITE
@@ -447,8 +447,8 @@ func (s *RepositoriesService) UpdateRepositoryGroupPermission(ctx context.Contex
 // The permission can be either read, write, or admin.
 type RepositoryUserPermission struct {
 	// Session is the session information for the request.
-	Session    `json:"sessionInfo,omitempty"`
-	User       `json:"user,omitempty"`
+	Session    `json:"sessionInfo"`
+	User       `json:"user"`
 	Permission string `json:"permission,omitempty"`
 }
 

@@ -39,7 +39,7 @@ func (pr *pullrequest) Get() gitprovider.PullRequestInfo {
 	return pullrequestFromAPI(&pr.pr)
 }
 
-func (pr *pullrequest) APIObject() interface{} {
+func (pr *pullrequest) APIObject() any {
 	return &pr.pr
 }
 

@@ -52,7 +52,7 @@ func (o *organization) Get() gitprovider.OrganizationInfo {
 }
 
 // APIObject returns the underlying API object.
-func (o *organization) APIObject() interface{} {
+func (o *organization) APIObject() any {
 	return &o.o
 }
 
@@ -75,6 +75,6 @@ func organizationFromAPI(apiObj *gitea.Organization) gitprovider.OrganizationInf
 
 // validateOrganizationAPI validates the apiObj received from the server, to make sure that it is
 // valid for our use.
-func validateOrganizationAPI(apiObj *gitea.Organization) error {
+func validateOrganizationAPI() error {
 	return validateAPIObject("Gitea.Organization", func(validator validation.Validator) {})
 }

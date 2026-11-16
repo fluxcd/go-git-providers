@@ -45,7 +45,7 @@ type GroupsService service
 // Group represents a stash group.
 type Group struct {
 	// Session is the session object for the group.
-	Session Session `json:"sessionInfo,omitempty"`
+	Session Session `json:"sessionInfo"`
 	// Name is the name of the group.
 	Name string `json:"name,omitempty"`
 	// Delete is the delete flag for the group.

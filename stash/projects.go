@@ -50,7 +50,7 @@ type ProjectsService service
 // which is a way for teams to group, manage, and organize their repositories.
 type Project struct {
 	// Session is the http.Response of the last request made to the Stash API.
-	Session `json:"sessionInfo,omitempty"`
+	Session `json:"sessionInfo"`
 	// Description is the project description.
 	Description string `json:"description,omitempty"`
 	// ID is the project ID.
@@ -58,9 +58,9 @@ type Project struct {
 	// Key is the project key.
 	Key string `json:"key,omitempty"`
 	// Links is the project hyperlinks.
-	Links `json:"links,omitempty"`
+	Links `json:"links"`
 	// User is the the authenticated user.
-	User `json:"owner,omitempty"`
+	User `json:"owner"`
 	// Name is the project name.
 	Name string `json:"name,omitempty"`
 	// Public is the project public flag.
@@ -190,11 +190,11 @@ func (s *ProjectsService) Get(ctx context.Context, projectName string) (*Project
 // The permission can be either read, write, or admin.
 type ProjectGroupPermission struct {
 	// Session is the http.Response of the last request made to the Stash API.
-	Session Session `json:"sessionInfo,omitempty"`
+	Session Session `json:"sessionInfo"`
 	// Group is the group that the permission is for.
 	Group struct {
 		Name string `json:"name,omitempty"`
-	} `json:"group,omitempty"`
+	} `json:"group"`
 	// Permission denotes a group's permission level. Available project permissions are:
 	// PROJECT_READ
 	// PROJECT_WRITE
@@ -312,9 +312,9 @@ func (s *ProjectsService) AllGroupsPermission(ctx context.Context, projectKey st
 // The permission can be either read, write, or admin.
 type ProjectUserPermission struct {
 	// Session is the http.Response of the last request made to the Stash API.
-	Session Session `json:"sessionInfo,omitempty"`
+	Session Session `json:"sessionInfo"`
 	// User is the user that the permission is for.
-	User User `json:"user,omitempty"`
+	User User `json:"user"`
 	// Permission denotes a group's permission level. Available project permissions are:
 	// PROJECT_READ
 	// PROJECT_WRITE

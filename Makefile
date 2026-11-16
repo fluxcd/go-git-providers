@@ -12,8 +12,28 @@ fmt:
 vet:
 	go vet ./...
 
+# Check for unused code and parameters
+unused: ## Check for unused code and parameters
+	@out=$$(go run golang.org/x/tools/gopls@$(GOPLS_VERSION) check -severity=info $$(git ls-files '*.go') | grep -E 'unused parameter:| is unused$$' || true); \
+	if [ -n "$$out" ]; then \
+		printf '%s\n' "$$out"; \
+		exit 1; \
+	fi
+
+# fix modernizes the code with the current toolchain, as `tidy` does for go.mod
+# files.
+fix:
+	@set -e; while :; do \
+		before=$$(git diff --no-ext-diff --no-color HEAD -- '*.go' | cksum); \
+		go fix ./...; \
+		after=$$(git diff --no-ext-diff --no-color HEAD -- '*.go' | cksum); \
+		if [ "$$before" = "$$after" ]; then break; fi; \
+	done
+
 GIT_PROVIDER_ORGANIZATION ?= fluxcd-testing
 GIT_PROVIDER_USER ?= fluxcd-gitprovider-bot
+
+GOPLS_VERSION ?= v0.24.0
 
 # GitLab specific testing variables
 GITLAB_VERSION ?= 16.0.5@sha256:526942e9ae6f3b4f0b8ff16a07535541dfc2ca58211660c3c0c9b8c0864bba2c
@@ -40,7 +60,7 @@ start-provider-instances-gitea:
 stop-provider-instances:
 	docker compose down --volumes
 
-test: tidy fmt vet
+test: tidy fix fmt vet unused
 	go test ${TEST_FLAGS} -race -coverprofile=coverage.txt -covermode=atomic ${TEST_PATTERN}
 
 test-e2e-github: tidy fmt vet

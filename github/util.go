@@ -104,15 +104,13 @@ func handleHTTPError(err error) error {
 	if errors.As(err, &ghRateLimitError) {
 		// Convert go-github's RateLimitError to our similar error type
 		return validation.NewMultiError(err, &gitprovider.RateLimitError{
-			HTTPError: gitprovider.HTTPError{
-				Response:         ghRateLimitError.Response,
-				ErrorMessage:     ghRateLimitError.Error(),
-				Message:          ghRateLimitError.Message,
-				DocumentationURL: rateLimitDocURL,
-			},
-			Limit:     ghRateLimitError.Rate.Limit,
-			Remaining: ghRateLimitError.Rate.Remaining,
-			Reset:     ghRateLimitError.Rate.Reset.Time,
+			Response:         ghRateLimitError.Response,
+			ErrorMessage:     ghRateLimitError.Error(),
+			Message:          ghRateLimitError.Message,
+			DocumentationURL: rateLimitDocURL,
+			Limit:            ghRateLimitError.Rate.Limit,
+			Remaining:        ghRateLimitError.Rate.Remaining,
+			Reset:            ghRateLimitError.Rate.Reset.Time,
 		})
 	} else if errors.As(err, &ghErrorResponse) {
 		httpErr := gitprovider.HTTPError{

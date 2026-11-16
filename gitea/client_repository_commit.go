@@ -37,7 +37,7 @@ type CommitClient struct {
 // ListPage returns all available repository commits
 // using multiple paginated requests if needed.
 func (c *CommitClient) ListPage(ctx context.Context, branch string, perPage, page int) ([]gitprovider.Commit, error) {
-	dks, err := c.listPage(ctx, branch, perPage, page)
+	dks, err := c.listPage(branch, perPage, page)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func (c *CommitClient) ListPage(ctx context.Context, branch string, perPage, pag
 	return commits, nil
 }
 
-func (c *CommitClient) listPage(ctx context.Context, branch string, perPage, page int) ([]*commitType, error) {
+func (c *CommitClient) listPage(branch string, perPage, page int) ([]*commitType, error) {
 	// GET /repos/{owner}/{repo}/commits
 	apiObjs, err := c.listCommits(c.ref.GetIdentity(), c.ref.GetRepository(), branch, perPage, page)
 	if err != nil {
@@ -78,11 +78,9 @@ func (c *CommitClient) Create(ctx context.Context, branch string, message string
 	}
 
 	resp, err := c.createCommits(c.ref.GetIdentity(), c.ref.GetRepository(), *files[0].Path, &gitea.CreateFileOptions{
-		Content: *files[0].Content,
-		FileOptions: gitea.FileOptions{
-			Message:    message,
-			BranchName: branch,
-		},
+		Content:    *files[0].Content,
+		Message:    message,
+		BranchName: branch,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create commit: %w", err)
@@ -109,11 +107,9 @@ func (c *CommitClient) Create(ctx context.Context, branch string, message string
 // It accepts a page size and page number to support pagination.
 func (c *CommitClient) listCommits(owner, repo, branch string, perPage int, page int) ([]*gitea.Commit, error) {
 	opts := gitea.ListCommitOptions{
-		ListOptions: gitea.ListOptions{
-			PageSize: perPage,
-			Page:     page,
-		},
-		SHA: branch,
+		PageSize: perPage,
+		Page:     page,
+		SHA:      branch,
 	}
 	apiObjs := []*gitea.Commit{}
 	err := allPages(&opts.ListOptions, func() (*gitea.Response, error) {

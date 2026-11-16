@@ -35,7 +35,7 @@ func TestValidateAndDefaultInfo(t *testing.T) {
 			},
 			expected: &TeamAccessInfo{
 				Name:       "foo",
-				Permission: RepositoryPermissionVar(defaultRepoPermission),
+				Permission: new(defaultRepoPermission),
 			},
 			wantErr: false,
 		},

@@ -52,7 +52,7 @@ func (dk *deployToken) Set(info gitprovider.DeployTokenInfo) error {
 	return nil
 }
 
-func (dk *deployToken) APIObject() interface{} {
+func (dk *deployToken) APIObject() any {
 	return &dk.k
 }
 

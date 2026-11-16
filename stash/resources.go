@@ -46,13 +46,6 @@ func (s *Session) set(resp *http.Response) {
 	s.RequestID = resp.Header.Get("X-Arequestid")
 }
 
-func (s *Session) copy(p *Session) {
-	s.UserID = p.UserID
-	s.UserName = p.UserName
-	s.SessionID = p.SessionID
-	s.RequestID = p.RequestID
-}
-
 // Paging is the paging information.
 type Paging struct {
 	// IsLastPage indicates whether another page of items exists.

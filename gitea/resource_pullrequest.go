@@ -42,7 +42,7 @@ func (pr *pullrequest) Get() gitprovider.PullRequestInfo {
 }
 
 // APIObject returns the underlying API object.
-func (pr *pullrequest) APIObject() interface{} {
+func (pr *pullrequest) APIObject() any {
 	return &pr.pr
 }
 

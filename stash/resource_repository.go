@@ -105,7 +105,7 @@ func (r *userRepository) Set(info gitprovider.RepositoryInfo) error {
 	return nil
 }
 
-func (r *userRepository) APIObject() interface{} {
+func (r *userRepository) APIObject() any {
 	return &r.repository
 }
 
@@ -268,16 +268,16 @@ func repositoryFromAPI(apiObj *Repository) gitprovider.RepositoryInfo {
 		Description:   &apiObj.Description,
 		DefaultBranch: &apiObj.DefaultBranch,
 	}
-	repo.Visibility = gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPrivate)
+	repo.Visibility = new(gitprovider.RepositoryVisibilityPrivate)
 	if apiObj.Public {
-		repo.Visibility = gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibilityPublic)
+		repo.Visibility = new(gitprovider.RepositoryVisibilityPublic)
 	}
 	return repo
 }
 
 func repositoryToAPI(repo *gitprovider.RepositoryInfo, ref gitprovider.RepositoryRef) *Repository {
 	apiObj := &Repository{
-		Name:  *gitprovider.StringVar(ref.GetRepository()),
+		Name:  *new(ref.GetRepository()),
 		ScmID: "git",
 	}
 	repositoryInfoToAPIObj(repo, apiObj)
@@ -289,11 +289,11 @@ func repositoryInfoToAPIObj(repo *gitprovider.RepositoryInfo, apiObj *Repository
 		apiObj.Description = *repo.Description
 	}
 	if repo.Visibility != nil {
-		apiObj.Public = *gitprovider.StringVar(string(*repo.Visibility)) == "true"
+		apiObj.Public = *new(string(*repo.Visibility)) == "true"
 	}
 
 	if repo.DefaultBranch != nil {
-		apiObj.DefaultBranch = *gitprovider.StringVar(*repo.DefaultBranch)
+		apiObj.DefaultBranch = *new(*repo.DefaultBranch)
 	}
 }
 

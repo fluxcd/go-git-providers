@@ -43,7 +43,7 @@ func Test_getPermissionFromMap(t *testing.T) {
 				Maintain: &falseValue,
 				Admin:    &falseValue,
 			},
-			want: gitprovider.RepositoryPermissionVar(gitprovider.RepositoryPermissionPull),
+			want: new(gitprovider.RepositoryPermissionPull),
 		},
 		{
 			name: "push",
@@ -54,7 +54,7 @@ func Test_getPermissionFromMap(t *testing.T) {
 				Pull:     &trueValue,
 				Admin:    &falseValue,
 			},
-			want: gitprovider.RepositoryPermissionVar(gitprovider.RepositoryPermissionPush),
+			want: new(gitprovider.RepositoryPermissionPush),
 		},
 		{
 			name: "admin",
@@ -65,7 +65,7 @@ func Test_getPermissionFromMap(t *testing.T) {
 				Maintain: &trueValue,
 				Push:     &trueValue,
 			},
-			want: gitprovider.RepositoryPermissionVar(gitprovider.RepositoryPermissionAdmin),
+			want: new(gitprovider.RepositoryPermissionAdmin),
 		},
 		{
 			name: "none",

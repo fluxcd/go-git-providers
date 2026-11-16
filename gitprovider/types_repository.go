@@ -63,10 +63,10 @@ type RepositoryInfo struct {
 // Default defaults the Repository, implementing the InfoRequest interface.
 func (r *RepositoryInfo) Default() {
 	if r.Visibility == nil {
-		r.Visibility = RepositoryVisibilityVar(defaultRepositoryVisibility)
+		r.Visibility = new(defaultRepositoryVisibility)
 	}
 	if r.DefaultBranch == nil {
-		r.DefaultBranch = StringVar(defaultBranchName)
+		r.DefaultBranch = new(defaultBranchName)
 	}
 }
 
@@ -106,7 +106,7 @@ type TeamAccessInfo struct {
 // Default defaults the TeamAccess fields.
 func (ta *TeamAccessInfo) Default() {
 	if ta.Permission == nil {
-		ta.Permission = RepositoryPermissionVar(defaultRepoPermission)
+		ta.Permission = new(defaultRepoPermission)
 	}
 }
 
@@ -153,7 +153,7 @@ type DeployKeyInfo struct {
 // Default defaults the DeployKey fields.
 func (dk *DeployKeyInfo) Default() {
 	if dk.ReadOnly == nil {
-		dk.ReadOnly = BoolVar(defaultDeployKeyReadOnly)
+		dk.ReadOnly = new(defaultDeployKeyReadOnly)
 	}
 }
 

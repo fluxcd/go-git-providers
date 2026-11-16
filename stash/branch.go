@@ -46,7 +46,7 @@ type BranchesService service
 // Branch represents a branch of a repository.
 type Branch struct {
 	// Session is the session object for the branch.
-	Session `json:"sessionInfo,omitempty"`
+	Session `json:"sessionInfo"`
 	// DisplayID is the branch name e.g. main.
 	DisplayID string `json:"displayId,omitempty"`
 	// ID is the branch reference e.g. refs/heads/main.

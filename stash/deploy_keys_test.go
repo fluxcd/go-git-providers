@@ -62,13 +62,11 @@ func TestGetKey(t *testing.T) {
 								Label: "me@127.0.0.1",
 							},
 							Permission: "REPO_READ",
-							Repository: Repository{
-								Slug: "repo1",
-								Name: "repository 1",
-								Project: Project{
-									Key:  "prj1",
-									Name: "prjoject 1",
-								},
+							Slug:       "repo1",
+							Name:       "repository 1",
+							Project: Project{
+								Key:  "prj1",
+								Name: "prjoject 1",
 							},
 						}
 
@@ -205,11 +203,9 @@ func TestCreateKey(t *testing.T) {
 							Text: req.Key.Text,
 						},
 						Permission: p,
-						Repository: Repository{
-							Slug: "my-repo",
-							Project: Project{
-								Key: "prj",
-							},
+						Slug:       "my-repo",
+						Project: Project{
+							Key: "prj",
 						},
 					}
 					json.NewEncoder(w).Encode(k)
@@ -282,11 +278,9 @@ func TestUpdateKeyPermission(t *testing.T) {
 								Text: req.Key.Text,
 							},
 							Permission: "REPO_WRITE",
-							Repository: Repository{
-								Slug: "repo1",
-								Project: Project{
-									Key: "prj1",
-								},
+							Slug:       "repo1",
+							Project: Project{
+								Key: "prj1",
 							},
 						}
 						json.NewEncoder(w).Encode(k)
@@ -298,11 +292,9 @@ func TestUpdateKeyPermission(t *testing.T) {
 								Text: req.Key.Text,
 							},
 							Permission: "REPO_ADMIN",
-							Repository: Repository{
-								Slug: "repo1",
-								Project: Project{
-									Key: "prj1",
-								},
+							Slug:       "repo1",
+							Project: Project{
+								Key: "prj1",
 							},
 						}
 						json.NewEncoder(w).Encode(k)

@@ -92,7 +92,7 @@ func (c *OrgRepositoriesClient) Create(ctx context.Context, ref gitprovider.OrgR
 		return nil, err
 	}
 
-	apiObj, err := createRepository(ctx, c.c, ref, ref.Organization, req, opts...)
+	apiObj, err := createRepository(c.c, ref, ref.Organization, req, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +153,7 @@ func (c *OrgRepositoriesClient) listOrgRepos(org string) ([]*gitea.Repository, e
 	return validateRepositoryObjects(apiObjs)
 }
 
-func createRepository(ctx context.Context, c *gitea.Client, ref gitprovider.RepositoryRef, orgName string, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryCreateOption) (*gitea.Repository, error) {
+func createRepository(c *gitea.Client, ref gitprovider.RepositoryRef, orgName string, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryCreateOption) (*gitea.Repository, error) {
 	// First thing, validate and default the request to ensure a valid and fully-populated object
 	// (to minimize any possible diffs between desired and actual state)
 	if err := gitprovider.ValidateAndDefaultInfo(&req); err != nil {

@@ -130,7 +130,7 @@ func (c *PullRequestClient) Merge(ctx context.Context, number int, mergeMethod g
 		SHA:                       nil,
 	}
 
-	for retries := 0; retries < 10; retries++ {
+	for retries := range 10 {
 		_, _, err = c.c.Client().MergeRequests.AcceptMergeRequest(getRepoPath(c.ref), int64(number), amrOpts, gitlab.WithContext(ctx))
 		if err == nil {
 			return nil
@@ -158,7 +158,7 @@ func (c *PullRequestClient) waitForMergeRequestToBeMergeable(ctx context.Context
 	// poll for merge status to reach "mergeable" state
 	// docs: https://docs.gitlab.com/api/merge_requests/#merge-status
 	currentStatus := "unknown"
-	for retries := 0; retries < 10; retries++ {
+	for range 10 {
 		mr, _, err := c.c.Client().MergeRequests.GetMergeRequest(getRepoPath(c.ref), int64(number), &gitlab.GetMergeRequestsOptions{}, gitlab.WithContext(ctx))
 		if err != nil || mr.DetailedMergeStatus != "mergeable" {
 			if mr != nil {

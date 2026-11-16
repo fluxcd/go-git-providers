@@ -68,8 +68,10 @@ func ValidateRepositoryVisibility(r RepositoryVisibility) error {
 }
 
 // RepositoryVisibilityVar returns a pointer to a RepositoryVisibility.
+//
+//go:fix inline
 func RepositoryVisibilityVar(r RepositoryVisibility) *RepositoryVisibility {
-	return &r
+	return new(r)
 }
 
 // RepositoryPermission is an enum specifying the access level for a certain team or person
@@ -120,8 +122,10 @@ func ValidateRepositoryPermission(p RepositoryPermission) error {
 }
 
 // RepositoryPermissionVar returns a pointer to a RepositoryPermission.
+//
+//go:fix inline
 func RepositoryPermissionVar(p RepositoryPermission) *RepositoryPermission {
-	return &p
+	return new(p)
 }
 
 // LicenseTemplate is an enum specifying a license template that can be used when creating a
@@ -161,8 +165,10 @@ func ValidateLicenseTemplate(t LicenseTemplate) error {
 }
 
 // LicenseTemplateVar returns a pointer to a LicenseTemplate.
+//
+//go:fix inline
 func LicenseTemplateVar(t LicenseTemplate) *LicenseTemplate {
-	return &t
+	return new(t)
 }
 
 // TokenPermission is an enum specifying the permissions for a token.

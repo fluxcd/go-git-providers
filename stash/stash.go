@@ -88,7 +88,7 @@ func (p *ProviderClient) ProviderID() gitprovider.ProviderID {
 
 // Raw returns the Go Stash client http.Client
 // used under the hood for accessing Stash.
-func (p *ProviderClient) Raw() interface{} {
+func (p *ProviderClient) Raw() any {
 	return p.client.Raw()
 }
 

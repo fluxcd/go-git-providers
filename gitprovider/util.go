@@ -22,13 +22,17 @@ import (
 )
 
 // BoolVar returns a pointer to the given bool.
+//
+//go:fix inline
 func BoolVar(b bool) *bool {
-	return &b
+	return new(b)
 }
 
 // StringVar returns a pointer to the given string.
+//
+//go:fix inline
 func StringVar(s string) *string {
-	return &s
+	return new(s)
 }
 
 // GetDomainURL returns the domain URL prepended with https:// if a scheme is not set.

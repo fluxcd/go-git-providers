@@ -66,9 +66,9 @@ type Key struct {
 // DeployKey is an access key for a repository
 type DeployKey struct {
 	// Session is the session object
-	Session `json:"sessionInfo,omitempty"`
+	Session `json:"sessionInfo"`
 	// Key is the key object
-	Key `json:"key,omitempty"`
+	Key `json:"key"`
 	// Permissions is the key permission
 	// Available repository permissions are:
 	// REPO_READ
@@ -76,7 +76,7 @@ type DeployKey struct {
 	// REPO_ADMIN
 	Permission string `json:"permission,omitempty"`
 	// Repository is the repository object
-	Repository `json:"repository,omitempty"`
+	Repository `json:"repository"`
 }
 
 // DeployKeyList is a list of access keys

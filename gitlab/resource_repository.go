@@ -91,7 +91,7 @@ func (p *userProject) Set(info gitprovider.RepositoryInfo) error {
 	return nil
 }
 
-func (p *userProject) APIObject() interface{} {
+func (p *userProject) APIObject() any {
 	return &p.p
 }
 
@@ -256,13 +256,13 @@ func repositoryFromAPI(apiObj *gogitlab.Project) gitprovider.RepositoryInfo {
 		Description:   &apiObj.Description,
 		DefaultBranch: &apiObj.DefaultBranch,
 	}
-	repo.Visibility = gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibility(apiObj.Visibility))
+	repo.Visibility = new(gitprovider.RepositoryVisibility(apiObj.Visibility))
 	return repo
 }
 
 func repositoryToAPI(repo *gitprovider.RepositoryInfo, ref gitprovider.RepositoryRef) gogitlab.Project {
 	apiObj := gogitlab.Project{
-		Name: *gitprovider.StringVar(ref.GetRepository()),
+		Name: *new(ref.GetRepository()),
 	}
 	repositoryInfoToAPIObj(repo, &apiObj)
 	return apiObj

@@ -86,7 +86,7 @@ func (r *userRepository) Set(info gitprovider.RepositoryInfo) error {
 }
 
 // APIObject returns the underlying API object.
-func (r *userRepository) APIObject() interface{} {
+func (r *userRepository) APIObject() any {
 	return &r.r
 }
 
@@ -277,16 +277,16 @@ func repositoryFromAPI(apiObj *gitea.Repository) gitprovider.RepositoryInfo {
 		DefaultBranch: &apiObj.DefaultBranch,
 	}
 	if !apiObj.Private {
-		repo.Visibility = gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibility("public"))
+		repo.Visibility = new(gitprovider.RepositoryVisibility("public"))
 	} else {
-		repo.Visibility = gitprovider.RepositoryVisibilityVar(gitprovider.RepositoryVisibility("private"))
+		repo.Visibility = new(gitprovider.RepositoryVisibility("private"))
 	}
 	return repo
 }
 
 func repositoryToAPI(repo *gitprovider.RepositoryInfo, ref gitprovider.RepositoryRef) gitea.CreateRepoOption {
 	apiObj := gitea.CreateRepoOption{
-		Name: *gitprovider.StringVar(ref.GetRepository()),
+		Name: *new(ref.GetRepository()),
 	}
 	repositoryInfoToCreateOption(repo, &apiObj)
 	return apiObj
@@ -300,7 +300,7 @@ func repositoryInfoToCreateOption(repo *gitprovider.RepositoryInfo, apiObj *gite
 		apiObj.DefaultBranch = *repo.DefaultBranch
 	}
 	if repo.Visibility != nil {
-		apiObj.Private = *gitprovider.BoolVar(string(*repo.Visibility) == "private")
+		apiObj.Private = *new(string(*repo.Visibility) == "private")
 	}
 }
 
@@ -312,7 +312,7 @@ func repositoryInfoToAPIObj(repo *gitprovider.RepositoryInfo, apiObj *gitea.Repo
 		apiObj.DefaultBranch = *repo.DefaultBranch
 	}
 	if repo.Visibility != nil {
-		apiObj.Private = *gitprovider.BoolVar(string(*repo.Visibility) == "private")
+		apiObj.Private = *new(string(*repo.Visibility) == "private")
 	}
 }
 

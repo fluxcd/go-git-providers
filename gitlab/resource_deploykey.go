@@ -55,7 +55,7 @@ func (dk *deployKey) Set(info gitprovider.DeployKeyInfo) error {
 	return nil
 }
 
-func (dk *deployKey) APIObject() interface{} {
+func (dk *deployKey) APIObject() any {
 	return &dk.k
 }
 

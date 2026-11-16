@@ -90,7 +90,7 @@ type Reconcilable interface {
 type Object interface {
 	// APIObject returns the underlying value that was returned from the server.
 	// This is always a pointer to a struct.
-	APIObject() interface{}
+	APIObject() any
 }
 
 // OrganizationBound describes an object that is bound to a given organization, e.g. a team.

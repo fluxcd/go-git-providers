@@ -54,7 +54,7 @@ func (dk *deployKey) Set(info gitprovider.DeployKeyInfo) error {
 	return nil
 }
 
-func (dk *deployKey) APIObject() interface{} {
+func (dk *deployKey) APIObject() any {
 	return &dk.k
 }
 
@@ -170,8 +170,8 @@ func deployKeyToAPI(info *gitprovider.DeployKeyInfo) *github.Key {
 
 func deployKeyInfoToAPIObj(info *gitprovider.DeployKeyInfo, apiObj *github.Key) {
 	// Required fields, we assume info is validated, and hence these are set
-	apiObj.Title = gitprovider.StringVar(info.Name)
-	apiObj.Key = gitprovider.StringVar(string(info.Key))
+	apiObj.Title = new(info.Name)
+	apiObj.Key = new(string(info.Key))
 	// optional fields
 	if info.ReadOnly != nil {
 		apiObj.ReadOnly = info.ReadOnly

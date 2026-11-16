@@ -38,11 +38,11 @@ type DeployKeyClient struct {
 //
 // ErrNotFound is returned if the resource does not exist.
 func (c *DeployKeyClient) Get(ctx context.Context, name string) (gitprovider.DeployKey, error) {
-	return c.get(ctx, name)
+	return c.get(name)
 }
 
-func (c *DeployKeyClient) get(ctx context.Context, name string) (*deployKey, error) {
-	deployKeys, err := c.list(ctx)
+func (c *DeployKeyClient) get(name string) (*deployKey, error) {
+	deployKeys, err := c.list()
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func (c *DeployKeyClient) get(ctx context.Context, name string) (*deployKey, err
 // List returns all available repository deploy keys for the given type,
 // using multiple paginated requests if needed.
 func (c *DeployKeyClient) List(ctx context.Context) ([]gitprovider.DeployKey, error) {
-	dks, err := c.list(ctx)
+	dks, err := c.list()
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func (c *DeployKeyClient) List(ctx context.Context) ([]gitprovider.DeployKey, er
 	return keys, nil
 }
 
-func (c *DeployKeyClient) list(ctx context.Context) ([]*deployKey, error) {
+func (c *DeployKeyClient) list() ([]*deployKey, error) {
 	// GET /repos/{owner}/{repo}/keys
 	apiObjs, err := c.listKeys(c.ref.GetIdentity(), c.ref.GetRepository())
 	if err != nil {
@@ -93,7 +93,7 @@ func (c *DeployKeyClient) list(ctx context.Context) ([]*deployKey, error) {
 //
 // ErrAlreadyExists will be returned if the resource already exists.
 func (c *DeployKeyClient) Create(ctx context.Context, req gitprovider.DeployKeyInfo) (gitprovider.DeployKey, error) {
-	apiObj, err := c.createDeployKey(ctx, c.ref, req)
+	apiObj, err := c.createDeployKey(c.ref, req)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +171,7 @@ func (c *DeployKeyClient) deleteKey(owner, repo string, id int64) error {
 	return handleHTTPError(res, err)
 }
 
-func (c *DeployKeyClient) createDeployKey(ctx context.Context, ref gitprovider.RepositoryRef, req gitprovider.DeployKeyInfo) (*gitea.DeployKey, error) {
+func (c *DeployKeyClient) createDeployKey(ref gitprovider.RepositoryRef, req gitprovider.DeployKeyInfo) (*gitea.DeployKey, error) {
 	// First thing, validate and default the request to ensure a valid and fully-populated object
 	// (to minimize any possible diffs between desired and actual state)
 	if err := gitprovider.ValidateAndDefaultInfo(&req); err != nil {

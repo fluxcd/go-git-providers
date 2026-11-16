@@ -37,7 +37,7 @@ type CommitClient struct {
 // ListPage returns all available repository commits
 // using multiple paginated requests if needed.
 func (c *CommitClient) ListPage(ctx context.Context, branch string, perPage, page int) ([]gitprovider.Commit, error) {
-	dks, err := c.listPage(ctx, branch, perPage, page)
+	dks, err := c.listPage(branch, perPage, page)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func (c *CommitClient) ListPage(ctx context.Context, branch string, perPage, pag
 	return commits, nil
 }
 
-func (c *CommitClient) listPage(ctx context.Context, branch string, perPage, page int) ([]*commitType, error) {
+func (c *CommitClient) listPage(branch string, perPage, page int) ([]*commitType, error) {
 	// GET /repos/{owner}/{repo}/commits
 	apiObjs, err := c.listCommits(c.ref.GetIdentity(), c.ref.GetRepository(), branch, perPage, page)
 	if err != nil {

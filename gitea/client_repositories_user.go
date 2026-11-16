@@ -132,7 +132,7 @@ func (c *UserRepositoriesClient) Create(ctx context.Context,
 		return nil, gitprovider.NewErrIncorrectUser(ref.GetIdentity())
 	}
 
-	apiObj, err := createRepository(ctx, c.c, ref, "", req, opts...)
+	apiObj, err := createRepository(c.c, ref, "", req, opts...)
 	if err != nil {
 		return nil, err
 	}

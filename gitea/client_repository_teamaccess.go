@@ -60,7 +60,7 @@ func (c *TeamAccessClient) Get(ctx context.Context, name string) (gitprovider.Te
 // List returns all available team access lists, using multiple paginated requests if needed.
 func (c *TeamAccessClient) List(ctx context.Context) ([]gitprovider.TeamAccess, error) {
 	// List all teams, using pagination. This does not contain information about the members
-	apiObjs, err := c.listRepoTeams(ctx, c.ref.GetIdentity(), c.ref.GetRepository())
+	apiObjs, err := c.listRepoTeams(c.ref.GetIdentity(), c.ref.GetRepository())
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func (c *TeamAccessClient) Create(ctx context.Context, req gitprovider.TeamAcces
 	}
 
 	// PUT /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}
-	if err := c.addTeam(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), req.Name, *req.Permission); err != nil {
+	if err := c.addTeam(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), req.Name); err != nil {
 		return nil, err
 	}
 
@@ -148,7 +148,7 @@ func (c *TeamAccessClient) getTeamPermissions(_ context.Context, orgName, repo, 
 }
 
 // listRepoTeams returns all teams of the given repository.
-func (c *TeamAccessClient) listRepoTeams(ctx context.Context, orgName, repo string) ([]*gitea.Team, error) {
+func (c *TeamAccessClient) listRepoTeams(orgName, repo string) ([]*gitea.Team, error) {
 	teamObjs, resp, err := c.c.GetRepoTeams(orgName, repo)
 	if err != nil {
 		return nil, handleHTTPError(resp, err)
@@ -159,7 +159,7 @@ func (c *TeamAccessClient) listRepoTeams(ctx context.Context, orgName, repo stri
 // addTeam adds the given team to the given repository.
 // We don't support setting permissions for Gitea, so we ignore the permission parameter.
 // see https://github.com/go-gitea/gitea/issues/14717
-func (c *TeamAccessClient) addTeam(_ context.Context, orgName, repo, teamName string, permission gitprovider.RepositoryPermission) error {
+func (c *TeamAccessClient) addTeam(_ context.Context, orgName, repo, teamName string) error {
 	res, err := c.c.AddRepoTeam(orgName, repo, teamName)
 	return handleHTTPError(res, err)
 }

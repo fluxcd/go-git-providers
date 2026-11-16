@@ -18,10 +18,10 @@ jobs:
           go-version: 1.27.x
           cache: true
       - name: Run vet
-        run: make tidy fmt vet fix
+        run: make tidy fix fmt vet unused
       - name: Check if working tree is dirty
         run: |
           if [[ $(git diff --stat) != '' ]]; then
-            echo "run 'make tidy fmt vet fix' and commit changes"
+            echo "run 'make tidy fix fmt vet unused' and commit changes"
             exit 1
           fi

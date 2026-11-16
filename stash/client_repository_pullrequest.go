@@ -21,7 +21,6 @@ import (
 	"fmt"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
-	"github.com/fluxcd/go-git-providers/validation"
 )
 
 // PullRequestClient implements the gitprovider.PullRequestClient interface.
@@ -175,13 +174,4 @@ func (c *PullRequestClient) Edit(ctx context.Context, number int, opts gitprovid
 	}
 
 	return newPullRequest(edited), nil
-}
-
-func validatePullRequestsAPI(apiObj *PullRequest) error {
-	return validateAPIObject("Stash.PullRequest", func(validator validation.Validator) {
-		// Make sure there is a version and a title
-		if apiObj.Version == 0 || apiObj.Title == "" {
-			validator.Required("ID")
-		}
-	})
 }

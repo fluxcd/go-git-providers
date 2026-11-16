@@ -91,21 +91,3 @@ func (c *BranchClient) Create(ctx context.Context, branch, sha string) error {
 
 	return nil
 }
-
-func (c *BranchClient) getDefault(ctx context.Context) (string, error) {
-	projectKey, repoSlug := getStashRefs(c.ref)
-
-	// check if it is a user repository
-	// if yes, we need to add a tilde to the user login and use it as the project key
-	if r, ok := c.ref.(gitprovider.UserRepositoryRef); ok {
-		projectKey = addTilde(r.UserLogin)
-	}
-
-	b, err := c.client.Branches.Default(ctx, projectKey, repoSlug)
-	if err != nil {
-		return "", fmt.Errorf("failed to get default branch: %w", err)
-	}
-
-	return b.DisplayID, nil
-
-}

@@ -79,7 +79,7 @@ func (c *OrganizationsClient) getOrg(orgName string) (*gitea.Organization, error
 		return nil, handleHTTPError(res, err)
 	}
 	// Validate the API object
-	if err := validateOrganizationAPI(apiObj); err != nil {
+	if err := validateOrganizationAPI(); err != nil {
 		return nil, err
 	}
 	return apiObj, nil
@@ -104,8 +104,8 @@ func (c *OrganizationsClient) listOrgs() ([]*gitea.Organization, error) {
 	}
 
 	// Validate the API objects
-	for _, apiObj := range apiObjs {
-		if err := validateOrganizationAPI(apiObj); err != nil {
+	for range apiObjs {
+		if err := validateOrganizationAPI(); err != nil {
 			return nil, err
 		}
 	}

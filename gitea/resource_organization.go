@@ -75,6 +75,6 @@ func organizationFromAPI(apiObj *gitea.Organization) gitprovider.OrganizationInf
 
 // validateOrganizationAPI validates the apiObj received from the server, to make sure that it is
 // valid for our use.
-func validateOrganizationAPI(apiObj *gitea.Organization) error {
+func validateOrganizationAPI() error {
 	return validateAPIObject("Gitea.Organization", func(validator validation.Validator) {})
 }

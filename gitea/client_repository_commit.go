@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/sdk/gitea"
+	"gitea.dev/sdk"
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
@@ -37,7 +37,7 @@ type CommitClient struct {
 // ListPage returns all available repository commits
 // using multiple paginated requests if needed.
 func (c *CommitClient) ListPage(ctx context.Context, branch string, perPage, page int) ([]gitprovider.Commit, error) {
-	dks, err := c.listPage(branch, perPage, page)
+	dks, err := c.listPage(ctx, branch, perPage, page)
 	if err != nil {
 		return nil, err
 	}
@@ -49,9 +49,9 @@ func (c *CommitClient) ListPage(ctx context.Context, branch string, perPage, pag
 	return commits, nil
 }
 
-func (c *CommitClient) listPage(branch string, perPage, page int) ([]*commitType, error) {
+func (c *CommitClient) listPage(ctx context.Context, branch string, perPage, page int) ([]*commitType, error) {
 	// GET /repos/{owner}/{repo}/commits
-	apiObjs, err := c.listCommits(c.ref.GetIdentity(), c.ref.GetRepository(), branch, perPage, page)
+	apiObjs, err := c.listCommits(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), branch, perPage, page)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func (c *CommitClient) Create(ctx context.Context, branch string, message string
 		return nil, fmt.Errorf("creating commits with multiple files is not supported")
 	}
 
-	resp, err := c.createCommits(c.ref.GetIdentity(), c.ref.GetRepository(), *files[0].Path, &gitea.CreateFileOptions{
+	resp, err := c.createCommits(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), *files[0].Path, &gitea.CreateFileOptions{
 		Content:    *files[0].Content,
 		Message:    message,
 		BranchName: branch,
@@ -105,7 +105,7 @@ func (c *CommitClient) Create(ctx context.Context, branch string, message string
 
 // listCommits lists all repository commits of the given branch.
 // It accepts a page size and page number to support pagination.
-func (c *CommitClient) listCommits(owner, repo, branch string, perPage int, page int) ([]*gitea.Commit, error) {
+func (c *CommitClient) listCommits(ctx context.Context, owner, repo, branch string, perPage int, page int) ([]*gitea.Commit, error) {
 	opts := gitea.ListCommitOptions{
 		PageSize: perPage,
 		Page:     page,
@@ -113,7 +113,7 @@ func (c *CommitClient) listCommits(owner, repo, branch string, perPage int, page
 	}
 	apiObjs := []*gitea.Commit{}
 	err := allPages(&opts.ListOptions, func() (*gitea.Response, error) {
-		pageObjs, resp, listErr := c.c.ListRepoCommits(owner, repo, opts)
+		pageObjs, resp, listErr := c.c.Repositories.ListRepoCommits(ctx, owner, repo, opts)
 		if len(pageObjs) > 0 {
 			apiObjs = append(apiObjs, pageObjs...)
 			return resp, listErr
@@ -129,8 +129,8 @@ func (c *CommitClient) listCommits(owner, repo, branch string, perPage int, page
 }
 
 // createCommits creates a new commit for the given repository.
-func (c *CommitClient) createCommits(owner, repo string, path string, req *gitea.CreateFileOptions) (*gitea.FileResponse, error) {
-	apiObj, res, err := c.c.CreateFile(owner, repo, path, *req)
+func (c *CommitClient) createCommits(ctx context.Context, owner, repo string, path string, req *gitea.CreateFileOptions) (*gitea.FileResponse, error) {
+	apiObj, res, err := c.c.Repositories.CreateFile(ctx, owner, repo, path, *req)
 	if err != nil {
 		return nil, handleHTTPError(res, err)
 	}

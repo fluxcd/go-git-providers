@@ -20,7 +20,7 @@ import (
 	"context"
 	"strings"
 
-	"code.gitea.io/sdk/gitea"
+	"gitea.dev/sdk"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
@@ -36,7 +36,7 @@ type TreeClient struct {
 
 // Get returns a tree
 func (c *TreeClient) Get(ctx context.Context, sha string, recursive bool) (*gitprovider.TreeInfo, error) {
-	tree, resp, err := c.c.GetTrees(c.ref.GetIdentity(), c.ref.GetRepository(), gitea.ListTreeOptions{
+	tree, resp, err := c.c.Git.GetTrees(ctx, c.ref.GetIdentity(), c.ref.GetRepository(), gitea.ListTreeOptions{
 		Ref:       sha,
 		Recursive: recursive,
 	})

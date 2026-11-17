@@ -21,7 +21,7 @@ import (
 	"errors"
 	"fmt"
 
-	"code.gitea.io/sdk/gitea"
+	"gitea.dev/sdk"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
@@ -49,7 +49,7 @@ func (c *OrgRepositoriesClient) Get(ctx context.Context, ref gitprovider.OrgRepo
 		return nil, err
 	}
 	// GET /repos/{owner}/{repo}
-	apiObj, err := getRepo(c.c, ref.GetIdentity(), ref.GetRepository())
+	apiObj, err := getRepo(ctx, c.c, ref.GetIdentity(), ref.GetRepository())
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func (c *OrgRepositoriesClient) List(ctx context.Context, ref gitprovider.Organi
 	}
 
 	// GET /orgs/{org}/repos
-	apiObjs, err := c.listOrgRepos(ref.Organization)
+	apiObjs, err := c.listOrgRepos(ctx, ref.Organization)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func (c *OrgRepositoriesClient) Create(ctx context.Context, ref gitprovider.OrgR
 		return nil, err
 	}
 
-	apiObj, err := createRepository(c.c, ref, ref.Organization, req, opts...)
+	apiObj, err := createRepository(ctx, c.c, ref, ref.Organization, req, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -128,19 +128,19 @@ func (c *OrgRepositoriesClient) Reconcile(ctx context.Context, ref gitprovider.O
 }
 
 // getRepo returns the repository of the given owner by name.
-func getRepo(c *gitea.Client, owner, repo string) (*gitea.Repository, error) {
-	apiObj, res, err := c.GetRepo(owner, repo)
+func getRepo(ctx context.Context, c *gitea.Client, owner, repo string) (*gitea.Repository, error) {
+	apiObj, res, err := c.Repositories.GetRepo(ctx, owner, repo)
 	return validateRepositoryAPIResp(apiObj, res, err)
 }
 
 // listOrgRepos returns all repositories of the given organization the user has access to.
-func (c *OrgRepositoriesClient) listOrgRepos(org string) ([]*gitea.Repository, error) {
+func (c *OrgRepositoriesClient) listOrgRepos(ctx context.Context, org string) ([]*gitea.Repository, error) {
 	opts := gitea.ListOrgReposOptions{}
 	apiObjs := []*gitea.Repository{}
 
 	err := allPages(&opts.ListOptions, func() (*gitea.Response, error) {
 		// GET /orgs/{org}/repos
-		pageObjs, resp, listErr := c.c.ListOrgRepos(org, opts)
+		pageObjs, resp, listErr := c.c.Repositories.ListOrgRepos(ctx, org, opts)
 		if len(pageObjs) > 0 {
 			apiObjs = append(apiObjs, pageObjs...)
 			return resp, listErr
@@ -153,7 +153,7 @@ func (c *OrgRepositoriesClient) listOrgRepos(org string) ([]*gitea.Repository, e
 	return validateRepositoryObjects(apiObjs)
 }
 
-func createRepository(c *gitea.Client, ref gitprovider.RepositoryRef, orgName string, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryCreateOption) (*gitea.Repository, error) {
+func createRepository(ctx context.Context, c *gitea.Client, ref gitprovider.RepositoryRef, orgName string, req gitprovider.RepositoryInfo, opts ...gitprovider.RepositoryCreateOption) (*gitea.Repository, error) {
 	// First thing, validate and default the request to ensure a valid and fully-populated object
 	// (to minimize any possible diffs between desired and actual state)
 	if err := gitprovider.ValidateAndDefaultInfo(&req); err != nil {
@@ -175,31 +175,31 @@ func createRepository(c *gitea.Client, ref gitprovider.RepositoryRef, orgName st
 		apiOpts.License = knownLicenseTemplateMap[string(*o.LicenseTemplate)]
 	}
 
-	return createRepo(c, orgName, apiOpts)
+	return createRepo(ctx, c, orgName, apiOpts)
 }
 
-func createRepo(c *gitea.Client, orgName string, apiOpts gitea.CreateRepoOption) (*gitea.Repository, error) {
+func createRepo(ctx context.Context, c *gitea.Client, orgName string, apiOpts gitea.CreateRepoOption) (*gitea.Repository, error) {
 	if orgName != "" {
-		apiObj, res, err := c.CreateOrgRepo(orgName, apiOpts)
+		apiObj, res, err := c.Repositories.CreateOrgRepo(ctx, orgName, apiOpts)
 		return validateRepositoryAPIResp(apiObj, res, err)
 	}
-	apiObj, res, err := c.CreateRepo(apiOpts)
+	apiObj, res, err := c.Repositories.CreateRepo(ctx, apiOpts)
 	return validateRepositoryAPIResp(apiObj, res, err)
 }
 
 // updateRepo updates the given repository.
-func updateRepo(c *gitea.Client, owner, repo string, req *gitea.EditRepoOption) (*gitea.Repository, error) {
-	apiObj, res, err := c.EditRepo(owner, repo, *req)
+func updateRepo(ctx context.Context, c *gitea.Client, owner, repo string, req *gitea.EditRepoOption) (*gitea.Repository, error) {
+	apiObj, res, err := c.Repositories.EditRepo(ctx, owner, repo, *req)
 	return validateRepositoryAPIResp(apiObj, res, err)
 }
 
 // deleteRepo deletes the given repository.
-func deleteRepo(c *gitea.Client, owner, repo string, destructiveActions bool) error {
+func deleteRepo(ctx context.Context, c *gitea.Client, owner, repo string, destructiveActions bool) error {
 	// Don't allow deleting repositories if the user didn't explicitly allow dangerous API calls.
 	if !destructiveActions {
 		return fmt.Errorf("cannot delete repository: %w", gitprovider.ErrDestructiveCallDisallowed)
 	}
-	resp, err := c.DeleteRepo(owner, repo)
+	resp, err := c.Repositories.DeleteRepo(ctx, owner, repo)
 	return handleHTTPError(resp, err)
 }
 

@@ -20,7 +20,7 @@ import (
 	"context"
 	"errors"
 
-	"code.gitea.io/sdk/gitea"
+	"gitea.dev/sdk"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
@@ -38,11 +38,11 @@ type DeployKeyClient struct {
 //
 // ErrNotFound is returned if the resource does not exist.
 func (c *DeployKeyClient) Get(ctx context.Context, name string) (gitprovider.DeployKey, error) {
-	return c.get(name)
+	return c.get(ctx, name)
 }
 
-func (c *DeployKeyClient) get(name string) (*deployKey, error) {
-	deployKeys, err := c.list()
+func (c *DeployKeyClient) get(ctx context.Context, name string) (*deployKey, error) {
+	deployKeys, err := c.list(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func (c *DeployKeyClient) get(name string) (*deployKey, error) {
 // List returns all available repository deploy keys for the given type,
 // using multiple paginated requests if needed.
 func (c *DeployKeyClient) List(ctx context.Context) ([]gitprovider.DeployKey, error) {
-	dks, err := c.list()
+	dks, err := c.list(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -72,9 +72,9 @@ func (c *DeployKeyClient) List(ctx context.Context) ([]gitprovider.DeployKey, er
 	return keys, nil
 }
 
-func (c *DeployKeyClient) list() ([]*deployKey, error) {
+func (c *DeployKeyClient) list(ctx context.Context) ([]*deployKey, error) {
 	// GET /repos/{owner}/{repo}/keys
-	apiObjs, err := c.listKeys(c.ref.GetIdentity(), c.ref.GetRepository())
+	apiObjs, err := c.listKeys(ctx, c.ref.GetIdentity(), c.ref.GetRepository())
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +93,7 @@ func (c *DeployKeyClient) list() ([]*deployKey, error) {
 //
 // ErrAlreadyExists will be returned if the resource already exists.
 func (c *DeployKeyClient) Create(ctx context.Context, req gitprovider.DeployKeyInfo) (gitprovider.DeployKey, error) {
-	apiObj, err := c.createDeployKey(c.ref, req)
+	apiObj, err := c.createDeployKey(ctx, c.ref, req)
 	if err != nil {
 		return nil, err
 	}
@@ -139,13 +139,13 @@ func (c *DeployKeyClient) Reconcile(ctx context.Context, req gitprovider.DeployK
 }
 
 // listKeys returns all deploy keys of the given repository.
-func (c *DeployKeyClient) listKeys(owner, repo string) ([]*gitea.DeployKey, error) {
+func (c *DeployKeyClient) listKeys(ctx context.Context, owner, repo string) ([]*gitea.DeployKey, error) {
 	opts := gitea.ListDeployKeysOptions{}
 	apiObjs := []*gitea.DeployKey{}
 
 	err := allPages(&opts.ListOptions, func() (*gitea.Response, error) {
 		// GET /repos/{owner}/{repo}/keys"
-		pageObjs, resp, listErr := c.c.ListDeployKeys(owner, repo, opts)
+		pageObjs, resp, listErr := c.c.Repositories.ListDeployKeys(ctx, owner, repo, opts)
 		if len(pageObjs) > 0 {
 			apiObjs = append(apiObjs, pageObjs...)
 			return resp, listErr
@@ -166,25 +166,25 @@ func (c *DeployKeyClient) listKeys(owner, repo string) ([]*gitea.DeployKey, erro
 }
 
 // deleteKey deletes the given deploy key from the given repository.
-func (c *DeployKeyClient) deleteKey(owner, repo string, id int64) error {
-	res, err := c.c.DeleteDeployKey(owner, repo, id)
+func (c *DeployKeyClient) deleteKey(ctx context.Context, owner, repo string, id int64) error {
+	res, err := c.c.Repositories.DeleteDeployKey(ctx, owner, repo, id)
 	return handleHTTPError(res, err)
 }
 
-func (c *DeployKeyClient) createDeployKey(ref gitprovider.RepositoryRef, req gitprovider.DeployKeyInfo) (*gitea.DeployKey, error) {
+func (c *DeployKeyClient) createDeployKey(ctx context.Context, ref gitprovider.RepositoryRef, req gitprovider.DeployKeyInfo) (*gitea.DeployKey, error) {
 	// First thing, validate and default the request to ensure a valid and fully-populated object
 	// (to minimize any possible diffs between desired and actual state)
 	if err := gitprovider.ValidateAndDefaultInfo(&req); err != nil {
 		return nil, err
 	}
 	// POST /repos/{owner}/{repo}/keys
-	return c.createKey(ref.GetIdentity(), ref.GetRepository(), deployKeyToAPI(&req))
+	return c.createKey(ctx, ref.GetIdentity(), ref.GetRepository(), deployKeyToAPI(&req))
 }
 
 // createKey creates a new deploy key for the given repository.
-func (c *DeployKeyClient) createKey(owner, repo string, req *gitea.DeployKey) (*gitea.DeployKey, error) {
+func (c *DeployKeyClient) createKey(ctx context.Context, owner, repo string, req *gitea.DeployKey) (*gitea.DeployKey, error) {
 	opts := gitea.CreateKeyOption{Title: req.Title, Key: req.Key, ReadOnly: req.ReadOnly}
-	apiObj, resp, err := c.c.CreateDeployKey(owner, repo, opts)
+	apiObj, resp, err := c.c.Repositories.CreateDeployKey(ctx, owner, repo, opts)
 	if err != nil {
 		return nil, handleHTTPError(resp, err)
 	}

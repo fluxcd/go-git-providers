@@ -26,7 +26,7 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/sdk/gitea"
+	"gitea.dev/sdk"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 

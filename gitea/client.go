@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/sdk/gitea"
+	"gitea.dev/sdk"
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
@@ -118,7 +118,7 @@ func (c *Client) ProviderID() gitprovider.ProviderID {
 	return ProviderID
 }
 
-// Raw returns the Gitea client (code.gitea.io/sdk/gitea *Client)
+// Raw returns the Gitea client (gitea.dev/sdk *Client)
 // used under the hood for accessing Gitea.
 func (c *Client) Raw() any {
 	return c.c

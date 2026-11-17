@@ -19,7 +19,7 @@ package gitea
 import (
 	"context"
 
-	"code.gitea.io/sdk/gitea"
+	"gitea.dev/sdk"
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
@@ -42,7 +42,7 @@ func (c *OrganizationsClient) Get(ctx context.Context, ref gitprovider.Organizat
 	}
 
 	// GET /orgs/{org}
-	apiObj, err := c.getOrg(ref.Organization)
+	apiObj, err := c.getOrg(ctx, ref.Organization)
 	if err != nil {
 		return nil, err
 	}
@@ -55,17 +55,16 @@ func (c *OrganizationsClient) Get(ctx context.Context, ref gitprovider.Organizat
 // List returns all available organizations, using multiple paginated requests if needed.
 func (c *OrganizationsClient) List(ctx context.Context) ([]gitprovider.Organization, error) {
 	// GET /user/orgs
-	apiObjs, err := c.listOrgs()
+	apiObjs, err := c.listOrgs(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	orgs := make([]gitprovider.Organization, 0, len(apiObjs))
 	for _, apiObj := range apiObjs {
-		// apiObj.Login is already validated to be non-nil in ListOrgs
 		orgs = append(orgs, newOrganization(c.clientContext, apiObj, gitprovider.OrganizationRef{
 			Domain:       c.domain,
-			Organization: apiObj.UserName,
+			Organization: organizationName(apiObj),
 		}))
 	}
 
@@ -73,8 +72,8 @@ func (c *OrganizationsClient) List(ctx context.Context) ([]gitprovider.Organizat
 }
 
 // getOrg returns a specific organization the user has access to.
-func (c *OrganizationsClient) getOrg(orgName string) (*gitea.Organization, error) {
-	apiObj, res, err := c.c.GetOrg(orgName)
+func (c *OrganizationsClient) getOrg(ctx context.Context, orgName string) (*gitea.Organization, error) {
+	apiObj, res, err := c.c.Organizations.GetOrg(ctx, orgName)
 	if err != nil {
 		return nil, handleHTTPError(res, err)
 	}
@@ -86,13 +85,13 @@ func (c *OrganizationsClient) getOrg(orgName string) (*gitea.Organization, error
 }
 
 // listOrgs returns all of current user's organizations.
-func (c *OrganizationsClient) listOrgs() ([]*gitea.Organization, error) {
+func (c *OrganizationsClient) listOrgs(ctx context.Context) ([]*gitea.Organization, error) {
 	opts := gitea.ListOrgsOptions{}
 	apiObjs := []*gitea.Organization{}
 
 	err := allPages(&opts.ListOptions, func() (*gitea.Response, error) {
 		// GET /user/orgs"
-		pageObjs, resp, listErr := c.c.ListMyOrgs(opts)
+		pageObjs, resp, listErr := c.c.Organizations.ListMyOrgs(ctx, opts)
 		if len(pageObjs) > 0 {
 			apiObjs = append(apiObjs, pageObjs...)
 			return resp, listErr

@@ -22,7 +22,7 @@ import (
 	"context"
 	"errors"
 
-	"code.gitea.io/sdk/gitea"
+	"gitea.dev/sdk"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -71,7 +71,7 @@ var _ = Describe("Gitea Provider", func() {
 		Expect(getOrg.Get().Description).ToNot(BeNil())
 		// Expect Name and Description to match their underlying data
 		internal := getOrg.APIObject().(*gitea.Organization)
-		Expect(*getOrg.Get().Name).To(Equal(internal.UserName))
+		Expect(*getOrg.Get().Name).To(Equal(internal.Name))
 		Expect(*getOrg.Get().Description).To(Equal(internal.Description))
 
 		// Expect gitea not to hit cache even when we do the same request a second time

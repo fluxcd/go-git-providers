@@ -21,7 +21,7 @@ import (
 	"errors"
 	"reflect"
 
-	"code.gitea.io/sdk/gitea"
+	"gitea.dev/sdk"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/fluxcd/go-git-providers/validation"
@@ -167,7 +167,7 @@ func (r *userRepository) Update(ctx context.Context) error {
 	if r.r.Mirror {
 		opts.MirrorInterval = &r.r.MirrorInterval
 	}
-	apiObj, err := updateRepo(r.c, r.ref.GetIdentity(), r.ref.GetRepository(), &opts)
+	apiObj, err := updateRepo(ctx, r.c, r.ref.GetIdentity(), r.ref.GetRepository(), &opts)
 	if err != nil {
 		return err
 	}
@@ -191,7 +191,7 @@ func (r *userRepository) Reconcile(ctx context.Context) (bool, error) {
 		Template:      r.r.Template,
 		DefaultBranch: r.r.DefaultBranch,
 	}
-	apiObj, err := getRepo(r.c, r.ref.GetIdentity(), r.ref.GetRepository())
+	apiObj, err := getRepo(ctx, r.c, r.ref.GetIdentity(), r.ref.GetRepository())
 	if err != nil {
 		// Create if not found
 		if errors.Is(err, gitprovider.ErrNotFound) {
@@ -199,7 +199,7 @@ func (r *userRepository) Reconcile(ctx context.Context) (bool, error) {
 			if orgRef, ok := r.ref.(gitprovider.OrgRepositoryRef); ok {
 				orgName = orgRef.Organization
 			}
-			repo, err := createRepo(r.c, orgName, opts)
+			repo, err := createRepo(ctx, r.c, orgName, opts)
 			if err != nil {
 				return true, err
 			}
@@ -226,7 +226,7 @@ func (r *userRepository) Reconcile(ctx context.Context) (bool, error) {
 //
 // ErrNotFound is returned if the resource doesn't exist anymore.
 func (r *userRepository) Delete(ctx context.Context) error {
-	return deleteRepo(r.c, r.ref.GetIdentity(), r.ref.GetRepository(), r.destructiveActions)
+	return deleteRepo(ctx, r.c, r.ref.GetIdentity(), r.ref.GetRepository(), r.destructiveActions)
 }
 
 func newOrgRepository(ctx *clientContext, apiObj *gitea.Repository, ref gitprovider.RepositoryRef) *orgRepository {

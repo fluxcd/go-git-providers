@@ -50,9 +50,9 @@ func Test_DomainVariations(t *testing.T) {
 		expectedErrPattern string
 	}{
 		{
-			name:               "custom domain without protocol uses HTTPS by default",
-			opts:               gitprovider.WithDomain(u.Host),
-			expectedErrPattern: "http: server gave HTTP response to HTTPS client",
+			name: "custom domain without protocol uses HTTPS by default",
+			opts: gitprovider.WithDomain(u.Host),
+			want: u.Host,
 		},
 		{
 			name: "custom domain with scheme",

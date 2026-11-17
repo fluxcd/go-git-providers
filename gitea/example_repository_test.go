@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"os"
 
-	gogitea "code.gitea.io/sdk/gitea"
+	gogitea "gitea.dev/sdk"
 	"github.com/fluxcd/go-git-providers/gitea"
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )

@@ -19,7 +19,7 @@ package gitea
 import (
 	"context"
 
-	"code.gitea.io/sdk/gitea"
+	"gitea.dev/sdk"
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
@@ -40,7 +40,7 @@ type TeamsClient struct {
 // ErrNotFound is returned if the resource does not exist.
 func (c *TeamsClient) Get(ctx context.Context, teamName string) (gitprovider.Team, error) {
 	// GET /orgs/{org}/teams/{team_slug}/members
-	apiObjs, err := c.listOrgTeamMembers(c.ref.Organization, teamName)
+	apiObjs, err := c.listOrgTeamMembers(ctx, c.ref.Organization, teamName)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func (c *TeamsClient) Get(ctx context.Context, teamName string) (gitprovider.Tea
 // List returns all available organizations, using multiple paginated requests if needed.
 func (c *TeamsClient) List(ctx context.Context) ([]gitprovider.Team, error) {
 	// GET /orgs/{org}/teams
-	apiObjs, err := c.listOrgTeams(c.ref.Organization)
+	apiObjs, err := c.listOrgTeams(ctx, c.ref.Organization)
 	if err != nil {
 		return nil, err
 	}
@@ -89,8 +89,8 @@ func (c *TeamsClient) List(ctx context.Context) ([]gitprovider.Team, error) {
 }
 
 // listOrgTeamMembers returns all of current team members of the given team.
-func (c *TeamsClient) listOrgTeamMembers(orgName, teamName string) ([]*gitea.User, error) {
-	teams, err := c.listOrgTeams(orgName)
+func (c *TeamsClient) listOrgTeamMembers(ctx context.Context, orgName, teamName string) ([]*gitea.User, error) {
+	teams, err := c.listOrgTeams(ctx, orgName)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +99,7 @@ func (c *TeamsClient) listOrgTeamMembers(orgName, teamName string) ([]*gitea.Use
 	for _, team := range teams {
 		if team.Name == teamName {
 			err := allPages(&opts.ListOptions, func() (*gitea.Response, error) {
-				pageObjs, resp, listErr := c.c.ListTeamMembers(team.ID, gitea.ListTeamMembersOptions{})
+				pageObjs, resp, listErr := c.c.Organizations.ListTeamMembers(ctx, team.ID, gitea.ListTeamMembersOptions{})
 				if len(pageObjs) > 0 {
 					apiObjs = append(apiObjs, pageObjs...)
 					return resp, listErr
@@ -117,13 +117,13 @@ func (c *TeamsClient) listOrgTeamMembers(orgName, teamName string) ([]*gitea.Use
 }
 
 // listOrgTeams returns all teams of the given organization the user has access to.
-func (c *TeamsClient) listOrgTeams(orgName string) ([]*gitea.Team, error) {
+func (c *TeamsClient) listOrgTeams(ctx context.Context, orgName string) ([]*gitea.Team, error) {
 	opts := gitea.ListTeamsOptions{}
 	apiObjs := []*gitea.Team{}
 
 	err := allPages(&opts.ListOptions, func() (*gitea.Response, error) {
 		// GET /orgs/{org}/teams"
-		pageObjs, resp, listErr := c.c.ListOrgTeams(orgName, opts)
+		pageObjs, resp, listErr := c.c.Organizations.ListOrgTeams(ctx, orgName, opts)
 		if len(pageObjs) > 0 {
 			apiObjs = append(apiObjs, pageObjs...)
 			return resp, listErr

@@ -20,7 +20,7 @@ import (
 	"context"
 	"errors"
 
-	"code.gitea.io/sdk/gitea"
+	"gitea.dev/sdk"
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 

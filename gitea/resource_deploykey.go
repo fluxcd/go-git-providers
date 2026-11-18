@@ -21,7 +21,7 @@ import (
 	"errors"
 	"reflect"
 
-	"code.gitea.io/sdk/gitea"
+	"gitea.dev/sdk"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/fluxcd/go-git-providers/validation"
@@ -79,7 +79,7 @@ func (dk *deployKey) Update(ctx context.Context) error {
 	if err := dk.Delete(ctx); err != nil {
 		return err
 	}
-	return dk.createIntoSelf()
+	return dk.createIntoSelf(ctx)
 }
 
 // Delete deletes a deploy key from the repository.
@@ -88,7 +88,7 @@ func (dk *deployKey) Update(ctx context.Context) error {
 func (dk *deployKey) Delete(ctx context.Context) error {
 	// We can use the same DeployKey ID that we got from the GET calls. Make sure it's non-nil.
 	// This _should never_ happen, but just check for it anyways to avoid panicing.
-	return dk.c.deleteKey(dk.c.ref.GetIdentity(), dk.c.ref.GetRepository(), dk.k.ID)
+	return dk.c.deleteKey(ctx, dk.c.ref.GetIdentity(), dk.c.ref.GetRepository(), dk.k.ID)
 }
 
 // Reconcile makes sure the desired state in this object (called "req" here) becomes
@@ -100,11 +100,11 @@ func (dk *deployKey) Delete(ctx context.Context) error {
 //
 // The internal API object will be overridden with the received server data if actionTaken == true.
 func (dk *deployKey) Reconcile(ctx context.Context) (bool, error) {
-	actual, err := dk.c.get(dk.k.Title)
+	actual, err := dk.c.get(ctx, dk.k.Title)
 	if err != nil {
 		// Create if not found
 		if errors.Is(err, gitprovider.ErrNotFound) {
-			return true, dk.createIntoSelf()
+			return true, dk.createIntoSelf(ctx)
 		}
 
 		// Unexpected path, Get should succeed or return NotFound
@@ -123,8 +123,8 @@ func (dk *deployKey) Reconcile(ctx context.Context) (bool, error) {
 	return true, dk.Update(ctx)
 }
 
-func (dk *deployKey) createIntoSelf() error {
-	apiObj, err := dk.c.createKey(dk.c.ref.GetIdentity(), dk.c.ref.GetRepository(), &dk.k)
+func (dk *deployKey) createIntoSelf(ctx context.Context) error {
+	apiObj, err := dk.c.createKey(ctx, dk.c.ref.GetIdentity(), dk.c.ref.GetRepository(), &dk.k)
 	if err != nil {
 		return err
 	}

@@ -21,7 +21,7 @@ import (
 	"errors"
 	"fmt"
 
-	"code.gitea.io/sdk/gitea"
+	"gitea.dev/sdk"
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
@@ -60,7 +60,7 @@ func (c *TeamAccessClient) Get(ctx context.Context, name string) (gitprovider.Te
 // List returns all available team access lists, using multiple paginated requests if needed.
 func (c *TeamAccessClient) List(ctx context.Context) ([]gitprovider.TeamAccess, error) {
 	// List all teams, using pagination. This does not contain information about the members
-	apiObjs, err := c.listRepoTeams(c.ref.GetIdentity(), c.ref.GetRepository())
+	apiObjs, err := c.listRepoTeams(ctx, c.ref.GetIdentity(), c.ref.GetRepository())
 	if err != nil {
 		return nil, err
 	}
@@ -135,8 +135,8 @@ func (c *TeamAccessClient) Reconcile(ctx context.Context,
 }
 
 // getTeamPermissions returns the permissions of the given team on the given repository.
-func (c *TeamAccessClient) getTeamPermissions(_ context.Context, orgName, repo, teamName string) (*gitea.AccessMode, error) {
-	apiObj, resp, err := c.c.CheckRepoTeam(orgName, repo, teamName)
+func (c *TeamAccessClient) getTeamPermissions(ctx context.Context, orgName, repo, teamName string) (*gitea.AccessMode, error) {
+	apiObj, resp, err := c.c.Repositories.CheckRepoTeam(ctx, orgName, repo, teamName)
 	if err != nil {
 		return nil, handleHTTPError(resp, err)
 	}
@@ -148,8 +148,8 @@ func (c *TeamAccessClient) getTeamPermissions(_ context.Context, orgName, repo, 
 }
 
 // listRepoTeams returns all teams of the given repository.
-func (c *TeamAccessClient) listRepoTeams(orgName, repo string) ([]*gitea.Team, error) {
-	teamObjs, resp, err := c.c.GetRepoTeams(orgName, repo)
+func (c *TeamAccessClient) listRepoTeams(ctx context.Context, orgName, repo string) ([]*gitea.Team, error) {
+	teamObjs, resp, err := c.c.Repositories.GetRepoTeams(ctx, orgName, repo)
 	if err != nil {
 		return nil, handleHTTPError(resp, err)
 	}
@@ -159,13 +159,13 @@ func (c *TeamAccessClient) listRepoTeams(orgName, repo string) ([]*gitea.Team, e
 // addTeam adds the given team to the given repository.
 // We don't support setting permissions for Gitea, so we ignore the permission parameter.
 // see https://github.com/go-gitea/gitea/issues/14717
-func (c *TeamAccessClient) addTeam(_ context.Context, orgName, repo, teamName string) error {
-	res, err := c.c.AddRepoTeam(orgName, repo, teamName)
+func (c *TeamAccessClient) addTeam(ctx context.Context, orgName, repo, teamName string) error {
+	res, err := c.c.Repositories.AddRepoTeam(ctx, orgName, repo, teamName)
 	return handleHTTPError(res, err)
 }
 
 // removeTeam removes the given team from the given repository.
-func (c *TeamAccessClient) removeTeam(_ context.Context, orgName, repo, teamName string) error {
-	res, err := c.c.RemoveRepoTeam(orgName, repo, teamName)
+func (c *TeamAccessClient) removeTeam(ctx context.Context, orgName, repo, teamName string) error {
+	res, err := c.c.Repositories.RemoveRepoTeam(ctx, orgName, repo, teamName)
 	return handleHTTPError(res, err)
 }

@@ -17,7 +17,7 @@ limitations under the License.
 package gitea
 
 import (
-	"code.gitea.io/sdk/gitea"
+	"gitea.dev/sdk"
 
 	"github.com/fluxcd/go-git-providers/gitprovider"
 	"github.com/fluxcd/go-git-providers/validation"
@@ -66,9 +66,19 @@ func (o *organization) Teams() gitprovider.TeamsClient {
 	return o.teams
 }
 
+// organizationName returns the name of the organization from the API object.
+// Gitea servers older than v1.18 only populate the deprecated "username" field.
+func organizationName(apiObj *gitea.Organization) string {
+	if apiObj.Name != "" {
+		return apiObj.Name
+	}
+	return apiObj.UserName
+}
+
 func organizationFromAPI(apiObj *gitea.Organization) gitprovider.OrganizationInfo {
+	name := organizationName(apiObj)
 	return gitprovider.OrganizationInfo{
-		Name:        &apiObj.UserName,
+		Name:        &name,
 		Description: &apiObj.Description,
 	}
 }

@@ -21,7 +21,7 @@ import (
 	"errors"
 	"fmt"
 
-	"code.gitea.io/sdk/gitea"
+	"gitea.dev/sdk"
 	"github.com/fluxcd/go-git-providers/gitprovider"
 )
 
@@ -42,7 +42,7 @@ func (c *UserRepositoriesClient) Get(ctx context.Context, ref gitprovider.UserRe
 		return nil, err
 	}
 	// GET /repos/{owner}/{repo}
-	apiObj, err := getRepo(c.c, ref.GetIdentity(), ref.GetRepository())
+	apiObj, err := getRepo(ctx, c.c, ref.GetIdentity(), ref.GetRepository())
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func (c *UserRepositoriesClient) List(ctx context.Context, ref gitprovider.UserR
 	}
 
 	// GET /users/{username}/repos
-	apiObjs, err := c.listUserRepos(ref.UserLogin)
+	apiObjs, err := c.listUserRepos(ctx, ref.UserLogin)
 	if err != nil {
 		return nil, err
 	}
@@ -76,13 +76,13 @@ func (c *UserRepositoriesClient) List(ctx context.Context, ref gitprovider.UserR
 	return repos, nil
 }
 
-func (c *UserRepositoriesClient) listUserRepos(username string) ([]*gitea.Repository, error) {
+func (c *UserRepositoriesClient) listUserRepos(ctx context.Context, username string) ([]*gitea.Repository, error) {
 	opts := gitea.ListReposOptions{}
 	apiObjs := []*gitea.Repository{}
 
 	err := allPages(&opts.ListOptions, func() (*gitea.Response, error) {
 		// GET /users/{username}/repos
-		pageObjs, resp, listErr := c.c.ListUserRepos(username, opts)
+		pageObjs, resp, listErr := c.c.Repositories.ListUserRepos(ctx, username, opts)
 		if len(pageObjs) > 0 {
 			apiObjs = append(apiObjs, pageObjs...)
 			return resp, listErr
@@ -98,7 +98,7 @@ func (c *UserRepositoriesClient) listUserRepos(username string) ([]*gitea.Reposi
 // GetUserLogin returns the authenticated user
 func (c *UserRepositoriesClient) GetUserLogin(ctx context.Context) (gitprovider.IdentityRef, error) {
 	// GET /user
-	user, _, err := c.c.GetMyUserInfo()
+	user, _, err := c.c.Users.GetMyUserInfo(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +132,7 @@ func (c *UserRepositoriesClient) Create(ctx context.Context,
 		return nil, gitprovider.NewErrIncorrectUser(ref.GetIdentity())
 	}
 
-	apiObj, err := createRepository(c.c, ref, "", req, opts...)
+	apiObj, err := createRepository(ctx, c.c, ref, "", req, opts...)
 	if err != nil {
 		return nil, err
 	}
